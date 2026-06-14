@@ -1,0 +1,104 @@
+import asyncHandler from 'express-async-handler';
+import Product from '../models/Product.js';
+import Category from '../models/Category.js';
+
+// @desc    Fetch all products with filters, search, and category selection
+// @route   GET /api/products
+// @access  Public
+const getProducts = asyncHandler(async (req, res) => {
+  const { keyword, category, minPrice, maxPrice } = req.query;
+
+  let query = {};
+
+  // Keyword Search (case insensitive)
+  if (keyword) {
+    query.name = {
+      $regex: keyword,
+      $options: 'i',
+    };
+  }
+
+  // Category filter
+  if (category) {
+    query.category = category;
+  }
+
+  // Price Range filter
+  if (minPrice || maxPrice) {
+    query.price = {};
+    if (minPrice) {
+      query.price.$gte = Number(minPrice);
+    }
+    if (maxPrice) {
+      query.price.$lte = Number(maxPrice);
+    }
+  }
+
+  const products = await Product.find(query);
+  res.json(products);
+});
+
+// @desc    Fetch single product by ID
+// @route   GET /api/products/:id
+// @access  Public
+const getProductById = asyncHandler(async (req, res) => {
+  const product = await Product.findById(req.params.id);
+
+  if (product) {
+    res.json(product);
+  } else {
+    res.status(404);
+    throw new Error('Product not found');
+  }
+});
+
+// @desc    Create new review for a product
+// @route   POST /api/products/:id/reviews
+// @access  Private/Student
+const createProductReview = asyncHandler(async (req, res) => {
+  const { rating, comment } = req.body;
+
+  const product = await Product.findById(req.params.id);
+
+  if (product) {
+    const alreadyReviewed = product.reviews.find(
+      (r) => r.user.toString() === req.user._id.toString()
+    );
+
+    if (alreadyReviewed) {
+      res.status(400);
+      throw new Error('Product already reviewed by this user');
+    }
+
+    const review = {
+      name: req.user.name,
+      rating: Number(rating),
+      comment,
+      user: req.user._id,
+    };
+
+    product.reviews.push(review);
+    product.numReviews = product.reviews.length;
+
+    // Recalculate average rating
+    product.rating =
+      product.reviews.reduce((acc, item) => item.rating + acc, 0) /
+      product.reviews.length;
+
+    await product.save();
+    res.status(201).json({ message: 'Review added successfully' });
+  } else {
+    res.status(404);
+    throw new Error('Product not found');
+  }
+});
+
+// @desc    Get all product categories
+// @route   GET /api/products/categories
+// @access  Public
+const getCategories = asyncHandler(async (req, res) => {
+  const categories = await Category.find({});
+  res.json(categories);
+});
+
+export { getProducts, getProductById, createProductReview, getCategories };
