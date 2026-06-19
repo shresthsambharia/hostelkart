@@ -76,6 +76,12 @@ const productSchema = new mongoose.Schema(
   }
 );
 
+// Indexes for optimization
+productSchema.index({ category: 1 });
+productSchema.index({ price: 1 });
+productSchema.index({ rating: -1, numReviews: -1 });
+productSchema.index({ name: 'text' });
+
 const Product = mongoose.model('Product', productSchema);
 
 export default Product;

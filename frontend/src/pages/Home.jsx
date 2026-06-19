@@ -10,22 +10,27 @@ import {
   ShieldCheck 
 } from 'lucide-react';
 
+const staticCategories = [
+  { name: 'Fruits', emoji: '🍎' },
+  { name: 'Vegetables', emoji: '🥦' },
+  { name: 'Stationery', emoji: '📚' },
+  { name: 'Instant Food', emoji: '🍜' },
+  { name: 'Electronics Accessories', emoji: '🔌' },
+  { name: 'Personal Care', emoji: '🧼' },
+  { name: 'Dairy Products', emoji: '🧀' }
+];
+
 const Home = () => {
   const [products, setProducts] = useState([]);
   const [bestSellers, setBestSellers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState([]);
   const [searchKeyword, setSearchKeyword] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        // Fetch categories
-        const catRes = await productAPI.getCategories();
-        setCategories(catRes.data);
-
-        // Fetch products
+        // Fetch only products to minimize network roundtrips and improve speed
         const prodRes = await productAPI.getAll({});
         const allProds = prodRes.data;
         
@@ -158,21 +163,14 @@ const Home = () => {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4">
-          {categories.map((cat) => (
+          {staticCategories.map((cat) => (
             <Link
               key={cat.name}
               to={`/products?category=${encodeURIComponent(cat.name)}`}
               className="group p-5 bg-gradient-to-br from-white to-slate-50/50 border border-slate-100 rounded-2xl hover:border-primary-300 hover:shadow-md hover:-translate-y-1 transition-all duration-300 text-center flex flex-col items-center space-y-4 shadow-sm"
             >
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-50 to-emerald-50 text-3xl flex items-center justify-center shadow-inner group-hover:scale-110 group-hover:bg-gradient-to-br group-hover:from-primary-100 group-hover:to-emerald-100 transition-all duration-300">
-                {/* Emoji mapping helper depending on category */}
-                {cat.name === 'Fruits' && '🍎'}
-                {cat.name === 'Vegetables' && '🥦'}
-                {cat.name === 'Dairy Products' && '🧀'}
-                {cat.name === 'Personal Care' && '🧼'}
-                {cat.name === 'Stationery' && '📚'}
-                {cat.name === 'Electronics Accessories' && '🔌'}
-                {cat.name === 'Instant Food' && '🍜'}
+                {cat.emoji}
               </div>
               <span className="text-sm font-bold text-slate-700 group-hover:text-primary-700 transition-colors block">
                 {cat.name}

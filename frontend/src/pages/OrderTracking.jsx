@@ -282,7 +282,7 @@ const OrderTracking = () => {
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <a
-              href="BOYS_GROUP_URL"
+              href="https://chat.whatsapp.com/DW9mFovIExGBjhLOx9dQYU"
               target="_blank"
               rel="noopener noreferrer"
               className="flex-1 btn-primary py-3.5 px-4 min-h-[48px] text-xs font-bold flex items-center justify-center space-x-2 rounded-xl"
@@ -290,7 +290,7 @@ const OrderTracking = () => {
               <span>Join Boys Hostel WhatsApp Group</span>
             </a>
             <a
-              href="GIRLS_GROUP_URL"
+              href="https://chat.whatsapp.com/KwNyzS4rW3MAnKqC4mjLI5"
               target="_blank"
               rel="noopener noreferrer"
               className="flex-1 btn-secondary py-3.5 px-4 min-h-[48px] text-xs font-bold flex items-center justify-center space-x-2 rounded-xl border border-slate-200"

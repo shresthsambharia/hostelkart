@@ -36,10 +36,10 @@ const ProductCard = ({ product }) => {
 
   // Safe image path checker
   const getProductImage = (img) => {
-    if (!img) return 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400';
-    // If it is absolute external URL, return it
-    if (img.startsWith('http')) return img;
-    // Serve from backend static uploads folder
+    if (!img) return 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300&q=75';
+    if (img.startsWith('https://images.unsplash.com') && !img.includes('w=')) {
+      return `${img}${img.includes('?') ? '&' : '?'}w=300&q=75&fit=crop`;
+    }
     return img;
   };
 

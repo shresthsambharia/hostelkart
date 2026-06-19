@@ -35,6 +35,7 @@ const getProducts = asyncHandler(async (req, res) => {
   }
 
   const products = await Product.find(query);
+  res.setHeader('Cache-Control', 'public, max-age=15');
   res.json(products);
 });
 
@@ -45,6 +46,7 @@ const getProductById = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
 
   if (product) {
+    res.setHeader('Cache-Control', 'public, max-age=30');
     res.json(product);
   } else {
     res.status(404);
@@ -98,6 +100,7 @@ const createProductReview = asyncHandler(async (req, res) => {
 // @access  Public
 const getCategories = asyncHandler(async (req, res) => {
   const categories = await Category.find({});
+  res.setHeader('Cache-Control', 'public, max-age=3600');
   res.json(categories);
 });
 

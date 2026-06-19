@@ -267,7 +267,9 @@ const MyOrders = () => {
                   <span className="text-xs text-slate-400 font-bold block">ORDER PLACED</span>
                   <span className="font-semibold text-slate-600 flex items-center space-x-1">
                     <Calendar size={14} className="text-slate-400" />
-                    <span>{new Date(order.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    <span>
+                      {new Date(order.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} at {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </span>
                 </div>
                 

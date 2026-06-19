@@ -121,13 +121,19 @@ const ProductDetails = () => {
           {/* Product Image Panel */}
           <div className="bg-slate-50 rounded-2xl p-6 flex items-center justify-center min-h-[300px] md:min-h-[400px] relative">
             <img
-              src={product.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400'}
+              src={
+                product.image
+                  ? (product.image.startsWith('https://images.unsplash.com') && !product.image.includes('w=')
+                      ? `${product.image}${product.image.includes('?') ? '&' : '?'}w=600&q=80`
+                      : product.image)
+                  : 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80'
+              }
               alt={product.name}
               loading="lazy"
               className="w-full h-full max-h-[350px] object-contain rounded-lg"
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400';
+                e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80';
               }}
             />
             {product.discount > 0 && (

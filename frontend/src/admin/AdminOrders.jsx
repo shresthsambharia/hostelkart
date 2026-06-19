@@ -262,7 +262,7 @@ const AdminOrders = () => {
                       </span>
                       <span className="text-[10px] text-slate-400 font-semibold flex items-center space-x-1.5 mt-1 leading-none">
                         <Calendar size={10} />
-                        <span>{new Date(ord.createdAt).toLocaleDateString()}</span>
+                        <span>{new Date(ord.createdAt).toLocaleDateString()} at {new Date(ord.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </span>
                     </td>
 
