@@ -343,7 +343,7 @@ const AdminUsers = () => {
                 <label className="text-xs font-semibold text-slate-600 block mb-1">Email Address</label>
                 <input
                   type="email"
-                  placeholder="e.g. ramesh@hostelkart.com"
+                  placeholder="e.g. ramesh@gmail.com"
                   className="input-field text-sm"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}

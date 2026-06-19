@@ -55,9 +55,9 @@ const PrivacyPolicy = () => {
         <section className="space-y-2">
           <h2 className="text-lg font-bold text-slate-800">5. Contact Information</h2>
           <p>
-            If you have questions, data deletion requests, or concerns about this Privacy Policy, please contact our privacy compliance group at{' '}
-            <a href="mailto:support@hostelkart.com" className="text-primary-600 font-bold hover:underline">
-              support@hostelkart.com
+             If you have questions, data deletion requests, or concerns about this Privacy Policy, please contact our privacy compliance group at{' '}
+            <a href="mailto:supporthostelkart@gmail.com" className="text-primary-600 font-bold hover:underline">
+              supporthostelkart@gmail.com
             </a>.
           </p>
         </section>

@@ -44,8 +44,8 @@ const Contact = () => {
             <div>
               <h4 className="font-bold text-slate-800 text-sm">Email Us</h4>
               <p className="text-xs text-slate-400 mt-0.5">Response in 2 hrs</p>
-              <a href="mailto:support@hostelkart.com" className="text-xs font-semibold text-primary-600 hover:underline block mt-1.5 break-all">
-                support@hostelkart.com
+              <a href="mailto:supporthostelkart@gmail.com" className="text-xs font-semibold text-primary-600 hover:underline block mt-1.5 break-all">
+                supporthostelkart@gmail.com
               </a>
             </div>
           </div>
