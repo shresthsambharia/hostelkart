@@ -34,7 +34,7 @@ const PaymentTest = () => {
         },
         prefill: {
           name: 'Test Student',
-          email: 'test@hostelkart.com',
+          email: 'test@gmail.com',
           contact: '9876543210'
         },
         theme: {

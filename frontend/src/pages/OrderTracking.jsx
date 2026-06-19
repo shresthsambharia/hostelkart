@@ -170,7 +170,7 @@ const OrderTracking = () => {
       doc.setFontSize(8);
       doc.setFont('helvetica', 'italic');
       doc.text('Thank you for choosing HostelKart!', 105, 280, { align: 'center' });
-      doc.text('For queries or support, reach out at support@hostelkart.com', 105, 284, { align: 'center' });
+      doc.text('For queries or support, reach out at supporthostelkart@gmail.com', 105, 284, { align: 'center' });
 
       // Save PDF document
       doc.save(`HostelKart_Invoice_${order._id.substring(12).toUpperCase()}.pdf`);

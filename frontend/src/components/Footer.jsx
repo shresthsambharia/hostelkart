@@ -53,13 +53,33 @@ const Footer = () => {
                 <Link to="/custom-request" className="hover:text-primary-400 transition-colors">Request Custom Item</Link>
               </li>
               <li className="text-xs text-slate-500 pt-2">
-                Need help? Contact campus support at support@hostelkart.com
+                Need help? Contact campus support at supporthostelkart@gmail.com
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-slate-800 text-center text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-4">
+        {/* WhatsApp community links in the footer */}
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 border-t border-slate-800 pt-6 mt-8">
+          <a 
+            href="https://chat.whatsapp.com/DW9mFovIExGBjhLOx9dQYU" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-sm font-bold text-emerald-450 hover:text-emerald-300 transition-colors bg-emerald-500/10 px-4 py-2.5 rounded-xl border border-emerald-500/20 flex items-center space-x-1.5 active:scale-95 transition-all"
+          >
+            <span>💬 Join Boys Hostel WhatsApp Group</span>
+          </a>
+          <a 
+            href="https://chat.whatsapp.com/KwNyzS4rW3MAnKqC4mjLI5" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-sm font-bold text-emerald-450 hover:text-emerald-300 transition-colors bg-emerald-500/10 px-4 py-2.5 rounded-xl border border-emerald-500/20 flex items-center space-x-1.5 active:scale-95 transition-all"
+          >
+            <span>💬 Join Girls Hostel WhatsApp Group</span>
+          </a>
+        </div>
+
+        <div className="mt-8 pt-8 border-t border-slate-800 text-center text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p>Designed for college campuses. Quick delivery direct to your block and room.</p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link to="/about" className="hover:text-slate-300 transition-colors">About Us</Link>
