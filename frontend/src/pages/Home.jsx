@@ -48,6 +48,10 @@ const Home = () => {
           mixedItems.push(...remaining.slice(0, 8 - mixedItems.length));
         }
 
+        if (mixedItems.length === 0 && allProds.length > 0) {
+          mixedItems.push(...allProds.slice(0, 8));
+        }
+        
         setProducts(mixedItems.slice(0, 8));
       } catch (error) {
         console.error('Error loading home data:', error);
