@@ -191,13 +191,13 @@ const ProductListing = () => {
 
           {/* Grid list */}
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="animate-pulse bg-white border border-slate-100 rounded-2xl h-80"></div>
               ))}
             </div>
           ) : products.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6 animate-fade-in">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 animate-fade-in">
               {products.map((product) => (
                 <ProductCard key={product._id} product={product} />
               ))}

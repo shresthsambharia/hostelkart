@@ -86,7 +86,7 @@ const Navbar = () => {
               <div className="relative w-full">
                 <input
                   type="text"
-                  placeholder="Search hostel essentials, snacks..."
+                  placeholder="Search hostel essentials, fruits, stationery..."
                   className="w-full bg-slate-50 border border-slate-200 rounded-full py-2 pl-4 pr-10 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white text-sm transition-all"
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
@@ -386,14 +386,14 @@ const Navbar = () => {
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="text-center py-2 text-base font-medium text-slate-700 hover:bg-slate-50 rounded-lg"
+                  className="text-center py-3 min-h-[48px] text-base font-semibold text-slate-700 hover:bg-slate-50 rounded-lg flex items-center justify-center border border-slate-200 shadow-sm"
                 >
                   Sign In
                 </Link>
                 <Link
                   to="/register"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="text-center btn-primary py-2 text-base"
+                  className="text-center btn-primary py-3.5 min-h-[48px] text-base flex items-center justify-center"
                 >
                   Sign Up
                 </Link>

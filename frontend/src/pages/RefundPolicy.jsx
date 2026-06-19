@@ -43,7 +43,7 @@ const RefundPolicy = () => {
         <section className="space-y-2">
           <h2 className="text-lg font-bold text-slate-800">4. Wrong or Defective Items</h2>
           <p>
-            Because we deliver food items, snacks, and personal care products:
+            Because we deliver fresh food, dairy, and personal care products:
           </p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Please inspect your package immediately upon delivery.</li>

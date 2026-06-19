@@ -65,41 +65,44 @@ const Cart = () => {
             return (
               <div
                 key={item._id}
-                className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 relative"
+                className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative"
               >
-                {/* Image */}
-                <div className="w-20 h-20 bg-slate-50 rounded-xl flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden">
-                  <img
-                    src={product.image || '/uploads/default-product.png'}
-                    alt={product.name}
-                    className="w-16 h-16 object-contain"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = '/uploads/default-product.png';
-                    }}
-                  />
-                </div>
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  {/* Image */}
+                  <div className="w-20 h-20 bg-slate-50 rounded-xl flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden">
+                    <img
+                      src={product.image || '/uploads/default-product.png'}
+                      alt={product.name}
+                      loading="lazy"
+                      className="w-16 h-16 object-contain"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = '/uploads/default-product.png';
+                      }}
+                    />
+                  </div>
 
-                {/* Details */}
-                <div className="flex-1 min-w-0 space-y-1">
-                  <span className="text-[10px] font-bold text-primary-600 uppercase tracking-wider block">
-                    {product.category}
-                  </span>
-                  <Link to={`/products/${product._id}`} className="hover:text-primary-600 transition-colors">
-                    <h3 className="text-sm font-bold text-slate-800 truncate pr-6">{product.name}</h3>
-                  </Link>
-                  
-                  {/* Price */}
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-bold text-slate-800">₹{discountedPrice}</span>
-                    {product.discount > 0 && (
-                      <span className="text-xs text-slate-400 line-through">₹{product.price}</span>
-                    )}
+                  {/* Details */}
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <span className="text-[10px] font-bold text-primary-600 uppercase tracking-wider block">
+                      {product.category}
+                    </span>
+                    <Link to={`/products/${product._id}`} className="hover:text-primary-600 transition-colors">
+                      <h3 className="text-sm font-bold text-slate-800 truncate pr-6">{product.name}</h3>
+                    </Link>
+                    
+                    {/* Price */}
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-bold text-slate-800">₹{discountedPrice}</span>
+                      {product.discount > 0 && (
+                        <span className="text-xs text-slate-400 line-through">₹{product.price}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 {/* Controls */}
-                <div className="flex flex-col sm:flex-row items-center gap-4 shrink-0">
+                <div className="flex flex-row items-center justify-between sm:justify-end gap-4 shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100 w-full sm:w-auto">
                   {/* Quantity selector */}
                   <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
                     <button

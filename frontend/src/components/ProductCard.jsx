@@ -69,6 +69,7 @@ const ProductCard = ({ product }) => {
           <img
             src={getProductImage(product.image)}
             alt={product.name}
+            loading="lazy"
             className="absolute inset-0 w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
             onError={(e) => {
               e.target.onerror = null;
@@ -159,13 +160,13 @@ const ProductCard = ({ product }) => {
           <button
             onClick={handleAddToCart}
             disabled={!product.isAvailable || product.stock === 0 || adding}
-            className={`w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-lg font-bold text-xs transition-all ${
+            className={`w-full flex items-center justify-center space-x-2 py-3 px-4 min-h-[48px] rounded-lg font-bold text-sm transition-all ${
               !product.isAvailable || product.stock === 0
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
-                : 'bg-primary-50 text-primary-700 hover:bg-primary-600 hover:text-white border border-primary-100'
+                : 'bg-primary-50 text-primary-700 hover:bg-primary-600 hover:text-white border border-primary-100 shadow-sm'
             }`}
           >
-            <ShoppingCart size={14} />
+            <ShoppingCart size={16} />
             <span>{adding ? 'Adding...' : 'Add to Cart'}</span>
           </button>
         </div>

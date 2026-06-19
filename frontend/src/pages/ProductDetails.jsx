@@ -52,7 +52,7 @@ const ProductDetails = () => {
       <div className="max-w-7xl mx-auto px-4 py-16 text-center space-y-4">
         <h2 className="text-2xl font-bold text-slate-800">Product Not Found</h2>
         <p className="text-slate-500">The product you are looking for does not exist or has been removed.</p>
-        <Link to="/products" className="btn-primary py-2 px-6 inline-block">Back to Shop</Link>
+        <Link to="/products" className="btn-primary py-3 px-6 inline-flex items-center justify-center min-h-[48px]">Back to Shop</Link>
       </div>
     );
   }
@@ -123,6 +123,7 @@ const ProductDetails = () => {
             <img
               src={product.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400'}
               alt={product.name}
+              loading="lazy"
               className="w-full h-full max-h-[350px] object-contain rounded-lg"
               onError={(e) => {
                 e.target.onerror = null;
@@ -359,7 +360,7 @@ const ProductDetails = () => {
                 />
               </div>
 
-              <button type="submit" className="w-full btn-primary py-2 text-xs">
+              <button type="submit" className="w-full btn-primary py-3.5 text-sm min-h-[48px]">
                 Submit Review
               </button>
             </form>
