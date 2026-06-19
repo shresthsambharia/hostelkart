@@ -2,7 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { productAPI } from '../api';
 import ProductCard from '../components/ProductCard';
-import { SlidersHorizontal, Search, RefreshCw, X } from 'lucide-react';
+import { SlidersHorizontal, Search, X } from 'lucide-react';
+
+const staticCategoryNames = [
+  'Fruits',
+  'Vegetables',
+  'Stationery',
+  'Instant Food',
+  'Electronics Accessories',
+  'Personal Care',
+  'Dairy Products'
+];
 
 const ProductListing = () => {
   const location = useLocation();
@@ -19,7 +29,6 @@ const ProductListing = () => {
   const queryParams = getQueryParams();
 
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Filters State
@@ -35,19 +44,6 @@ const ProductListing = () => {
     setKeyword(params.keyword);
     setSelectedCategory(params.category);
   }, [location.search]);
-
-  // Load Categories on mount
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const { data } = await productAPI.getCategories();
-        setCategories(data);
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-      }
-    };
-    fetchCategories();
-  }, []);
 
   // Fetch Products based on filters
   const fetchProducts = async () => {
@@ -114,17 +110,17 @@ const ProductListing = () => {
               >
                 All Categories
               </button>
-              {categories.map((cat) => (
+              {staticCategoryNames.map((catName) => (
                 <button
-                  key={cat.name}
-                  onClick={() => setSelectedCategory(cat.name)}
+                  key={catName}
+                  onClick={() => setSelectedCategory(catName)}
                   className={`text-left text-sm py-1.5 px-3 rounded-lg font-medium transition-colors ${
-                    selectedCategory === cat.name
+                    selectedCategory === catName
                       ? 'bg-primary-50 text-primary-700 font-bold'
                       : 'text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  {cat.name}
+                  {catName}
                 </button>
               ))}
             </div>
@@ -244,15 +240,15 @@ const ProductListing = () => {
                   >
                     All Categories
                   </button>
-                  {categories.map((cat) => (
+                  {staticCategoryNames.map((catName) => (
                     <button
-                      key={cat.name}
-                      onClick={() => { setSelectedCategory(cat.name); setSidebarOpen(false); }}
+                      key={catName}
+                      onClick={() => { setSelectedCategory(catName); setSidebarOpen(false); }}
                       className={`text-left text-sm py-1.5 px-3 rounded-lg font-medium transition-colors ${
-                        selectedCategory === cat.name ? 'bg-primary-50 text-primary-700 font-bold' : 'text-slate-600'
+                        selectedCategory === catName ? 'bg-primary-50 text-primary-700 font-bold' : 'text-slate-600'
                       }`}
                     >
-                      {cat.name}
+                      {catName}
                     </button>
                   ))}
                 </div>
