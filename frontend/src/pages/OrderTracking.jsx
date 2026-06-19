@@ -273,6 +273,34 @@ const OrderTracking = () => {
         </div>
       </div>
 
+      {/* WhatsApp Community Groups - Show only after successful order placement (i.e. not cancelled/failed) */}
+      {order.orderStatus !== 'Cancelled' && order.paymentStatus !== 'FAILED' && (
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+          <div className="space-y-1">
+            <h3 className="font-extrabold text-slate-800 text-sm">Join Hostel Community Groups</h3>
+            <p className="text-xs text-slate-500">Stay updated on delivery timings, stock refills, and special offers in your hostel block!</p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <a
+              href="BOYS_GROUP_URL"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 btn-primary py-3.5 px-4 min-h-[48px] text-xs font-bold flex items-center justify-center space-x-2 rounded-xl"
+            >
+              <span>Join Boys Hostel WhatsApp Group</span>
+            </a>
+            <a
+              href="GIRLS_GROUP_URL"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 btn-secondary py-3.5 px-4 min-h-[48px] text-xs font-bold flex items-center justify-center space-x-2 rounded-xl border border-slate-200"
+            >
+              <span>Join Girls Hostel WhatsApp Group</span>
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Main Track Layout Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         

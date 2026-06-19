@@ -12,7 +12,7 @@ const Footer = () => {
               Hostel<span className="text-primary-400">Kart</span>
             </span>
             <p className="text-sm text-slate-400 max-w-sm">
-              Daily hostel essentials delivered to your room. Get snacks, personal care, medicines, stationery, and more delivered in under 30 minutes!
+              Daily hostel essentials delivered to your room. Get fresh fruits, personal care, stationery, instant food, and more delivered in under 30 minutes!
             </p>
             <div className="pt-2 text-xs text-slate-500">
               <p>HostelKart Delivery Service &copy; {new Date().getFullYear()}</p>
@@ -25,16 +25,16 @@ const Footer = () => {
             <h3 className="text-white text-sm font-semibold tracking-wider uppercase mb-4">Categories</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/products?category=Snacks" className="hover:text-primary-400 transition-colors">Snacks & Instant Food</Link>
+                <Link to="/products?category=Fruits" className="hover:text-primary-400 transition-colors">Fruits & Vegetables</Link>
               </li>
               <li>
-                <Link to="/products?category=Beverages" className="hover:text-primary-400 transition-colors">Beverages</Link>
+                <Link to="/products?category=Instant Food" className="hover:text-primary-400 transition-colors">Instant Food</Link>
               </li>
               <li>
                 <Link to="/products?category=Personal Care" className="hover:text-primary-400 transition-colors">Personal Care</Link>
               </li>
               <li>
-                <Link to="/products?category=Hostel Essentials" className="hover:text-primary-400 transition-colors">Hostel Essentials</Link>
+                <Link to="/products?category=Dairy Products" className="hover:text-primary-400 transition-colors">Dairy Products</Link>
               </li>
             </ul>
           </div>

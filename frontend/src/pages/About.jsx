@@ -13,7 +13,7 @@ const About = () => {
           Direct to Room <span className="text-primary-600">Hostel Deliveries</span>
         </h1>
         <p className="text-slate-500 text-base max-w-xl mx-auto leading-relaxed">
-          HostelKart is your campus companion. We deliver snacks, fresh fruits, drinks, medicines, personal care, and stationery straight to your hostel wing and room number in under 30 minutes!
+          HostelKart is your campus companion. We deliver fresh fruits, vegetables, dairy products, personal care, electronics accessories, and stationery straight to your hostel wing and room number in under 30 minutes!
         </p>
       </div>
 

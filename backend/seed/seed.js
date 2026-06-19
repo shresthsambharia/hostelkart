@@ -30,16 +30,11 @@ const connectDB = async () => {
 const categories = [
   { name: 'Fruits', description: 'Fresh and organic seasonal fruits', image: 'https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=400' },
   { name: 'Vegetables', description: 'Fresh vegetables for hostel cooking', image: 'https://images.unsplash.com/photo-1566385101042-1a010c129fa6?w=400' },
-  { name: 'Snacks', description: 'Chips, cookies, popcorn, and munchies', image: 'https://images.unsplash.com/photo-1599490659213-e2b9527b0876?w=400' },
-  { name: 'Beverages', description: 'Soft drinks, energy juices, tea, and coffee', image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=400' },
   { name: 'Dairy Products', description: 'Milk, cheese, butter, yogurt, and paneer', image: 'https://images.unsplash.com/photo-1529258283582-7239c52bde0a?w=400' },
   { name: 'Personal Care', description: 'Shampoo, soaps, toothpaste, and grooming', image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400' },
-  { name: 'Medicines', description: 'Basic OTC remedies, band-aids, and pain relievers', image: 'https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=400' },
   { name: 'Stationery', description: 'Notebooks, pens, registers, and study tools', image: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=400' },
-  { name: 'Hostel Essentials', description: 'Buckets, hangers, bedsheets, locks, and detergent', image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=400' },
   { name: 'Electronics Accessories', description: 'OTG cables, phone stands, charging wires, and earphones', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400' },
-  { name: 'Instant Food', description: 'Cup noodles, ready-to-eat meals, and soup packets', image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400' },
-  { name: 'Custom Requests', description: 'Special order requests approved by Admin', image: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=400' }
+  { name: 'Instant Food', description: 'Cup noodles, ready-to-eat meals, and soup packets', image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400' }
 ];
 
 const usersData = [
@@ -171,7 +166,16 @@ const seedData = async () => {
     console.log('Shopping carts and Wishlists initialized.');
 
     // 3. Seed Products
-    const seededProducts = await Product.insertMany(productsData);
+    const mappedProductsData = productsData.map(p => {
+      let mappedCategory = p.category;
+      if (mappedCategory === 'Snacks' || mappedCategory === 'Beverages') {
+        mappedCategory = 'Instant Food';
+      } else if (mappedCategory === 'Medicines' || mappedCategory === 'Hostel Essentials' || mappedCategory === 'Custom Requests') {
+        mappedCategory = 'Personal Care';
+      }
+      return { ...p, category: mappedCategory };
+    });
+    const seededProducts = await Product.insertMany(mappedProductsData);
     console.log(`Products seeded (${seededProducts.length} items loaded).`);
 
     // 4. Create one initial sample order for the student to make the app feel populated

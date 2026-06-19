@@ -47,19 +47,6 @@ const Login = () => {
           </p>
         </div>
 
-        {/* Demo credentials hint box */}
-        <div className="bg-emerald-50/70 border border-emerald-100 rounded-xl p-4 text-xs text-emerald-800 space-y-1.5">
-          <p className="font-bold text-emerald-900">Demo Credentials:</p>
-          <div className="grid grid-cols-2 gap-y-1">
-            <span>Student:</span>
-            <span className="font-mono">student@hostelkart.com / student123</span>
-            <span>Admin:</span>
-            <span className="font-mono">admin@hostelkart.com / admin123</span>
-            <span>Delivery:</span>
-            <span className="font-mono">delivery@hostelkart.com / delivery123</span>
-          </div>
-        </div>
-
         {/* Error alert */}
         {error && (
           <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex items-start space-x-2 text-red-700 text-sm">
@@ -111,7 +98,7 @@ const Login = () => {
           </div>
 
           <div>
-            <button type="submit" className="w-full btn-primary py-2.5 text-sm">
+            <button type="submit" className="w-full btn-primary text-sm">
               Sign In
             </button>
           </div>

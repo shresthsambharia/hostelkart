@@ -853,7 +853,7 @@ const Checkout = () => {
                   type="button"
                   onClick={handleCancelSimulatedPayment}
                   disabled={simulatedLoading}
-                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 rounded-xl transition-all"
+                  className="px-4 py-3 min-h-[48px] text-sm font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 rounded-xl transition-all flex items-center justify-center"
                 >
                   Cancel
                 </button>
@@ -861,7 +861,7 @@ const Checkout = () => {
                   type="button"
                   onClick={handleSimulatedPayment}
                   disabled={simulatedLoading}
-                  className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition-all flex items-center space-x-1.5"
+                  className="px-5 py-3 min-h-[48px] text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition-all flex items-center justify-center space-x-1.5"
                 >
                   {simulatedLoading ? (
                     <>
