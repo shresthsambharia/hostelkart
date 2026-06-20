@@ -19,4 +19,24 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            // Split heavy PDF generation dependencies to keep initial load lightweight
+            if (id.includes('jspdf') || id.includes('html2canvas')) {
+              return 'vendor-pdf';
+            }
+            // Isolate icons to allow parallel download
+            if (id.includes('lucide-react')) {
+              return 'vendor-icons';
+            }
+            // Standard framework libraries
+            return 'vendor';
+          }
+        },
+      },
+    },
+  },
 });
