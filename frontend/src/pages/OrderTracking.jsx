@@ -290,7 +290,7 @@ const OrderTracking = () => {
               <span>Join Boys Hostel WhatsApp Group</span>
             </a>
             <a
-              href="https://chat.whatsapp.com/KwNyzS4rW3MAnKqC4mjLI5"
+              href="https://chat.whatsapp.com/GWDywmfUeOz2YYix89pk60"
               target="_blank"
               rel="noopener noreferrer"
               className="flex-1 btn-secondary py-3.5 px-4 min-h-[48px] text-xs font-bold flex items-center justify-center space-x-2 rounded-xl border border-slate-200"

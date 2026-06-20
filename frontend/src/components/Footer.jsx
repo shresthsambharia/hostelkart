@@ -70,7 +70,7 @@ const Footer = () => {
             <span>💬 Join Boys Hostel WhatsApp Group</span>
           </a>
           <a 
-            href="https://chat.whatsapp.com/KwNyzS4rW3MAnKqC4mjLI5" 
+            href="https://chat.whatsapp.com/GWDywmfUeOz2YYix89pk60" 
             target="_blank" 
             rel="noopener noreferrer" 
             className="text-sm font-bold text-emerald-450 hover:text-emerald-300 transition-colors bg-emerald-500/10 px-4 py-2.5 rounded-xl border border-emerald-500/20 flex items-center space-x-1.5 active:scale-95 transition-all"
