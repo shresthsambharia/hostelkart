@@ -73,7 +73,7 @@ const Navbar = () => {
         <div className="flex justify-between h-16 items-center">
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
-            <Link to="/" className="flex items-center space-x-2">
+            <Link to={user ? (user.role === 'admin' ? '/admin/dashboard' : user.role === 'delivery' ? '/delivery/dashboard' : '/') : '/'} className="flex items-center space-x-2">
               <span className="text-2xl font-extrabold text-primary-600 tracking-tight font-sans">
                 Hostel<span className="text-slate-800">Kart</span>
               </span>
@@ -237,7 +237,7 @@ const Navbar = () => {
                     </div>
 
                     <Link
-                      to={user.role === 'admin' ? '/admin/dashboard' : user.role === 'delivery' ? '/delivery/dashboard' : '/profile'}
+                      to="/profile"
                       onClick={() => setProfileDropdownOpen(false)}
                       className="flex items-center px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary-600"
                     >

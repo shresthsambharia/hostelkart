@@ -85,7 +85,15 @@ export const AuthProvider = ({ children }) => {
 
       setUser(data);
       setLoading(false);
-      navigate('/');
+      
+      // Redirect based on role
+      if (data.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else if (data.role === 'delivery') {
+        navigate('/delivery/dashboard');
+      } else {
+        navigate('/');
+      }
       return { success: true };
     } catch (error) {
       setLoading(false);
