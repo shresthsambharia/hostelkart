@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { productAPI } from '../api';
-import ProductCard from '../components/ProductCard';
+import ProductCard, { ProductCardSkeleton } from '../components/ProductCard';
 import { SlidersHorizontal, Search, X } from 'lucide-react';
 
 const staticCategoryNames = [
@@ -189,13 +189,13 @@ const ProductListing = () => {
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="animate-pulse bg-white border border-slate-100 rounded-2xl h-80"></div>
+                <ProductCardSkeleton key={i} />
               ))}
             </div>
           ) : products.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 animate-fade-in">
-              {products.map((product) => (
-                <ProductCard key={product._id} product={product} />
+              {products.map((product, idx) => (
+                <ProductCard key={product._id} product={product} priority={idx < 4} />
               ))}
             </div>
           ) : (

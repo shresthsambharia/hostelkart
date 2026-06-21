@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { productAPI } from '../api';
-import ProductCard from '../components/ProductCard';
+import ProductCard, { ProductCardSkeleton } from '../components/ProductCard';
 import { 
   Search, 
   Sparkles, 
@@ -247,15 +247,15 @@ const Home = () => {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="animate-pulse bg-white border border-slate-100 rounded-2xl h-80"></div>
+              <ProductCardSkeleton key={i} />
             ))}
           </div>
         ) : products.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            {products.map((product) => (
-              <ProductCard key={product._id} product={product} />
+            {products.map((product, idx) => (
+              <ProductCard key={product._id} product={product} priority={idx < 4} />
             ))}
           </div>
         ) : (
@@ -284,15 +284,15 @@ const Home = () => {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="animate-pulse bg-white border border-slate-100 rounded-2xl h-80"></div>
+              <ProductCardSkeleton key={i} />
             ))}
           </div>
         ) : bestSellers.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            {bestSellers.map((product) => (
-              <ProductCard key={product._id} product={product} />
+            {bestSellers.map((product, idx) => (
+              <ProductCard key={product._id} product={product} priority={idx < 4} />
             ))}
           </div>
         ) : (
