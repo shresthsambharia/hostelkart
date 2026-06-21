@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { orderAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
-import { Truck, Check, MapPin, Phone, User, Calendar, ShieldCheck, ChevronLeft, ClipboardList } from 'lucide-react';
+import { Truck, Check, MapPin, Phone, User, Calendar, ShieldCheck, ChevronLeft, ClipboardList, Package, CheckCircle } from 'lucide-react';
 
 const loadJsPDF = () => {
   return new Promise((resolve) => {
@@ -222,6 +222,25 @@ const OrderTracking = () => {
 
   const currentStepIdx = getStepIndex(order.orderStatus);
 
+  const getStepIcon = (name, isCompleted) => {
+    const size = 13;
+    const color = isCompleted ? "text-white stroke-[2.5]" : "text-slate-400 stroke-[2]";
+    switch (name) {
+      case 'Pending':
+        return <ClipboardList size={size} className={color} />;
+      case 'Confirmed':
+        return <ShieldCheck size={size} className={color} />;
+      case 'Packed':
+        return <Package size={size} className={color} />;
+      case 'Out for Delivery':
+        return <Truck size={size} className={color} />;
+      case 'Delivered':
+        return <CheckCircle size={size} className={color} />;
+      default:
+        return <Check size={size} className={color} />;
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
       {/* Back button */}
@@ -410,7 +429,7 @@ const OrderTracking = () => {
             </div>
           ) : (
             /* Vertical timeline steps */
-            <div className="relative pl-8 space-y-8 before:absolute before:left-3.5 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
+            <div className="relative pl-10 space-y-8 before:absolute before:left-4 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
               {steps.map((step, idx) => {
                 const isCompleted = idx <= currentStepIdx;
                 const isCurrent = idx === currentStepIdx;
@@ -419,13 +438,14 @@ const OrderTracking = () => {
                   <div key={step.name} className="relative flex flex-col items-start gap-1">
                     {/* Circle marker */}
                     <div
-                      className={`absolute -left-[29px] top-1.5 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                      className={`absolute -left-[35px] top-0 w-7.5 h-7.5 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
                         isCompleted
-                          ? 'bg-primary-600 border-primary-600 text-white'
-                          : 'bg-white border-slate-200 text-slate-300'
-                      } ${isCurrent ? 'ring-4 ring-primary-100 animate-pulse' : ''}`}
+                          ? 'bg-primary-600 border-primary-600 text-white shadow-[0_2px_8px_rgba(79,70,229,0.25)]'
+                          : 'bg-white border-slate-200 text-slate-350'
+                      } ${isCurrent ? 'ring-4 ring-primary-100 animate-pulse scale-105' : ''}`}
+                      style={{ width: '30px', height: '30px' }}
                     >
-                      {isCompleted ? <Check size={12} className="stroke-[3]" /> : <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />}
+                      {getStepIcon(step.name, isCompleted)}
                     </div>
 
                     <h4 className={`text-sm font-bold leading-none ${isCompleted ? 'text-slate-800' : 'text-slate-400'}`}>

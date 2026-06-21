@@ -120,21 +120,21 @@ const ProductDetails = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           
           {/* Product Image Panel */}
-          <div className="bg-slate-50 rounded-2xl p-6 flex items-center justify-center min-h-[300px] md:min-h-[400px] relative">
+          <div className="bg-slate-55/60 rounded-3xl p-6 flex items-center justify-center min-h-[300px] md:min-h-[400px] relative border border-slate-100 shadow-sm overflow-hidden group">
             <img
               src={getOptimizedImageUrl(product.image, 600)}
               srcSet={getSrcSet(product.image, [300, 600, 900, 1200])}
               sizes="(max-width: 768px) 100vw, 50vw"
               alt={product.name}
               fetchPriority="high"
-              className="w-full h-full max-h-[350px] object-contain rounded-lg"
+              className="w-full h-full max-h-[350px] object-contain rounded-lg group-hover:scale-105 transition-transform duration-300"
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.src = getOptimizedImageUrl(null, 600);
               }}
             />
             {product.discount > 0 && (
-              <span className="absolute top-4 left-4 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase shadow-sm">
+              <span className="absolute top-4 left-4 bg-gradient-to-r from-rose-500 to-orange-500 text-white text-xs font-black px-3 py-1 rounded-full uppercase shadow-md">
                 {product.discount}% OFF
               </span>
             )}
@@ -143,11 +143,11 @@ const ProductDetails = () => {
           {/* Product Specifications & Order controls */}
           <div className="space-y-6 flex flex-col justify-between">
             <div className="space-y-4">
-              <span className="inline-block px-3 py-1 bg-primary-50 text-primary-700 text-xs font-bold uppercase rounded-lg">
+              <span className="inline-block px-3 py-1 bg-primary-50 text-primary-700 text-[10px] font-black uppercase rounded-lg border border-primary-100">
                 {product.category}
               </span>
               
-              <h1 className="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight leading-tight">
+              <h1 className="text-xl md:text-3xl font-black text-slate-800 tracking-tight leading-tight">
                 {product.name}
               </h1>
 
@@ -157,25 +157,30 @@ const ProductDetails = () => {
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
-                      size={16}
-                      className={`${i < Math.round(product.rating) ? 'fill-current' : 'text-slate-200'}`}
+                      size={14}
+                      className={`${i < Math.round(product.rating) ? 'fill-current text-amber-450' : 'text-slate-200'}`}
                     />
                   ))}
                 </div>
-                <span className="text-sm font-semibold text-slate-700">
+                <span className="text-xs font-black text-slate-700">
                   {product.rating.toFixed(1)} / 5.0
                 </span>
-                <span className="text-slate-300">|</span>
-                <span className="text-sm text-slate-500 font-medium">
+                <span className="text-slate-200">|</span>
+                <span className="text-xs text-slate-500 font-bold">
                   {product.numReviews} student reviews
                 </span>
               </div>
 
               {/* Pricing section */}
-              <div className="flex items-baseline space-x-3 border-y border-slate-100 py-3">
-                <span className="text-3xl font-extrabold text-slate-900">₹{discountedPrice}</span>
+              <div className="flex items-center space-x-3 border-y border-slate-100 py-4">
+                <span className="text-3xl font-black text-slate-900">₹{discountedPrice}</span>
                 {product.discount > 0 && (
-                  <span className="text-base text-slate-400 line-through">₹{product.price}</span>
+                  <>
+                    <span className="text-base text-slate-450 line-through font-semibold">₹{product.price}</span>
+                    <span className="bg-rose-55 text-rose-600 text-[10px] font-black px-2 py-0.5 rounded border border-rose-100 uppercase tracking-wide">
+                      {product.discount}% OFF
+                    </span>
+                  </>
                 )}
               </div>
 
@@ -184,98 +189,97 @@ const ProductDetails = () => {
             </div>
 
             {/* Availability details & actions */}
-            <div className="space-y-4 pt-4">
-              <div className="flex flex-wrap gap-4 text-xs font-bold text-slate-500">
+            <div className="space-y-4 pt-4 border-t border-slate-100">
+              <div className="flex flex-wrap gap-3 text-[10px] font-bold text-slate-500">
                 <div className="flex items-center space-x-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                  <Clock size={16} className="text-primary-600" />
-                  <span>Delivery time: {product.deliveryTime}</span>
+                  <Clock size={14} className="text-primary-650" />
+                  <span>Delivery time: {product.deliveryTime || '30 Min'}</span>
                 </div>
                 <div className="flex items-center space-x-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                  <ShieldCheck size={16} className="text-primary-600" />
+                  <ShieldCheck size={14} className="text-primary-650" />
                   <span>Campus Quality Guaranteed</span>
                 </div>
               </div>
 
               {/* Stock check */}
-              <div className="flex items-center space-x-4">
-                <span className="text-sm font-semibold text-slate-700">Stock Availability:</span>
+              <div className="flex items-center space-x-3 text-xs">
+                <span className="font-semibold text-slate-600">Availability:</span>
                 {product.stock > 0 ? (
-                  <span className="text-emerald-600 font-bold text-sm bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                    {product.stock} items left in store
+                  <span className="text-emerald-700 font-black bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 uppercase text-[9px] tracking-wider">
+                    {product.stock} items in store
                   </span>
                 ) : (
-                  <span className="text-red-500 font-bold text-sm bg-red-50 px-2 py-0.5 rounded border border-red-100">
+                  <span className="text-rose-600 font-black bg-rose-50 px-2 py-0.5 rounded border border-rose-100 uppercase text-[9px] tracking-wider">
                     Out of Stock
                   </span>
                 )}
               </div>
 
               {errorMsg && (
-                <div className="bg-red-50 text-red-700 text-sm p-3 rounded-lg border border-red-100">
+                <div className="bg-red-50 text-red-750 text-xs p-3 rounded-lg border border-red-100 font-semibold">
                   {errorMsg}
                 </div>
               )}
 
               {/* Add to Cart panel / controls */}
               {product.stock > 0 && product.isAvailable && (!user || user.role === 'student') ? (
-                <div className="flex flex-col sm:flex-row gap-4 pt-2">
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
                   {/* Quantity selector */}
-                  <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden self-start sm:self-auto shadow-sm">
+                  <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden self-start sm:self-auto shadow-sm bg-white h-[42px]">
                     <button
                       onClick={() => handleQtyChange('dec')}
                       disabled={quantity <= 1}
-                      className="px-4 py-3 bg-slate-50 hover:bg-slate-100 disabled:opacity-50 text-slate-600 font-bold"
+                      className="px-3 bg-slate-50 hover:bg-slate-100 disabled:opacity-50 text-slate-600 font-black h-full border-r border-slate-200 transition-colors"
                     >
                       -
                     </button>
-                    <span className="w-12 text-center text-slate-800 font-bold text-sm select-none">
+                    <span className="w-10 text-center text-slate-800 font-black text-xs select-none">
                       {quantity}
                     </span>
                     <button
                       onClick={() => handleQtyChange('inc')}
                       disabled={quantity >= product.stock}
-                      className="px-4 py-3 bg-slate-50 hover:bg-slate-100 disabled:opacity-50 text-slate-600 font-bold"
+                      className="px-3 bg-slate-50 hover:bg-slate-100 disabled:opacity-50 text-slate-600 font-black h-full border-l border-slate-200 transition-colors"
                     >
                       +
                     </button>
                   </div>
 
                   {/* Add & Wishlist buttons */}
-                  <div className="flex-1 flex gap-4">
+                  <div className="flex-1 flex gap-3">
                     <button
                       onClick={handleAddToCartSubmit}
                       disabled={addingToCart}
-                      className="flex-1 btn-primary py-3 flex items-center justify-center space-x-2"
+                      className="flex-1 bg-primary-600 hover:bg-primary-750 text-white font-black px-6 h-[42px] rounded-lg shadow-md hover:shadow-lg active:scale-95 transition-all text-xs flex items-center justify-center space-x-2 tracking-wider uppercase"
                     >
-                      <ShoppingCart size={18} />
+                      <ShoppingCart size={15} />
                       <span>{addingToCart ? 'Adding...' : 'Add to Room Order'}</span>
                     </button>
 
                     <button
                       onClick={handleToggleWishlist}
-                      className={`px-4 py-3 rounded-xl border flex items-center justify-center transition-all ${
+                      className={`w-[42px] h-[42px] rounded-lg border flex items-center justify-center transition-all shrink-0 ${
                         isFavorited
-                          ? 'border-red-200 bg-red-50 text-red-500'
-                          : 'border-slate-200 hover:bg-slate-50 text-slate-400'
+                          ? 'border-red-200 bg-red-50 text-red-500 shadow-sm'
+                          : 'border-slate-200 hover:bg-slate-50 text-slate-400 hover:text-slate-650'
                       }`}
                     >
-                      <Heart size={20} className={isFavorited ? 'fill-current' : ''} />
+                      <Heart size={18} className={isFavorited ? 'fill-current' : ''} />
                     </button>
                   </div>
                 </div>
               ) : (
                 (!product.isAvailable || product.stock === 0) && (
-                  <div className="bg-slate-100 p-4 rounded-xl text-center text-slate-500 font-medium text-sm">
+                  <div className="bg-slate-100 p-4 rounded-xl text-center text-slate-500 font-bold text-xs uppercase border border-slate-200/60">
                     This item is currently sold out. Please check back later.
                   </div>
                 )
               )}
-            </div>
-
           </div>
 
         </div>
-      </section>
+      </div>
+    </section>
 
       {/* Reviews section */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -31,17 +31,19 @@ const Cart = () => {
 
   if (itemsCount === 0) {
     return (
-      <div className="max-w-md mx-auto px-4 py-16 text-center space-y-6 animate-slide-up">
-        <div className="w-24 h-24 bg-primary-50 rounded-full flex items-center justify-center mx-auto text-4xl">
+      <div className="max-w-md mx-auto px-4 py-20 text-center space-y-6 animate-slide-up">
+        <div className="w-28 h-28 bg-emerald-50 rounded-full flex items-center justify-center mx-auto text-5xl shadow-inner border border-emerald-100/40">
           🛒
         </div>
-        <h2 className="text-2xl font-extrabold text-slate-800">Your cart is empty</h2>
-        <p className="text-slate-500 text-sm max-w-sm mx-auto">
-          Looks like you haven't added any essentials to your cart yet. Let's browse some daily essentials.
-        </p>
-        <Link to="/products" className="btn-primary py-3 px-6 inline-flex items-center space-x-2">
-          <ShoppingBag size={18} />
-          <span>Start Shopping</span>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-black text-slate-800 tracking-tight">Your Cart is Empty</h2>
+          <p className="text-slate-500 text-xs max-w-xs mx-auto leading-relaxed">
+            Looks like you haven't added any essentials to your cart yet. Let's browse some fresh fruits, snacks, or stationery!
+          </p>
+        </div>
+        <Link to="/products" className="bg-primary-600 hover:bg-primary-750 text-white font-black px-6 py-3 rounded-lg inline-flex items-center space-x-2 text-xs uppercase tracking-wider shadow-md active:scale-95 transition-all">
+          <ShoppingBag size={15} />
+          <span>Browse Products</span>
         </Link>
       </div>
     );
@@ -147,38 +149,52 @@ const Cart = () => {
         </div>
 
         {/* Order Summary card */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm h-fit space-y-6">
-          <h2 className="font-extrabold text-slate-800 text-lg border-b border-slate-100 pb-3">
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm h-fit space-y-5">
+          <h2 className="font-extrabold text-slate-800 text-base border-b border-slate-100 pb-3">
             Order Summary
           </h2>
 
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between text-slate-500 font-medium">
+          <div className="bg-emerald-50/60 border border-emerald-100/60 rounded-xl p-3 flex items-center space-x-3 text-xs text-emerald-800">
+            <span className="text-xl">⚡</span>
+            <div>
+              <p className="font-black">Delivered to your room in 30 mins!</p>
+              <p className="text-emerald-650 font-bold mt-0.5">Rider will contact you on arrival</p>
+            </div>
+          </div>
+
+          <div className="space-y-3 text-xs">
+            <div className="flex justify-between text-slate-500 font-bold">
               <span>Items Total ({itemsCount})</span>
               <span>₹{subtotal}</span>
             </div>
             {discountAmount > 0 && (
-              <div className="flex justify-between text-red-500 font-medium">
+              <div className="flex justify-between text-rose-600 font-bold">
                 <span>Discount</span>
                 <span>-₹{Math.round(discountAmount)}</span>
               </div>
             )}
-            <div className="flex justify-between text-slate-500 font-medium">
+            <div className="flex justify-between text-slate-500 font-bold">
               <span>Delivery Charge</span>
-              <span className="text-emerald-600 font-bold">FREE</span>
+              <span className="text-emerald-650 font-black">FREE</span>
             </div>
-            <div className="border-t border-slate-100 pt-3 flex justify-between text-slate-800 font-extrabold text-base">
+            <div className="border-t border-slate-100 pt-3 flex justify-between text-slate-850 font-black text-sm">
               <span>Total Amount</span>
               <span>₹{total}</span>
             </div>
           </div>
 
+          {discountAmount > 0 && (
+            <div className="bg-rose-50/50 border border-rose-100/50 rounded-xl p-3 text-center text-[10px] text-rose-700 font-black uppercase tracking-wider">
+              🎉 You are saving ₹{Math.round(discountAmount)} on this order!
+            </div>
+          )}
+
           <button
             onClick={handleCheckoutClick}
-            className="w-full btn-primary py-3 flex items-center justify-center space-x-2 text-sm"
+            className="w-full bg-primary-600 hover:bg-primary-750 text-white font-black py-3 rounded-lg flex items-center justify-center space-x-2 text-xs uppercase tracking-wider shadow-md hover:shadow-lg active:scale-95 transition-all min-h-[44px]"
           >
             <span>Proceed to Checkout</span>
-            <ArrowRight size={16} />
+            <ArrowRight size={14} />
           </button>
         </div>
       </div>

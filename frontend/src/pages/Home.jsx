@@ -89,7 +89,7 @@ const Home = () => {
   };
 
   return (
-    <div className="space-y-16 pb-16">
+    <div className="space-y-8 sm:space-y-12 pb-16">
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-emerald-950 via-primary-900 to-slate-900 text-white rounded-2xl sm:rounded-3xl mx-4 sm:mx-8 mt-4 sm:mt-6 px-4 py-5 sm:px-6 sm:py-8 md:px-10 md:py-12 shadow-2xl">
         {/* Glow blobs */}
@@ -144,7 +144,7 @@ const Home = () => {
 
           {/* Action buttons */}
           <div className="flex flex-row gap-2.5 pt-1 w-full sm:w-auto">
-            <Link to="/products" className="flex-1 sm:flex-initial bg-gradient-to-r from-primary-500 to-emerald-600 hover:from-primary-600 hover:to-emerald-700 text-white font-bold px-3 py-2 sm:px-8 sm:py-3.5 rounded-xl shadow-lg active:scale-95 transition-all text-center flex items-center justify-center min-h-[38px] sm:min-h-[48px] text-xs sm:text-sm">
+            <Link to="/products" className="flex-1 sm:flex-initial bg-gradient-to-r from-primary-500 to-emerald-600 hover:from-primary-600 hover:to-emerald-700 text-white font-bold px-3 py-2.5 sm:px-8 sm:py-3.5 rounded-xl shadow-lg active:scale-95 transition-all text-center flex items-center justify-center min-h-[38px] sm:min-h-[48px] text-xs sm:text-sm">
               <Sparkles className="w-3.5 h-3.5 mr-1.5 sm:w-4 sm:h-4 sm:mr-2 shrink-0" />
               <span>Order Essentials</span>
             </Link>
@@ -156,23 +156,23 @@ const Home = () => {
       </section>
 
       {/* Categories Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4 sm:space-y-6">
         <div className="text-center md:text-left">
-          <h2 className="text-2xl font-extrabold text-slate-800 tracking-tight">Browse Categories</h2>
-          <p className="text-sm text-slate-500">Quickly find whatever you need in our inventory</p>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">Browse Categories</h2>
+          <p className="text-xs sm:text-sm text-slate-500">Quickly find whatever you need in our inventory</p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4">
+        <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-7 gap-3 sm:gap-4">
           {staticCategories.map((cat) => (
             <Link
               key={cat.name}
               to={`/products?category=${encodeURIComponent(cat.name)}`}
-              className="group p-5 bg-gradient-to-br from-white to-slate-50/50 border border-slate-100 rounded-2xl hover:border-primary-300 hover:shadow-md hover:-translate-y-1 transition-all duration-300 text-center flex flex-col items-center space-y-4 shadow-sm"
+              className="group p-2.5 sm:p-5 bg-gradient-to-br from-white to-slate-50/50 border border-slate-100 rounded-xl sm:rounded-2xl hover:border-primary-300 hover:shadow-md hover:-translate-y-1 transition-all duration-300 text-center flex flex-col items-center space-y-2 sm:space-y-4 shadow-sm"
             >
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-50 to-emerald-50 text-3xl flex items-center justify-center shadow-inner group-hover:scale-110 group-hover:bg-gradient-to-br group-hover:from-primary-100 group-hover:to-emerald-100 transition-all duration-300">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-50 to-emerald-50 text-xl sm:text-3xl flex items-center justify-center shadow-inner group-hover:scale-110 group-hover:bg-gradient-to-br group-hover:from-primary-100 group-hover:to-emerald-100 transition-all duration-300">
                 {cat.emoji}
               </div>
-              <span className="text-sm font-bold text-slate-700 group-hover:text-primary-700 transition-colors block">
+              <span className="text-[10px] sm:text-sm font-bold text-slate-700 group-hover:text-primary-700 transition-colors block truncate w-full font-sans">
                 {cat.name}
               </span>
             </Link>

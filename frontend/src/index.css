@@ -40,6 +40,12 @@
   .input-field {
     @apply w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all duration-150;
   }
+  .shadow-premium {
+    @apply shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300;
+  }
+  .btn-add {
+    @apply bg-white text-emerald-600 hover:bg-emerald-50/70 border border-emerald-200 font-extrabold px-4 py-2 rounded-lg active:scale-95 transition-all text-[11px] flex items-center justify-center tracking-wide uppercase shadow-sm;
+  }
 }
 
 /* Animations */
