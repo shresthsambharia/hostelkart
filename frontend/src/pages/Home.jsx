@@ -91,51 +91,51 @@ const Home = () => {
   return (
     <div className="space-y-16 pb-16">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-950 via-primary-900 to-slate-900 text-white rounded-3xl mx-4 sm:mx-8 mt-6 px-6 py-12 md:px-12 md:py-20 shadow-2xl">
+      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-950 via-primary-900 to-slate-900 text-white rounded-2xl sm:rounded-3xl mx-4 sm:mx-8 mt-4 sm:mt-6 px-4 py-6 sm:px-8 sm:py-12 md:px-12 md:py-20 shadow-2xl">
         {/* Glow blobs */}
         <div className="absolute top-0 right-0 -mt-12 -mr-12 w-72 h-72 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 -mb-12 -ml-12 w-72 h-72 rounded-full bg-primary-500/10 blur-3xl pointer-events-none"></div>
         
-        <div className="max-w-4xl relative z-10 space-y-6 md:space-y-8 animate-slide-up">
+        <div className="max-w-4xl relative z-10 space-y-3.5 sm:space-y-6 md:space-y-8 animate-slide-up">
           {/* Header pill/badges bar */}
-          <div className="flex flex-wrap gap-2.5 items-center">
-            <span className="inline-flex items-center px-3 py-1 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-xs font-bold tracking-wide text-primary-200">
-              ⚡ 30 Minute Delivery
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 sm:pb-0 scroll-smooth">
+            <span className="inline-flex items-center px-2.5 py-1 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-[10px] sm:text-xs font-bold tracking-wide text-emerald-300 shrink-0">
+              ⚡ 30 Min Delivery
             </span>
-            <span className="inline-flex items-center px-3 py-1 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-xs font-bold tracking-wide text-primary-200">
-              🏢 Hostel Room Delivery
+            <span className="inline-flex items-center px-2.5 py-1 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-[10px] sm:text-xs font-bold tracking-wide text-emerald-300 shrink-0">
+              🏢 Room Delivery
             </span>
-            <span className="inline-flex items-center px-3 py-1 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-xs font-bold tracking-wide text-primary-200">
+            <span className="inline-flex items-center px-2.5 py-1 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-[10px] sm:text-xs font-bold tracking-wide text-emerald-300 shrink-0">
               🍎 Daily Essentials
             </span>
           </div>
 
-          <div className="space-y-4">
-            <h1 className="text-3xl sm:text-4.5xl md:text-6xl font-extrabold tracking-tight leading-[1.1] font-sans">
-              Daily hostel essentials <br />
-              <span className="bg-gradient-to-r from-primary-300 via-emerald-200 to-primary-100 bg-clip-text text-transparent">delivered to your room.</span>
+          <div className="space-y-2 sm:space-y-4">
+            <h1 className="text-2xl sm:text-4.5xl md:text-6xl font-black tracking-tight leading-[1.1] font-sans drop-shadow-md">
+              Daily hostel essentials <br className="hidden sm:inline" />
+              <span className="bg-gradient-to-r from-emerald-300 via-primary-300 to-white bg-clip-text text-transparent">delivered to your room.</span>
             </h1>
-            <p className="text-sm md:text-lg text-slate-300 font-medium max-w-2xl leading-relaxed">
-              Need fresh fruits or vegetables? Ran out of soap? Need stationery or instant food? We deliver direct to your hostel floor in under 30 minutes!
+            <p className="text-xs sm:text-base md:text-lg text-slate-100 font-medium max-w-2xl leading-relaxed opacity-95">
+              Need fruits, veggies, snacks, stationery or personal care? We deliver direct to your hostel room floor in under 30 minutes!
             </p>
           </div>
 
           {/* Integrated Search Bar */}
           <form onSubmit={handleSearchSubmit} className="max-w-xl w-full">
-            <div className="relative flex items-center bg-white rounded-2xl p-1.5 shadow-lg border border-slate-200 focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500 transition-all duration-200">
-              <div className="pl-3 text-slate-400">
-                <Search size={20} />
+            <div className="relative flex items-center bg-white rounded-xl sm:rounded-2xl p-1 sm:p-1.5 shadow-lg border border-slate-200 focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500 transition-all duration-200">
+              <div className="pl-2 sm:pl-3 text-slate-400">
+                <Search size={18} className="sm:w-5 sm:h-5" />
               </div>
               <input
                 type="text"
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
-                placeholder="Search for instant noodles, snacks, soap, notebooks..."
-                className="w-full bg-transparent border-none outline-none px-3 text-slate-800 text-sm md:text-base placeholder:text-slate-400 py-2.5"
+                placeholder="Search instant noodles, snacks, soap..."
+                className="w-full bg-transparent border-none outline-none px-2 sm:px-3 text-slate-800 text-xs sm:text-sm md:text-base placeholder:text-slate-400 py-1.5 sm:py-2.5"
               />
               <button
                 type="submit"
-                className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-2.5 rounded-xl transition-all shadow-md active:scale-95 text-sm shrink-0"
+                className="bg-primary-600 hover:bg-primary-700 text-white font-bold px-4 py-2 sm:px-6 sm:py-2.5 rounded-lg sm:rounded-xl transition-all shadow-md active:scale-95 text-xs sm:text-sm shrink-0"
               >
                 Search
               </button>
@@ -143,13 +143,13 @@ const Home = () => {
           </form>
 
           {/* Action buttons */}
-          <div className="flex flex-wrap gap-4 pt-2">
-            <Link to="/products" className="bg-gradient-to-r from-primary-500 to-emerald-600 hover:from-primary-600 hover:to-emerald-700 text-white font-bold px-8 py-3.5 rounded-xl shadow-lg active:scale-95 transition-all text-center flex items-center justify-center min-h-[48px] text-sm">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Order Essentials
+          <div className="flex flex-row gap-2.5 pt-1 w-full sm:w-auto">
+            <Link to="/products" className="flex-1 sm:flex-initial bg-gradient-to-r from-primary-500 to-emerald-600 hover:from-primary-600 hover:to-emerald-700 text-white font-bold px-3 py-2.5 sm:px-8 sm:py-3.5 rounded-xl shadow-lg active:scale-95 transition-all text-center flex items-center justify-center min-h-[40px] sm:min-h-[48px] text-xs sm:text-sm">
+              <Sparkles className="w-3.5 h-3.5 mr-1.5 sm:w-4 sm:h-4 sm:mr-2 shrink-0" />
+              <span>Order Essentials</span>
             </Link>
-            <Link to="/custom-request" className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold px-8 py-3.5 rounded-xl hover:shadow-lg active:scale-95 transition-all text-center flex items-center justify-center min-h-[48px] text-sm">
-              Custom Request
+            <Link to="/custom-request" className="flex-1 sm:flex-initial bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold px-3 py-2.5 sm:px-8 sm:py-3.5 rounded-xl hover:shadow-lg active:scale-95 transition-all text-center flex items-center justify-center min-h-[40px] sm:min-h-[48px] text-xs sm:text-sm">
+              <span>Custom Request</span>
             </Link>
           </div>
         </div>
