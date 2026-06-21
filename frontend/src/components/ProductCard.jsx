@@ -4,7 +4,7 @@ import { ShoppingCart, Heart, Star } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, priority = false }) => {
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const [adding, setAdding] = useState(false);
@@ -69,11 +69,12 @@ const ProductCard = ({ product }) => {
           <img
             src={getProductImage(product.image)}
             alt={product.name}
-            loading="lazy"
+            loading={priority ? undefined : "lazy"}
+            fetchPriority={priority ? "high" : undefined}
             className="absolute inset-0 w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
             onError={(e) => {
               e.target.onerror = null;
-              e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400';
+              e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300&q=75';
             }}
           />
         ) : (
@@ -174,5 +175,21 @@ const ProductCard = ({ product }) => {
     </div>
   );
 };
+
+export const ProductCardSkeleton = () => (
+  <div className="card relative flex flex-col justify-between overflow-hidden p-4 space-y-4 animate-pulse h-[390px] bg-white border border-slate-100 rounded-2xl">
+    <div className="bg-slate-100 rounded-xl aspect-square w-full"></div>
+    <div className="space-y-3 flex-grow mt-2">
+      <div className="h-3 bg-slate-100 rounded w-1/4"></div>
+      <div className="h-4 bg-slate-100 rounded w-3/4"></div>
+      <div className="h-4 bg-slate-100 rounded w-5/6"></div>
+      <div className="h-3 bg-slate-100 rounded w-1/3 mt-2"></div>
+    </div>
+    <div className="space-y-3 mt-4">
+      <div className="h-5 bg-slate-100 rounded w-1/3"></div>
+      <div className="h-12 bg-slate-100 rounded-lg w-full"></div>
+    </div>
+  </div>
+);
 
 export default ProductCard;

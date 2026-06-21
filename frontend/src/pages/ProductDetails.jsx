@@ -129,7 +129,7 @@ const ProductDetails = () => {
                   : 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80'
               }
               alt={product.name}
-              loading="lazy"
+              fetchPriority="high"
               className="w-full h-full max-h-[350px] object-contain rounded-lg"
               onError={(e) => {
                 e.target.onerror = null;
