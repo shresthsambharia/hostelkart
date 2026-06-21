@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 
 // Context Providers
@@ -9,6 +9,7 @@ import { WishlistProvider } from './context/WishlistContext';
 
 // Protected Route Wrapper
 import ProtectedRoute from './routes/ProtectedRoute';
+import StudentOnlyOrGuestRoute from './routes/StudentOnlyOrGuestRoute';
 
 // Global Layout Components
 import Navbar from './components/Navbar';
@@ -77,9 +78,12 @@ const LayoutContainer = ({ children }) => {
   const path = location.pathname;
   const isAdminPath = path.startsWith('/admin');
   const isDeliveryPath = path.startsWith('/delivery');
+  const isProfilePath = path === '/profile';
 
-  // Sidebar Layout for Admin and Delivery riders portals
-  if (user && (isAdminPath || isDeliveryPath)) {
+  // Sidebar Layout for Admin and Delivery riders portals, and their profile views
+  const showPortalLayout = user && (isAdminPath || isDeliveryPath || ((user.role === 'admin' || user.role === 'delivery') && isProfilePath));
+
+  if (showPortalLayout) {
     return (
       <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-hidden">
         <Navbar />
@@ -135,19 +139,19 @@ const AppContent = () => {
     <LayoutContainer>
       <React.Suspense fallback={<LoadingSkeleton />}>
         <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/products" element={<ProductListing />} />
-          <Route path="/products/:id" element={<ProductDetails />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/refund-policy" element={<RefundPolicy />} />
-          <Route path="/payment-debug" element={<PaymentDebug />} />
-          <Route path="/payment-test" element={<PaymentTest />} />
+          {/* Public Routes - Guest accessible, Student restricted on login */}
+          <Route path="/" element={<StudentOnlyOrGuestRoute><Home /></StudentOnlyOrGuestRoute>} />
+          <Route path="/login" element={<StudentOnlyOrGuestRoute><Login /></StudentOnlyOrGuestRoute>} />
+          <Route path="/register" element={<StudentOnlyOrGuestRoute><Register /></StudentOnlyOrGuestRoute>} />
+          <Route path="/products" element={<StudentOnlyOrGuestRoute><ProductListing /></StudentOnlyOrGuestRoute>} />
+          <Route path="/products/:id" element={<StudentOnlyOrGuestRoute><ProductDetails /></StudentOnlyOrGuestRoute>} />
+          <Route path="/about" element={<StudentOnlyOrGuestRoute><About /></StudentOnlyOrGuestRoute>} />
+          <Route path="/contact" element={<StudentOnlyOrGuestRoute><Contact /></StudentOnlyOrGuestRoute>} />
+          <Route path="/privacy-policy" element={<StudentOnlyOrGuestRoute><PrivacyPolicy /></StudentOnlyOrGuestRoute>} />
+          <Route path="/terms" element={<StudentOnlyOrGuestRoute><Terms /></StudentOnlyOrGuestRoute>} />
+          <Route path="/refund-policy" element={<StudentOnlyOrGuestRoute><RefundPolicy /></StudentOnlyOrGuestRoute>} />
+          <Route path="/payment-debug" element={<StudentOnlyOrGuestRoute><PaymentDebug /></StudentOnlyOrGuestRoute>} />
+          <Route path="/payment-test" element={<StudentOnlyOrGuestRoute><PaymentTest /></StudentOnlyOrGuestRoute>} />
 
           {/* Protected Student Routes */}
           <Route
@@ -286,7 +290,7 @@ const AppContent = () => {
           />
 
           {/* Fallback route */}
-          <Route path="*" element={<Home />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </React.Suspense>
     </LayoutContainer>

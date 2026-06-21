@@ -16,7 +16,9 @@ const Register = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      navigate('/');
+      if (user.role === 'admin') navigate('/admin/dashboard');
+      else if (user.role === 'delivery') navigate('/delivery/dashboard');
+      else navigate('/');
     }
   }, [user, navigate]);
 
