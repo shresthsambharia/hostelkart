@@ -36,10 +36,10 @@ const ProductCard = ({ product, priority = false }) => {
   };
 
   return (
-    <div className="card relative flex flex-col justify-between overflow-hidden group">
+    <div className="bg-white rounded-2xl border border-slate-100 hover:border-emerald-250/30 overflow-hidden flex flex-col justify-between relative group shadow-premium hover:-translate-y-1.5 transition-all duration-300">
       {/* Discount badge */}
       {product.discount > 0 && (
-        <span className="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-extrabold px-2 py-1 rounded-full z-10 shadow-sm uppercase tracking-wide">
+        <span className="absolute top-3 left-3 bg-gradient-to-r from-rose-500 to-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-md z-10 shadow-sm uppercase tracking-wider">
           {product.discount}% OFF
         </span>
       )}
@@ -47,16 +47,16 @@ const ProductCard = ({ product, priority = false }) => {
       {/* Wishlist toggle */}
       <button
         onClick={handleToggleWishlist}
-        className="absolute top-3 right-3 p-1.5 rounded-full bg-white/90 shadow-sm border border-slate-100 hover:scale-105 active:scale-95 z-10 transition-transform text-slate-400 hover:text-red-500"
+        className="absolute top-3 right-3 p-1.5 rounded-full bg-white/95 shadow-sm border border-slate-100 hover:scale-105 active:scale-95 z-10 transition-transform text-slate-450 hover:text-red-500"
       >
         <Heart
-          size={16}
+          size={15}
           className={`${isFavorited ? 'fill-red-500 text-red-500' : 'text-slate-400'}`}
         />
       </button>
 
       {/* Product Image Link */}
-      <Link to={`/products/${product._id}`} className="block overflow-hidden bg-slate-50 relative pt-[100%]">
+      <Link to={`/products/${product._id}`} className="block overflow-hidden bg-slate-50/50 relative pt-[100%] border-b border-slate-50/60">
         {product.image ? (
           <img
             src={getOptimizedImageUrl(product.image, 300)}
@@ -80,7 +80,7 @@ const ProductCard = ({ product, priority = false }) => {
         {/* Unavailable overlay */}
         {(!product.isAvailable || product.stock === 0) && (
           <div className="absolute inset-0 bg-slate-900/60 flex items-center justify-center backdrop-blur-[1px]">
-            <span className="bg-red-600 text-white font-bold text-xs uppercase px-3 py-1 rounded-lg shadow-md">
+            <span className="bg-red-650 text-white font-black text-[10px] uppercase px-2.5 py-1 rounded-md shadow-md tracking-wider">
               Sold Out
             </span>
           </div>
@@ -88,32 +88,32 @@ const ProductCard = ({ product, priority = false }) => {
       </Link>
 
       {/* Info details */}
-      <div className="p-4 flex flex-col flex-grow justify-between">
+      <div className="p-3.5 flex flex-col flex-grow justify-between space-y-3">
         <div>
           {/* Category */}
-          <span className="text-[10px] font-bold text-primary-600 uppercase tracking-wider block mb-1">
+          <span className="text-[9px] font-black text-primary-650 uppercase tracking-wider block mb-1">
             {product.category}
           </span>
 
           {/* Title name */}
-          <Link to={`/products/${product._id}`} className="hover:text-primary-600 transition-colors block">
-            <h3 className="text-sm font-bold text-slate-800 line-clamp-2 min-h-[2.5rem]">
+          <Link to={`/products/${product._id}`} className="hover:text-primary-650 transition-colors block">
+            <h3 className="text-xs sm:text-sm font-bold text-slate-800 line-clamp-2 min-h-[2.2rem] leading-tight">
               {product.name}
             </h3>
           </Link>
 
           {/* Rating */}
-          <div className="flex items-center space-x-1 mt-1 mb-2">
-            <div className="flex text-amber-400">
+          <div className="flex items-center space-x-1 mt-1">
+            <div className="flex text-amber-455">
               {[...Array(5)].map((_, i) => (
                 <Star
                   key={i}
-                  size={12}
-                  className={`${i < Math.round(product.rating) ? 'fill-current' : 'text-slate-200'}`}
+                  size={10}
+                  className={`${i < Math.round(product.rating) ? 'fill-current text-amber-400' : 'text-slate-200'}`}
                 />
               ))}
             </div>
-            <span className="text-[10px] text-slate-400 font-semibold">
+            <span className="text-[9px] text-slate-400 font-bold">
               ({product.numReviews})
             </span>
           </div>
@@ -121,26 +121,28 @@ const ProductCard = ({ product, priority = false }) => {
 
         <div>
           {/* Pricing Row */}
-          <div className="flex items-baseline space-x-2 mt-2">
-            <span className="text-base font-extrabold text-slate-900">
+          <div className="flex items-baseline space-x-1.5">
+            <span className="text-sm sm:text-base font-black text-slate-900">
               ₹{discountedPrice}
             </span>
             {product.discount > 0 && (
-              <span className="text-xs text-slate-400 line-through">
+              <span className="text-xs text-slate-400 line-through font-semibold">
                 ₹{product.price}
               </span>
             )}
           </div>
 
           {/* Delivery & Stock indicators */}
-          <div className="flex justify-between items-center text-[10px] mt-2 mb-3 text-slate-400">
-            <span>🚀 {product.deliveryTime}</span>
+          <div className="flex justify-between items-center mt-2.5 mb-2.5 gap-1.5">
+            <span className="inline-flex items-center text-[9px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100 shrink-0 uppercase tracking-wide">
+              ⚡ {product.deliveryTime || '30 Min'}
+            </span>
             {product.stock > 0 && product.stock <= 5 ? (
-              <span className="text-amber-600 font-bold">Only {product.stock} left</span>
+              <span className="text-rose-600 font-extrabold bg-rose-50 px-1.5 py-0.5 rounded text-[9px] border border-rose-100 shrink-0">Only {product.stock} left</span>
             ) : product.stock > 5 ? (
-              <span className="text-emerald-600 font-semibold">In Stock</span>
+              <span className="text-emerald-600 font-extrabold bg-emerald-50 px-1.5 py-0.5 rounded text-[9px] border border-emerald-100 shrink-0">In Stock</span>
             ) : (
-              <span className="text-red-500 font-semibold">Out of Stock</span>
+              <span className="text-red-500 font-extrabold bg-red-50 px-1.5 py-0.5 rounded text-[9px] border border-red-100 shrink-0">Sold Out</span>
             )}
           </div>
 
@@ -155,14 +157,14 @@ const ProductCard = ({ product, priority = false }) => {
           <button
             onClick={handleAddToCart}
             disabled={!product.isAvailable || product.stock === 0 || adding}
-            className={`w-full flex items-center justify-center space-x-2 py-3 px-4 min-h-[48px] rounded-lg font-bold text-sm transition-all ${
+            className={`w-full flex items-center justify-center space-x-1.5 py-2 px-3 rounded-lg font-black text-xs transition-all shadow-sm active:scale-95 border ${
               !product.isAvailable || product.stock === 0
-                ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
-                : 'bg-primary-50 text-primary-700 hover:bg-primary-600 hover:text-white border border-primary-100 shadow-sm'
+                ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200 shadow-none'
+                : 'bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-600 hover:text-white hover:border-emerald-600'
             }`}
           >
-            <ShoppingCart size={16} />
-            <span>{adding ? 'Adding...' : 'Add to Cart'}</span>
+            <ShoppingCart size={13} className="shrink-0" />
+            <span>{adding ? 'Adding...' : 'ADD'}</span>
           </button>
         </div>
       </div>

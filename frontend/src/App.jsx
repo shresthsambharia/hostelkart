@@ -15,6 +15,7 @@ import StudentOnlyOrGuestRoute from './routes/StudentOnlyOrGuestRoute';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Sidebar from './components/Sidebar';
+import MobileBottomNav from './components/MobileBottomNav';
 
 // Keep Home page statically imported to optimize FCP/LCP of the initial lander
 import Home from './pages/Home';
@@ -85,7 +86,7 @@ const LayoutContainer = ({ children }) => {
 
   if (showPortalLayout) {
     return (
-      <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-hidden">
+      <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-hidden pb-16 md:pb-0">
         <Navbar />
         
         {/* Toggle button bar for mobile */}
@@ -116,13 +117,14 @@ const LayoutContainer = ({ children }) => {
             {children}
           </main>
         </div>
+        <MobileBottomNav />
       </div>
     );
   }
 
   // Standard student/public e-commerce layout
   return (
-    <div className="min-h-screen flex flex-col justify-between">
+    <div className="min-h-screen flex flex-col justify-between pb-16 md:pb-0">
       <div className="flex-grow flex flex-col">
         <Navbar />
         <main className="flex-grow bg-slate-50/50">
@@ -130,6 +132,7 @@ const LayoutContainer = ({ children }) => {
         </main>
       </div>
       <Footer />
+      <MobileBottomNav />
     </div>
   );
 };

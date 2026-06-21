@@ -106,118 +106,124 @@ const DeliveryDashboard = () => {
           {orders.map((ord) => (
             <div
               key={ord._id}
-              className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden p-6 hover:shadow-md transition-all flex flex-col justify-between space-y-6"
+              className="bg-white rounded-2xl border border-slate-100/80 shadow-premium overflow-hidden p-5 sm:p-6 hover:shadow-premium-hover transition-all flex flex-col justify-between space-y-5"
             >
               {/* Header block */}
-              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                <span className="font-mono font-bold text-slate-700">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-3.5">
+                <span className="font-mono font-black text-slate-900 text-sm">
                   #{ord._id.substring(12).toUpperCase()}
                 </span>
-                <span className={`px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider ${getStatusColor(ord.orderStatus)}`}>
+                <span className={`px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-wider ${getStatusColor(ord.orderStatus)}`}>
                   {ord.orderStatus}
                 </span>
               </div>
 
               {/* Customer details address */}
-              <div className="space-y-3">
-                <div className="flex items-start space-x-2.5">
-                  <MapPin size={16} className="text-primary-600 shrink-0 mt-0.5" />
-                  <div className="text-xs font-semibold text-slate-600 space-y-1">
-                    <p className="font-bold text-slate-800 text-sm">
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <MapPin size={18} className="text-primary-650 shrink-0 mt-0.5" />
+                  <div className="text-xs text-slate-600 space-y-1.5 flex-1">
+                    <p className="font-extrabold text-slate-800 text-sm leading-tight">
                       {ord.deliveryDetails?.hostelName}
                     </p>
-                    <p>
-                      Block {ord.deliveryDetails?.block}, Room {ord.deliveryDetails?.roomNumber} (Floor {ord.deliveryDetails?.floor})
+                    <p className="font-semibold text-slate-700">
+                      Block {ord.deliveryDetails?.block}, Room {ord.deliveryDetails?.roomNumber} ({ord.deliveryDetails?.floor || 'Floor N/A'})
                     </p>
                     {ord.deliveryDetails?.landmark && (
-                      <p className="text-amber-700 font-bold">
+                      <p className="text-amber-700 font-bold bg-amber-50 border border-amber-100/50 px-2 py-0.5 rounded w-fit text-[10px]">
                         Landmark: {ord.deliveryDetails.landmark}
                       </p>
                     )}
-                    <p className="text-slate-800 font-bold">
-                      Time Slot: <span className="text-primary-700">{ord.deliverySlot}</span>
+                    <p className="text-slate-800 font-semibold">
+                      Preferred Time: <span className="text-primary-700 font-bold">{ord.deliverySlot}</span>
                     </p>
                     {ord.deliveryDetails?.deliveryInstructions && (
-                      <p className="text-[10px] text-slate-400 italic bg-slate-50 p-2 rounded border border-slate-100">
-                        Instructions: {ord.deliveryDetails.deliveryInstructions}
-                      </p>
+                      <div className="text-[10px] text-slate-500 italic bg-slate-50 p-2.5 rounded-xl border border-slate-150/60 leading-normal">
+                        Instructions: "{ord.deliveryDetails.deliveryInstructions}"
+                      </div>
                     )}
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2.5">
-                    <Phone size={14} className="text-primary-600 shrink-0" />
-                    <a
-                      href={`tel:${ord.deliveryDetails?.phone}`}
-                      className="text-xs font-bold text-primary-600 hover:underline"
-                    >
-                      {ord.deliveryDetails?.phone} ({ord.user?.name})
-                    </a>
-                  </div>
+                {/* Direct calling and maps actions */}
+                <div className="flex flex-wrap gap-2.5 pt-1.5">
+                  <a
+                    href={`tel:${ord.deliveryDetails?.phone}`}
+                    className="inline-flex items-center space-x-1.5 px-3 py-2 bg-primary-50 text-primary-700 hover:bg-primary-100 border border-primary-100 rounded-xl text-xs font-bold transition-all shadow-sm"
+                  >
+                    <Phone size={13} />
+                    <span>Call {ord.user?.name || 'Student'}</span>
+                  </a>
                   {ord.deliveryDetails?.alternatePhone && (
-                    <div className="flex items-center space-x-2.5 pl-6">
-                      <span className="text-[10px] text-slate-400 font-bold">Alt Phone:</span>
-                      <a
-                        href={`tel:${ord.deliveryDetails?.alternatePhone}`}
-                        className="text-xs font-bold text-slate-500 hover:underline"
-                      >
-                        {ord.deliveryDetails?.alternatePhone}
-                      </a>
-                    </div>
+                    <a
+                      href={`tel:${ord.deliveryDetails?.alternatePhone}`}
+                      className="inline-flex items-center space-x-1.5 px-3 py-2 bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold transition-all shadow-sm"
+                    >
+                      <Phone size={13} />
+                      <span>Alt Call</span>
+                    </a>
                   )}
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ord.deliveryDetails?.hostelName + ', Block ' + ord.deliveryDetails?.block + ', ' + (ord.deliveryDetails?.roomNumber || ''))}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-1.5 px-3 py-2 bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold transition-all shadow-sm"
+                  >
+                    <MapPin size={13} className="text-slate-500" />
+                    <span>Open Map</span>
+                  </a>
                 </div>
               </div>
 
               {/* Items listing summaries */}
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block flex items-center space-x-1">
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-3">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block flex items-center space-x-1">
                   <Package size={12} />
                   <span>Items List ({ord.items.reduce((a, b) => a + b.quantity, 0)})</span>
                 </span>
 
-                <div className="divide-y divide-slate-100 space-y-1 text-xs">
+                <div className="divide-y divide-slate-150/60 space-y-1.5 text-xs">
                   {ord.items.map((it) => (
-                    <div key={it._id} className="pt-1 flex justify-between font-medium text-slate-600">
+                    <div key={it._id} className="pt-1.5 flex justify-between font-medium text-slate-650">
                       <span className="truncate pr-3">
                         <span className="font-extrabold text-slate-800">{it.quantity}x</span> {it.name}
                       </span>
-                      <span className="font-bold text-slate-700 shrink-0">₹{it.price * it.quantity}</span>
+                      <span className="font-bold text-slate-800 shrink-0">₹{it.price * it.quantity}</span>
                     </div>
                   ))}
-                  <div className="pt-2 flex justify-between font-extrabold text-slate-800 flex-wrap gap-2 items-center">
+                  <div className="pt-2.5 flex justify-between font-black text-slate-900 flex-wrap gap-2 items-center text-xs">
                     <span>Collect Pay:</span>
                     <div className="flex items-center space-x-1.5">
                       {ord.paymentStatus === 'Paid' && (
                         <>
-                          <span className="line-through text-slate-400">₹{ord.totalAmount}</span>
-                          <span className="text-emerald-600 font-extrabold">₹0</span>
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          <span className="line-through text-slate-405">₹{ord.totalAmount}</span>
+                          <span className="text-emerald-700 font-black">₹0</span>
+                          <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
                             PAID
                           </span>
                         </>
                       )}
                       {ord.paymentStatus === 'Verification Pending' && (
                         <>
-                          <span className="line-through text-slate-400">₹{ord.totalAmount}</span>
-                          <span className="text-emerald-600 font-extrabold">₹0</span>
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-blue-100 text-blue-800 border border-blue-200">
-                            VERIFICATION PENDING
+                          <span className="line-through text-slate-405">₹{ord.totalAmount}</span>
+                          <span className="text-emerald-700 font-black">₹0</span>
+                          <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-blue-100 text-blue-800 border border-blue-200">
+                            PENDING VERIFY
                           </span>
                         </>
                       )}
                       {ord.paymentStatus === 'Pending' && (
                         <>
-                          <span className="text-slate-800">₹{ord.totalAmount}</span>
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-amber-100 text-amber-800 border border-amber-200">
-                            COD PENDING
+                          <span className="text-slate-900 font-black">₹{ord.totalAmount}</span>
+                          <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-amber-100 text-amber-800 border border-amber-200">
+                            COD CASH
                           </span>
                         </>
                       )}
                       {ord.paymentStatus === 'Failed' && (
                         <>
-                          <span className="text-red-600 font-extrabold">FAILED</span>
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-red-100 text-red-800 border border-red-200">
+                          <span className="text-red-650 font-black">FAILED</span>
+                          <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-red-100 text-red-800 border border-red-200">
                             REJECTED
                           </span>
                         </>
@@ -226,22 +232,22 @@ const DeliveryDashboard = () => {
                   </div>
 
                   {ord.paymentStatus === 'Paid' && (
-                    <div className="mt-2 text-[10px] font-extrabold text-center bg-emerald-50 border border-emerald-100 text-emerald-700 py-1.5 rounded-lg leading-none animate-pulse">
+                    <div className="mt-2 text-[9px] font-black text-center bg-emerald-50 border border-emerald-100 text-emerald-700 py-2 rounded-lg leading-none tracking-wide">
                       🛡️ ONLINE PREPAID. DO NOT COLLECT CASH!
                     </div>
                   )}
                   {ord.paymentStatus === 'Verification Pending' && (
-                    <div className="mt-2 text-[10px] font-extrabold text-center bg-blue-50 border border-blue-100 text-blue-700 py-1.5 rounded-lg leading-none">
-                      🛡️ ONLINE PREPAID (Verification Pending). DO NOT COLLECT CASH! {ord.utrNumber ? `(UTR: ${ord.utrNumber})` : ''}
+                    <div className="mt-2 text-[9px] font-black text-center bg-blue-50 border border-blue-100 text-blue-700 py-2 rounded-lg leading-none tracking-wide">
+                      🛡️ ONLINE PREPAID (Verify pending). DO NOT COLLECT CASH! {ord.utrNumber ? `(UTR: ${ord.utrNumber})` : ''}
                     </div>
                   )}
                   {ord.paymentStatus === 'Pending' && (
-                    <div className="mt-2 text-[10px] font-extrabold text-center bg-amber-50 border border-amber-100 text-amber-700 py-1.5 rounded-lg leading-none">
+                    <div className="mt-2 text-[9px] font-black text-center bg-amber-50 border border-amber-150 text-amber-850 py-2 rounded-lg leading-none tracking-wide">
                       💵 CASH ON DELIVERY. COLLECT ₹{ord.totalAmount} IN CASH!
                     </div>
                   )}
                   {ord.paymentStatus === 'Failed' && (
-                    <div className="mt-2 text-[10px] font-extrabold text-center bg-red-50 border border-red-100 text-red-700 py-1.5 rounded-lg leading-none">
+                    <div className="mt-2 text-[9px] font-black text-center bg-red-50 border border-red-100 text-red-705 py-2 rounded-lg leading-none">
                       ❌ PAYMENT REJECTED / CANCELLED.
                     </div>
                   )}
@@ -249,11 +255,11 @@ const DeliveryDashboard = () => {
               </div>
 
               {/* Action transitions buttons */}
-              <div className="pt-4 border-t border-slate-100 flex gap-2">
+              <div className="pt-3 border-t border-slate-100 flex gap-2">
                 {ord.orderStatus === 'Confirmed' && (
                   <button
                     onClick={() => handleUpdateStatus(ord._id, 'Packed')}
-                    className="w-full btn-primary py-2.5 text-xs font-bold flex items-center justify-center space-x-1.5"
+                    className="w-full btn-primary py-2.5 text-xs font-bold flex items-center justify-center space-x-1.5 shadow-sm"
                   >
                     <ClipboardCheck size={14} />
                     <span>Confirm Packed</span>
@@ -263,7 +269,7 @@ const DeliveryDashboard = () => {
                 {ord.orderStatus === 'Packed' && (
                   <button
                     onClick={() => handleUpdateStatus(ord._id, 'Out for Delivery')}
-                    className="w-full btn-primary py-2.5 text-xs font-bold flex items-center justify-center space-x-1.5 bg-amber-600 hover:bg-amber-700"
+                    className="w-full btn-primary py-2.5 text-xs font-bold flex items-center justify-center space-x-1.5 bg-amber-600 hover:bg-amber-700 shadow-sm"
                   >
                     <Truck size={14} />
                     <span>Start Room Delivery</span>
@@ -271,30 +277,30 @@ const DeliveryDashboard = () => {
                 )}
 
                 {ord.orderStatus === 'Out for Delivery' && (
-                  <div className="w-full grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="w-full grid grid-cols-3 gap-2">
                     <button
                       onClick={() => handleUpdateStatus(ord._id, 'Delivered', 'Delivered directly to room')}
-                      className="btn-primary py-2 px-1 text-[11px] font-extrabold flex items-center justify-center space-x-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 shadow-sm rounded-lg"
+                      className="btn-primary py-2.5 px-1 text-[10px] font-black flex items-center justify-center space-x-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 shadow-sm rounded-xl leading-none"
                     >
-                      <CheckCircle2 size={13} />
-                      <span>Room Delivered</span>
+                      <CheckCircle2 size={12} />
+                      <span>Delivered</span>
                     </button>
                     <button
                       onClick={() => handleUpdateStatus(ord._id, 'Delivered', 'Left with security guard')}
-                      className="btn-primary py-2 px-1 text-[11px] font-extrabold flex items-center justify-center space-x-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 shadow-sm rounded-lg"
+                      className="btn-primary py-2.5 px-1 text-[10px] font-black flex items-center justify-center space-x-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 shadow-sm rounded-xl leading-none"
                     >
-                      <ClipboardCheck size={13} />
-                      <span>Left with Guard</span>
+                      <ClipboardCheck size={12} />
+                      <span>Left Guard</span>
                     </button>
                     <button
                       onClick={() => {
                         setFailingOrderId(ord._id);
                         setFailureReason('Student unavailable');
                       }}
-                      className="btn-primary py-2 px-1 text-[11px] font-extrabold flex items-center justify-center space-x-1 bg-rose-600 hover:bg-rose-700 active:scale-95 shadow-sm rounded-lg"
+                      className="btn-primary py-2.5 px-1 text-[10px] font-black flex items-center justify-center space-x-1 bg-rose-600 hover:bg-rose-700 active:scale-95 shadow-sm rounded-xl leading-none"
                     >
-                      <span className="text-[13px] leading-none">✕</span>
-                      <span>Delivery Failed</span>
+                      <span>✕</span>
+                      <span>Failed</span>
                     </button>
                   </div>
                 )}

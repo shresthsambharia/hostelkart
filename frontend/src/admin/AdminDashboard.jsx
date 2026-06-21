@@ -193,83 +193,106 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="space-y-8 p-6 animate-slide-up">
-      {/* Title */}
-      <div>
-        <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">Analytics Dashboard</h1>
-        <p className="text-sm text-slate-500">Overview of hostel essentials sales performance and operations</p>
+    <div className="space-y-8 p-4 sm:p-6 pb-24 animate-slide-up">
+      {/* Title and Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-5">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-display">Analytics Control Center</h1>
+          <p className="text-sm text-slate-500 mt-1">Overview of hostel essentials sales performance and fulfillment logistics</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchAnalytics}
+            className="inline-flex items-center justify-center bg-slate-50 text-slate-700 hover:bg-slate-100 font-bold text-xs px-4 py-2.5 rounded-xl transition-all border border-slate-200"
+          >
+            Refresh Logs
+          </button>
+          <Link 
+            to="/admin/orders" 
+            className="inline-flex items-center justify-center bg-primary-600 text-white hover:bg-primary-750 font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm"
+          >
+            Manage Orders
+          </Link>
+        </div>
       </div>
 
       {/* KPI Grid */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {kpis.map((kpi) => (
-          <div key={kpi.name} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+          <div 
+            key={kpi.name} 
+            className="bg-white p-5 rounded-2xl border border-slate-100/70 shadow-premium hover:shadow-premium-hover hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-between"
+          >
             <div className="space-y-1">
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">{kpi.name}</span>
-              <span className="text-xl font-extrabold text-slate-800 block">{kpi.value}</span>
+              <span className="text-xl sm:text-2xl font-black text-slate-900 block">{kpi.value}</span>
             </div>
-            <div className={`p-3.5 rounded-xl shrink-0 ${kpi.bg}`}>{kpi.icon}</div>
+            <div className={`p-3 rounded-xl shrink-0 ${kpi.bg} shadow-inner`}>{kpi.icon}</div>
           </div>
         ))}
       </section>
 
       {/* Payment Status Panel */}
-      <section className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-6">
+      <section className="bg-white p-6 rounded-2xl border border-slate-100/80 shadow-premium space-y-6">
         <div className="border-b border-slate-100 pb-3">
-          <h2 className="text-lg font-extrabold text-slate-800 tracking-tight">💰 Payment Status Dashboard</h2>
-          <p className="text-xs text-slate-500">Summary of successful, failed, pending, and refunded transactions</p>
+          <h2 className="text-base font-extrabold text-slate-800 tracking-tight flex items-center">
+            <span className="mr-1.5">💳</span> Payment Status Gateway
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5">Summary of successful, failed, pending, and refunded transactions</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           {/* Successful Payments */}
-          <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100/50 flex flex-col justify-between space-y-2">
-            <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider block">Successful Payments</span>
+          <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100/50 flex flex-col justify-between min-h-[85px] space-y-2">
+            <span className="text-[9px] text-emerald-600 font-bold uppercase tracking-wider block">Completed</span>
             <span className="text-xl font-black text-emerald-800 block">{stats.successfulPayments || 0}</span>
           </div>
 
           {/* Failed Payments */}
-          <div className="bg-rose-50/50 p-4 rounded-xl border border-rose-100/50 flex flex-col justify-between space-y-2">
-            <span className="text-[10px] text-rose-600 font-bold uppercase tracking-wider block">Failed Payments</span>
+          <div className="bg-rose-50/50 p-4 rounded-xl border border-rose-100/50 flex flex-col justify-between min-h-[85px] space-y-2">
+            <span className="text-[9px] text-rose-600 font-bold uppercase tracking-wider block">Failed</span>
             <span className="text-xl font-black text-rose-800 block">{stats.failedPayments || 0}</span>
           </div>
 
           {/* Pending Payments */}
-          <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100/50 flex flex-col justify-between space-y-2">
-            <span className="text-[10px] text-amber-600 font-bold uppercase tracking-wider block">Pending Payments</span>
+          <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100/50 flex flex-col justify-between min-h-[85px] space-y-2">
+            <span className="text-[9px] text-amber-600 font-bold uppercase tracking-wider block">Pending</span>
             <span className="text-xl font-black text-amber-800 block">{stats.pendingPayments || 0}</span>
           </div>
 
           {/* Refunded Payments */}
-          <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100/50 flex flex-col justify-between space-y-2">
-            <span className="text-[10px] text-purple-600 font-bold uppercase tracking-wider block">Refunded Payments</span>
+          <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100/50 flex flex-col justify-between min-h-[85px] space-y-2">
+            <span className="text-[9px] text-purple-600 font-bold uppercase tracking-wider block">Refunded</span>
             <span className="text-xl font-black text-purple-800 block">{stats.refundedPayments || 0}</span>
           </div>
 
           {/* Total Revenue */}
-          <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100/50 flex flex-col justify-between space-y-2">
-            <span className="text-[10px] text-blue-600 font-bold uppercase tracking-wider block">Total Revenue</span>
+          <div className="bg-blue-50/55 p-4 rounded-xl border border-blue-100/60 flex flex-col justify-between min-h-[85px] space-y-2">
+            <span className="text-[9px] text-blue-600 font-bold uppercase tracking-wider block">Gross Pay</span>
             <span className="text-xl font-black text-blue-800 block">₹{stats.paymentRevenue || 0}</span>
           </div>
 
           {/* Total Refunds */}
-          <div className="bg-red-50/50 p-4 rounded-xl border border-red-100/50 flex flex-col justify-between space-y-2">
-            <span className="text-[10px] text-red-600 font-bold uppercase tracking-wider block">Total Refunds</span>
+          <div className="bg-red-50/50 p-4 rounded-xl border border-red-100/50 flex flex-col justify-between min-h-[85px] space-y-2">
+            <span className="text-[9px] text-red-650 font-bold uppercase tracking-wider block">Outflow</span>
             <span className="text-xl font-black text-red-800 block">₹{stats.totalRefunds || 0}</span>
           </div>
         </div>
       </section>
 
       {/* Charts section */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
         {renderSalesChart()}
         {renderOrderStatusChart()}
       </section>
 
       {/* Delivery Operations Performance section */}
-      <section className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-6">
+      <section className="bg-white p-6 rounded-2xl border border-slate-100/80 shadow-premium space-y-6">
         <div className="border-b border-slate-100 pb-3">
-          <h2 className="text-lg font-extrabold text-slate-800 tracking-tight">Delivery Operations & Performance</h2>
-          <p className="text-xs text-slate-500">Real-time rider logistics, completion speeds, and verification checks</p>
+          <h2 className="text-base font-extrabold text-slate-800 tracking-tight flex items-center">
+            <span className="mr-1.5">🚲</span> Delivery Ops Performance
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5">Real-time rider logistics, completion speeds, and verification checks</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -281,11 +304,11 @@ const AdminDashboard = () => {
                 <span className="text-2xl font-black text-slate-800">{stats.totalDeliveries || 0}</span>
               </div>
               <div className="p-2.5 bg-blue-50 rounded-lg text-blue-600">
-                <Bike size={20} />
+                <Bike size={18} />
               </div>
             </div>
-            <div className="text-[11px] text-slate-500 font-medium">
-              Completed today: <span className="font-extrabold text-slate-700">{stats.deliveriesToday || 0}</span>
+            <div className="text-[11px] text-slate-500 font-semibold">
+              Completed today: <span className="font-black text-slate-700">{stats.deliveriesToday || 0}</span>
             </div>
           </div>
 
@@ -299,11 +322,11 @@ const AdminDashboard = () => {
                 </span>
               </div>
               <div className="p-2.5 bg-amber-50 rounded-lg text-amber-600">
-                <Zap size={20} />
+                <Zap size={18} />
               </div>
             </div>
-            <div className="text-[11px] text-slate-500 font-medium">
-              From confirmation to delivery timestamp
+            <div className="text-[11px] text-slate-400 font-medium">
+              From confirmation to room door
             </div>
           </div>
 
@@ -314,8 +337,8 @@ const AdminDashboard = () => {
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">OTP Verification Rate</span>
                 <span className="text-2xl font-black text-slate-800">{stats.otpVerificationSuccessRate || 0}%</span>
               </div>
-              <span className="inline-flex items-center text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded gap-0.5">
-                <ShieldCheck size={10} /> Secure Handoffs
+              <span className="inline-flex items-center text-[9px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-1.5 py-0.5 rounded gap-0.5">
+                <ShieldCheck size={9} /> Secure Handoffs
               </span>
             </div>
             {/* Radial Gauge */}
@@ -349,17 +372,17 @@ const AdminDashboard = () => {
             <div className="flex justify-between items-start">
               <div className="space-y-1">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Fulfillment Ratio</span>
-                <span className="text-xl font-extrabold text-slate-800">
+                <span className="text-xl font-black text-slate-800">
                   {stats.successfulDeliveries || 0} <span className="text-xs text-slate-400 font-bold">vs</span> {stats.cancelledDeliveries || 0}
                 </span>
               </div>
               <div className="p-2.5 bg-rose-50 rounded-lg text-rose-600">
-                <AlertTriangle size={20} />
+                <AlertTriangle size={18} />
               </div>
             </div>
             {/* Completion Bar */}
             <div className="space-y-1">
-              <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden flex">
+              <div className="w-full bg-slate-250 h-2 rounded-full overflow-hidden flex border border-slate-100">
                 <div
                   className="bg-emerald-500 h-full transition-all duration-500"
                   style={{
@@ -384,12 +407,12 @@ const AdminDashboard = () => {
                 ></div>
               </div>
               <div className="flex justify-between text-[9px] font-bold text-slate-400">
-                <span className="text-emerald-600 font-semibold">Success: {
+                <span className="text-emerald-600 font-bold">Success: {
                   (stats.successfulDeliveries || 0) + (stats.cancelledDeliveries || 0) > 0
                     ? Math.round(((stats.successfulDeliveries || 0) / ((stats.successfulDeliveries || 0) + (stats.cancelledDeliveries || 0))) * 100)
                     : 100
                 }%</span>
-                <span className="text-red-500 font-semibold">Cancel: {
+                <span className="text-red-500 font-bold">Cancel: {
                   (stats.successfulDeliveries || 0) + (stats.cancelledDeliveries || 0) > 0
                     ? Math.round(((stats.cancelledDeliveries || 0) / ((stats.successfulDeliveries || 0) + (stats.cancelledDeliveries || 0))) * 100)
                     : 0
@@ -401,12 +424,12 @@ const AdminDashboard = () => {
       </section>
 
       {/* Details grids */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
         
         {/* Recent orders table */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+        <div className="lg:col-span-2 bg-white p-5 sm:p-6 rounded-2xl border border-slate-100/80 shadow-premium space-y-4">
           <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-            <h3 className="font-extrabold text-slate-800 text-base">Recent Room Orders</h3>
+            <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">Recent Room Orders</h3>
             <Link to="/admin/orders" className="text-xs font-bold text-primary-600 hover:underline flex items-center space-x-1">
               <span>View All</span>
               <ArrowRight size={12} />
@@ -414,32 +437,32 @@ const AdminDashboard = () => {
           </div>
 
           {stats.recentOrders.length === 0 ? (
-            <p className="text-sm text-slate-400 italic py-8 text-center">No orders registered yet.</p>
+            <p className="text-sm text-slate-400 italic py-12 text-center">No orders registered yet.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+            <div className="overflow-x-auto -mx-5 sm:mx-0">
+              <table className="w-full text-left text-xs border-collapse min-w-[500px]">
                 <thead>
                   <tr className="border-b border-slate-100 text-slate-400 font-bold">
-                    <th className="py-2.5">Order ID</th>
-                    <th className="py-2.5">Student</th>
-                    <th className="py-2.5">Hostel & Room</th>
-                    <th className="py-2.5">Amount</th>
-                    <th className="py-2.5">Status</th>
+                    <th className="py-3 px-5 sm:px-2">Order ID</th>
+                    <th className="py-3 px-2">Student</th>
+                    <th className="py-3 px-2">Hostel & Room</th>
+                    <th className="py-3 px-2">Amount</th>
+                    <th className="py-3 px-2">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 font-medium text-slate-600">
                   {stats.recentOrders.map((ord) => (
                     <tr key={ord._id} className="hover:bg-slate-50/50">
-                      <td className="py-3 font-mono font-bold text-slate-700">
+                      <td className="py-3 px-5 sm:px-2 font-mono font-bold text-slate-700">
                         #{ord._id.substring(12).toUpperCase()}
                       </td>
-                      <td className="py-3 font-bold text-slate-800">{ord.user?.name || 'Deleted User'}</td>
-                      <td className="py-3">
+                      <td className="py-3 px-2 font-bold text-slate-800">{ord.user?.name || 'Deleted User'}</td>
+                      <td className="py-3 px-2">
                         <span className="block font-semibold">{ord.deliveryDetails?.hostelName}</span>
                         <span className="text-slate-400 text-[10px] block">Block {ord.deliveryDetails?.block}, Room {ord.deliveryDetails?.roomNumber}</span>
                       </td>
-                      <td className="py-3 font-extrabold text-slate-800">₹{ord.totalAmount}</td>
-                      <td className="py-3">
+                      <td className="py-3 px-2 font-extrabold text-slate-800">₹{ord.totalAmount}</td>
+                      <td className="py-3 px-2">
                         <span className={`px-2 py-0.5 rounded border text-[10px] font-bold ${
                           ord.orderStatus === 'Delivered'
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
@@ -462,16 +485,16 @@ const AdminDashboard = () => {
         <div className="space-y-6">
           
           {/* Low Stock alerts */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-            <h3 className="font-extrabold text-slate-850 text-base border-b border-slate-100 pb-3 flex items-center space-x-1.5 text-rose-600">
+          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-100/80 shadow-premium space-y-4">
+            <h3 className="font-extrabold text-slate-850 text-sm sm:text-base border-b border-slate-100 pb-3 flex items-center space-x-1.5 text-rose-600">
               <Package size={18} />
               <span>Low Stock Alerts</span>
             </h3>
 
             {stats.lowStockProductsList && stats.lowStockProductsList.length === 0 ? (
-              <p className="text-xs text-slate-450 italic py-6 text-center">No low stock items. All inventory levels healthy!</p>
+              <p className="text-xs text-slate-400 italic py-8 text-center font-medium">No low stock items. All inventory levels healthy!</p>
             ) : (
-              <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-[240px] overflow-y-auto pr-1">
                 {stats.lowStockProductsList && stats.lowStockProductsList.map((prod) => {
                   const currentEditVal = editingStocks[prod._id] !== undefined ? editingStocks[prod._id] : prod.stock;
                   
@@ -484,13 +507,13 @@ const AdminDashboard = () => {
                       
                       <div className="flex items-center space-x-2 shrink-0">
                         <div className="text-right">
-                          <span className="text-[9px] text-slate-400 block font-semibold">Stock:</span>
-                          <span className={`font-black ${prod.stock === 0 ? 'text-red-600 animate-pulse' : 'text-rose-600'}`}>{prod.stock}</span>
+                          <span className="text-[9px] text-slate-450 block font-bold">Stock</span>
+                          <span className={`font-black ${prod.stock === 0 ? 'text-red-650 animate-pulse' : 'text-rose-600'}`}>{prod.stock}</span>
                         </div>
                         <input
                           type="number"
                           min="0"
-                          className="w-12 p-1 border border-slate-200 rounded text-center font-bold text-slate-700 bg-white"
+                          className="w-12 p-1 border border-slate-250 rounded text-center font-bold text-slate-750 bg-white"
                           value={currentEditVal}
                           onChange={(e) => setEditingStocks({ ...editingStocks, [prod._id]: Number(e.target.value) })}
                         />
@@ -511,8 +534,8 @@ const AdminDashboard = () => {
           </div>
 
           {/* Top selling products list */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-            <h3 className="font-extrabold text-slate-800 text-base border-b border-slate-100 pb-3 flex items-center space-x-1.5">
+          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-100/80 shadow-premium space-y-4">
+            <h3 className="font-extrabold text-slate-800 text-sm sm:text-base border-b border-slate-100 pb-3 flex items-center space-x-1.5">
               <TrendingUp size={18} className="text-primary-600" />
               <span>Top-Selling Essentials</span>
             </h3>
@@ -526,10 +549,10 @@ const AdminDashboard = () => {
                   <div key={prod._id || idx} className="space-y-1.5">
                     <div className="flex justify-between text-xs font-bold text-slate-700">
                       <span className="truncate max-w-[130px]">{prod.name}</span>
-                      <span className="text-slate-400">{prod.totalQty} sold (₹{prod.revenue})</span>
+                      <span className="text-slate-400 font-semibold">{prod.totalQty} sold (₹{prod.revenue})</span>
                     </div>
                     {/* Progress bar */}
-                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-50">
                       <div
                         className="bg-primary-600 h-full rounded-full transition-all duration-500"
                         style={{ width: `${percentage}%` }}
