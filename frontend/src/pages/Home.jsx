@@ -91,12 +91,12 @@ const Home = () => {
   return (
     <div className="space-y-16 pb-16">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-950 via-primary-900 to-slate-900 text-white rounded-2xl sm:rounded-3xl mx-4 sm:mx-8 mt-4 sm:mt-6 px-4 py-6 sm:px-8 sm:py-12 md:px-12 md:py-20 shadow-2xl">
+      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-950 via-primary-900 to-slate-900 text-white rounded-2xl sm:rounded-3xl mx-4 sm:mx-8 mt-4 sm:mt-6 px-4 py-5 sm:px-6 sm:py-8 md:px-10 md:py-12 shadow-2xl">
         {/* Glow blobs */}
         <div className="absolute top-0 right-0 -mt-12 -mr-12 w-72 h-72 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 -mb-12 -ml-12 w-72 h-72 rounded-full bg-primary-500/10 blur-3xl pointer-events-none"></div>
         
-        <div className="max-w-4xl relative z-10 space-y-3.5 sm:space-y-6 md:space-y-8 animate-slide-up">
+        <div className="max-w-4xl relative z-10 space-y-3 sm:space-y-4 md:space-y-6 animate-slide-up">
           {/* Header pill/badges bar */}
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 sm:pb-0 scroll-smooth">
             <span className="inline-flex items-center px-2.5 py-1 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-[10px] sm:text-xs font-bold tracking-wide text-emerald-300 shrink-0">
@@ -110,12 +110,12 @@ const Home = () => {
             </span>
           </div>
 
-          <div className="space-y-2 sm:space-y-4">
-            <h1 className="text-2xl sm:text-4.5xl md:text-6xl font-black tracking-tight leading-[1.1] font-sans drop-shadow-md">
+          <div className="space-y-1.5 sm:space-y-3">
+            <h1 className="text-xl sm:text-3.5xl md:text-5xl font-black tracking-tight leading-[1.1] font-sans drop-shadow-md">
               Daily hostel essentials <br className="hidden sm:inline" />
               <span className="bg-gradient-to-r from-emerald-300 via-primary-300 to-white bg-clip-text text-transparent">delivered to your room.</span>
             </h1>
-            <p className="text-xs sm:text-base md:text-lg text-slate-100 font-medium max-w-2xl leading-relaxed opacity-95">
+            <p className="text-[11px] sm:text-sm md:text-base text-slate-100 font-medium max-w-2xl leading-relaxed opacity-95">
               Need fruits, veggies, snacks, stationery or personal care? We deliver direct to your hostel room floor in under 30 minutes!
             </p>
           </div>
@@ -131,7 +131,7 @@ const Home = () => {
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 placeholder="Search instant noodles, snacks, soap..."
-                className="w-full bg-transparent border-none outline-none px-2 sm:px-3 text-slate-800 text-xs sm:text-sm md:text-base placeholder:text-slate-400 py-1.5 sm:py-2.5"
+                className="w-full bg-transparent border-none outline-none px-2 sm:px-3 text-slate-800 text-[11px] sm:text-sm md:text-base placeholder:text-slate-400 py-1.5 sm:py-2.5"
               />
               <button
                 type="submit"
@@ -144,11 +144,11 @@ const Home = () => {
 
           {/* Action buttons */}
           <div className="flex flex-row gap-2.5 pt-1 w-full sm:w-auto">
-            <Link to="/products" className="flex-1 sm:flex-initial bg-gradient-to-r from-primary-500 to-emerald-600 hover:from-primary-600 hover:to-emerald-700 text-white font-bold px-3 py-2.5 sm:px-8 sm:py-3.5 rounded-xl shadow-lg active:scale-95 transition-all text-center flex items-center justify-center min-h-[40px] sm:min-h-[48px] text-xs sm:text-sm">
+            <Link to="/products" className="flex-1 sm:flex-initial bg-gradient-to-r from-primary-500 to-emerald-600 hover:from-primary-600 hover:to-emerald-700 text-white font-bold px-3 py-2 sm:px-8 sm:py-3.5 rounded-xl shadow-lg active:scale-95 transition-all text-center flex items-center justify-center min-h-[38px] sm:min-h-[48px] text-xs sm:text-sm">
               <Sparkles className="w-3.5 h-3.5 mr-1.5 sm:w-4 sm:h-4 sm:mr-2 shrink-0" />
               <span>Order Essentials</span>
             </Link>
-            <Link to="/custom-request" className="flex-1 sm:flex-initial bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold px-3 py-2.5 sm:px-8 sm:py-3.5 rounded-xl hover:shadow-lg active:scale-95 transition-all text-center flex items-center justify-center min-h-[40px] sm:min-h-[48px] text-xs sm:text-sm">
+            <Link to="/custom-request" className="flex-1 sm:flex-initial bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold px-3 py-2.5 sm:px-8 sm:py-3.5 rounded-xl hover:shadow-lg active:scale-95 transition-all text-center flex items-center justify-center min-h-[38px] sm:min-h-[48px] text-xs sm:text-sm">
               <span>Custom Request</span>
             </Link>
           </div>
@@ -180,53 +180,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Why Choose HostelKart */}
-      <section className="bg-gradient-to-b from-slate-50 to-slate-100/80 py-16 border-y border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
-          <div className="text-center max-w-2xl mx-auto space-y-2">
-            <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">Why Choose HostelKart?</h2>
-            <p className="text-slate-500 text-sm sm:text-base">Designed by students, for students. We make campus living easy, fast, and hassle-free.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col space-y-4 group">
-              <div className="p-4 bg-emerald-50 rounded-2xl w-14 h-14 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
-                <Clock className="w-7 h-7 text-emerald-600" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="font-bold text-slate-800 text-lg">⚡ 30 Minute Delivery</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">
-                  Craving late-night snacks or ran out of notebooks? We deliver everything direct to your hostel floor in under 30 minutes!
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col space-y-4 group">
-              <div className="p-4 bg-primary-50 rounded-2xl w-14 h-14 flex items-center justify-center group-hover:bg-primary-100 transition-colors">
-                <HomeIcon className="w-7 h-7 text-primary-600" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="font-bold text-slate-800 text-lg">🏢 Hostel Room Delivery</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">
-                  No need to step outside your block. Our student delivery riders bring your order right up to your hostel room door.
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col space-y-4 group">
-              <div className="p-4 bg-blue-50 rounded-2xl w-14 h-14 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                <ShieldCheck className="w-7 h-7 text-blue-600" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="font-bold text-slate-800 text-lg">🍎 Daily Essentials</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">
-                  From fresh fruits and vegetables to stationery, instant food, and personal care. We stock exactly what you need daily.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Featured Products */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
