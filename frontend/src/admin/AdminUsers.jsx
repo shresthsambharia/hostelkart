@@ -143,10 +143,10 @@ const AdminUsers = () => {
       </div>
 
       {/* Tab Switchers */}
-      <div className="flex border-b border-slate-200">
+      <div className="flex border-b border-slate-200 overflow-x-auto whitespace-nowrap scrollbar-none flex-nowrap">
         <button
           onClick={() => setActiveTab('users')}
-          className={`pb-3 px-6 text-sm font-bold border-b-2 transition-all ${
+          className={`pb-3 px-6 text-sm font-bold border-b-2 transition-all inline-block shrink-0 ${
             activeTab === 'users'
               ? 'border-primary-600 text-primary-600'
               : 'border-transparent text-slate-400 hover:text-slate-600'
@@ -159,7 +159,7 @@ const AdminUsers = () => {
         </button>
         <button
           onClick={() => setActiveTab('delivery')}
-          className={`pb-3 px-6 text-sm font-bold border-b-2 transition-all ${
+          className={`pb-3 px-6 text-sm font-bold border-b-2 transition-all inline-block shrink-0 ${
             activeTab === 'delivery'
               ? 'border-primary-600 text-primary-600'
               : 'border-transparent text-slate-400 hover:text-slate-600'
