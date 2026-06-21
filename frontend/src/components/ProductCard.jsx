@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ShoppingCart, Heart, Star } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
+import { getOptimizedImageUrl, getSrcSet } from '../utils/image';
 
 const ProductCard = ({ product, priority = false }) => {
   const { addToCart } = useCart();
@@ -34,15 +35,6 @@ const ProductCard = ({ product, priority = false }) => {
     await toggleWishlist(product._id);
   };
 
-  // Safe image path checker
-  const getProductImage = (img) => {
-    if (!img) return 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300&q=75';
-    if (img.startsWith('https://images.unsplash.com') && !img.includes('w=')) {
-      return `${img}${img.includes('?') ? '&' : '?'}w=300&q=75&fit=crop`;
-    }
-    return img;
-  };
-
   return (
     <div className="card relative flex flex-col justify-between overflow-hidden group">
       {/* Discount badge */}
@@ -67,14 +59,16 @@ const ProductCard = ({ product, priority = false }) => {
       <Link to={`/products/${product._id}`} className="block overflow-hidden bg-slate-50 relative pt-[100%]">
         {product.image ? (
           <img
-            src={getProductImage(product.image)}
+            src={getOptimizedImageUrl(product.image, 300)}
+            srcSet={getSrcSet(product.image, [150, 300, 450, 600])}
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             alt={product.name}
             loading={priority ? undefined : "lazy"}
             fetchPriority={priority ? "high" : undefined}
             className="absolute inset-0 w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
             onError={(e) => {
               e.target.onerror = null;
-              e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300&q=75';
+              e.target.src = getOptimizedImageUrl(null, 300);
             }}
           />
         ) : (

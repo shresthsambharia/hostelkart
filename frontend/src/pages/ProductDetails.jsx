@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { productAPI } from '../api';
 import { Star, ShoppingCart, Heart, ArrowLeft, Clock, ShieldCheck, RefreshCcw } from 'lucide-react';
+import { getOptimizedImageUrl, getSrcSet } from '../utils/image';
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -121,19 +122,15 @@ const ProductDetails = () => {
           {/* Product Image Panel */}
           <div className="bg-slate-50 rounded-2xl p-6 flex items-center justify-center min-h-[300px] md:min-h-[400px] relative">
             <img
-              src={
-                product.image
-                  ? (product.image.startsWith('https://images.unsplash.com') && !product.image.includes('w=')
-                      ? `${product.image}${product.image.includes('?') ? '&' : '?'}w=600&q=80`
-                      : product.image)
-                  : 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80'
-              }
+              src={getOptimizedImageUrl(product.image, 600)}
+              srcSet={getSrcSet(product.image, [300, 600, 900, 1200])}
+              sizes="(max-width: 768px) 100vw, 50vw"
               alt={product.name}
               fetchPriority="high"
               className="w-full h-full max-h-[350px] object-contain rounded-lg"
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80';
+                e.target.src = getOptimizedImageUrl(null, 600);
               }}
             />
             {product.discount > 0 && (
@@ -345,6 +342,7 @@ const ProductDetails = () => {
                       type="button"
                       onClick={() => setRating(star)}
                       className="text-amber-400 focus:outline-none"
+                      aria-label={`Rate ${star} out of 5 stars`}
                     >
                       <Star size={24} className={star <= rating ? 'fill-current' : 'text-slate-200'} />
                     </button>

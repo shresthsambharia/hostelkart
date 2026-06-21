@@ -91,7 +91,7 @@ const Navbar = () => {
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
                 />
-                <button type="submit" className="absolute right-3 top-2 text-slate-400 hover:text-primary-600">
+                <button type="submit" className="absolute right-3 top-2 text-slate-400 hover:text-primary-600" aria-label="Submit Search">
                   <Search size={18} />
                 </button>
               </div>
@@ -111,7 +111,7 @@ const Navbar = () => {
                 </Link>
                 {user && (
                   <>
-                    <Link to="/wishlist" className="relative text-slate-600 hover:text-primary-600 transition-colors" title="Wishlist">
+                    <Link to="/wishlist" className="relative text-slate-600 hover:text-primary-600 transition-colors" title="Wishlist" aria-label="Wishlist">
                       <Heart size={20} />
                     </Link>
                     <Link to="/myorders" className="text-sm font-medium text-slate-600 hover:text-primary-600 transition-colors">
@@ -119,7 +119,7 @@ const Navbar = () => {
                     </Link>
                   </>
                 )}
-                <Link to="/cart" className="relative text-slate-600 hover:text-primary-600 transition-colors p-2" title="Cart">
+                <Link to="/cart" className="relative text-slate-600 hover:text-primary-600 transition-colors p-2" title="Cart" aria-label="Cart">
                   <ShoppingCart size={20} />
                   {itemsCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-primary-600 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border border-white">
@@ -153,6 +153,9 @@ const Navbar = () => {
                   onClick={() => setNotificationsOpen(!notificationsOpen)}
                   className="relative text-slate-650 hover:text-primary-600 transition-colors p-2 focus:outline-none flex items-center justify-center"
                   title="Notifications"
+                  aria-label="Notifications"
+                  aria-haspopup="true"
+                  aria-expanded={notificationsOpen}
                 >
                   <Bell size={20} />
                   {unreadCount > 0 && (
@@ -213,6 +216,9 @@ const Navbar = () => {
                 <button
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                   className="flex items-center space-x-2 text-sm font-medium text-slate-700 hover:text-primary-600 focus:outline-none py-2"
+                  aria-label="User profile menu"
+                  aria-haspopup="true"
+                  aria-expanded={profileDropdownOpen}
                 >
                   <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-800 flex items-center justify-center font-bold">
                     {user.name.charAt(0).toUpperCase()}
@@ -264,7 +270,7 @@ const Navbar = () => {
           {/* Mobile menu button */}
           <div className="flex md:hidden items-center space-x-4">
             {(!user || user.role === 'student') && (
-              <Link to="/cart" className="relative text-slate-600 p-2" title="Cart">
+              <Link to="/cart" className="relative text-slate-600 p-2" title="Cart" aria-label="Cart">
                 <ShoppingCart size={22} />
                 {itemsCount > 0 && (
                   <span className="absolute top-0 right-0 bg-primary-600 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
@@ -277,6 +283,8 @@ const Navbar = () => {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="text-slate-600 hover:text-primary-600 focus:outline-none"
+              aria-label="Toggle menu"
+              aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -296,7 +304,7 @@ const Navbar = () => {
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
               />
-              <button type="submit" className="absolute right-3 top-2.5 text-slate-400">
+              <button type="submit" className="absolute right-3 top-2.5 text-slate-400" aria-label="Submit Search">
                 <Search size={18} />
               </button>
             </form>
