@@ -33,27 +33,53 @@ const ProductListing = () => {
 
   // Filters State
   const [keyword, setKeyword] = useState(queryParams.keyword);
+  const [debouncedKeyword, setDebouncedKeyword] = useState(queryParams.keyword);
   const [selectedCategory, setSelectedCategory] = useState(queryParams.category);
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
+  const [debouncedMinPrice, setDebouncedMinPrice] = useState('');
+  const [debouncedMaxPrice, setDebouncedMaxPrice] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Synchronize when URL change (e.g. Nav searches)
   useEffect(() => {
     const params = getQueryParams();
     setKeyword(params.keyword);
+    setDebouncedKeyword(params.keyword);
     setSelectedCategory(params.category);
   }, [location.search]);
+
+  // Debounce inputs to prevent API calls on every keystroke
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedKeyword(keyword);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [keyword]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedMinPrice(minPrice);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [minPrice]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedMaxPrice(maxPrice);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [maxPrice]);
 
   // Fetch Products based on filters
   const fetchProducts = async () => {
     setLoading(true);
     try {
       const params = {};
-      if (keyword) params.keyword = keyword;
+      if (debouncedKeyword) params.keyword = debouncedKeyword;
       if (selectedCategory) params.category = selectedCategory;
-      if (minPrice) params.minPrice = minPrice;
-      if (maxPrice) params.maxPrice = maxPrice;
+      if (debouncedMinPrice) params.minPrice = debouncedMinPrice;
+      if (debouncedMaxPrice) params.maxPrice = debouncedMaxPrice;
 
       const { data } = await productAPI.getAll(params);
       setProducts(data);
@@ -66,13 +92,16 @@ const ProductListing = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, [keyword, selectedCategory, minPrice, maxPrice]);
+  }, [debouncedKeyword, selectedCategory, debouncedMinPrice, debouncedMaxPrice]);
 
   const handleClearFilters = () => {
     setKeyword('');
+    setDebouncedKeyword('');
     setSelectedCategory('');
     setMinPrice('');
+    setDebouncedMinPrice('');
     setMaxPrice('');
+    setDebouncedMaxPrice('');
   };
 
   return (
@@ -163,7 +192,7 @@ const ProductListing = () => {
                 onChange={(e) => setKeyword(e.target.value)}
               />
               {keyword ? (
-                <button onClick={() => setKeyword('')} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
+                <button onClick={() => { setKeyword(''); setDebouncedKeyword(''); }} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
                   <X size={16} />
                 </button>
               ) : (

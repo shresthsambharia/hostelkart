@@ -437,8 +437,9 @@ const Checkout = () => {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-600 block mb-1">Hostel Name</label>
+                <label htmlFor="hostelName" className="text-xs font-semibold text-slate-600 block mb-1">Hostel Name</label>
                 <input
+                  id="hostelName"
                   type="text"
                   placeholder="e.g. Ramanujan Hostel"
                   className="input-field text-sm"
@@ -449,8 +450,9 @@ const Checkout = () => {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-600 block mb-1">Block / Wing</label>
+                <label htmlFor="block" className="text-xs font-semibold text-slate-600 block mb-1">Block / Wing</label>
                 <input
+                  id="block"
                   type="text"
                   placeholder="e.g. A-Block"
                   className="input-field text-sm"
@@ -461,8 +463,9 @@ const Checkout = () => {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-600 block mb-1">Floor</label>
+                <label htmlFor="floor" className="text-xs font-semibold text-slate-600 block mb-1">Floor</label>
                 <input
+                  id="floor"
                   type="text"
                   placeholder="e.g. 3rd Floor"
                   className="input-field text-sm"
@@ -473,8 +476,9 @@ const Checkout = () => {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-600 block mb-1">Room Number</label>
+                <label htmlFor="roomNumber" className="text-xs font-semibold text-slate-600 block mb-1">Room Number</label>
                 <input
+                  id="roomNumber"
                   type="text"
                   placeholder="e.g. 302"
                   className="input-field text-sm"
@@ -485,8 +489,9 @@ const Checkout = () => {
               </div>
 
               <div className="sm:col-span-2">
-                <label className="text-xs font-semibold text-slate-600 block mb-1">Landmark (Optional)</label>
+                <label htmlFor="landmark" className="text-xs font-semibold text-slate-600 block mb-1">Landmark (Optional)</label>
                 <input
+                  id="landmark"
                   type="text"
                   placeholder="e.g. Opposite to lift lobby / Near water cooler"
                   className="input-field text-sm"
@@ -496,8 +501,9 @@ const Checkout = () => {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-600 block mb-1">Contact Phone Number</label>
+                <label htmlFor="phone" className="text-xs font-semibold text-slate-600 block mb-1">Contact Phone Number</label>
                 <input
+                  id="phone"
                   type="tel"
                   placeholder="10 digit mobile number"
                   className="input-field text-sm"
@@ -508,8 +514,9 @@ const Checkout = () => {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-600 block mb-1">Alternate Phone Number (Optional)</label>
+                <label htmlFor="alternatePhone" className="text-xs font-semibold text-slate-600 block mb-1">Alternate Phone Number (Optional)</label>
                 <input
+                  id="alternatePhone"
                   type="tel"
                   placeholder="Alternate mobile number"
                   className="input-field text-sm"
@@ -519,8 +526,9 @@ const Checkout = () => {
               </div>
 
               <div className="sm:col-span-2">
-                <label className="text-xs font-semibold text-slate-600 block mb-1">Delivery Instructions (Optional)</label>
+                <label htmlFor="deliveryInstructions" className="text-xs font-semibold text-slate-600 block mb-1">Delivery Instructions (Optional)</label>
                 <textarea
+                  id="deliveryInstructions"
                   placeholder="e.g. Leave outside room door, call when at block gate"
                   rows={2}
                   className="input-field text-sm"
@@ -564,8 +572,9 @@ const Checkout = () => {
 
             {deliverySlot === 'Custom Time Slot' && (
               <div className="mt-4 pt-2 border-t border-dashed border-slate-100 animate-fadeIn">
-                <label className="text-xs font-semibold text-slate-600 block mb-1">Custom Delivery Slot Details</label>
+                <label htmlFor="customSlot" className="text-xs font-semibold text-slate-600 block mb-1">Custom Delivery Slot Details</label>
                 <input
+                  id="customSlot"
                   type="text"
                   placeholder="e.g. 10:30 PM after my lab class"
                   className="input-field text-sm"

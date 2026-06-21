@@ -98,8 +98,9 @@ const CustomRequest = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">Item Name</label>
+              <label htmlFor="itemName" className="text-xs font-semibold text-slate-600 block mb-1">Item Name</label>
               <input
+                id="itemName"
                 type="text"
                 placeholder="e.g. Scientific Calculator"
                 className="input-field text-sm"
@@ -110,8 +111,9 @@ const CustomRequest = () => {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">Item Details & Size</label>
+              <label htmlFor="itemDetails" className="text-xs font-semibold text-slate-600 block mb-1">Item Details & Size</label>
               <textarea
+                id="itemDetails"
                 placeholder="e.g. Casio fx-991EX. Require black color."
                 rows={3}
                 className="input-field text-sm"
@@ -122,8 +124,9 @@ const CustomRequest = () => {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">Estimated Budget (₹)</label>
+              <label htmlFor="estimatedPrice" className="text-xs font-semibold text-slate-600 block mb-1">Estimated Budget (₹)</label>
               <input
+                id="estimatedPrice"
                 type="number"
                 placeholder="e.g. 1200"
                 className="input-field text-sm"
