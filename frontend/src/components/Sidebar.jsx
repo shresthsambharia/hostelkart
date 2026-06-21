@@ -1,9 +1,9 @@
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, ShoppingCart, Users, HelpCircle, LogOut, ChevronRight, Truck, User, Settings } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ShoppingCart, Users, HelpCircle, LogOut, ChevronRight, Truck, User, Settings, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, onClose }) => {
   const { user, logout } = useAuth();
 
   const handleLogout = () => {
@@ -28,8 +28,17 @@ const Sidebar = () => {
   const links = user?.role === 'admin' ? adminLinks : deliveryLinks;
 
   return (
-    <aside className="w-64 bg-slate-900 text-slate-300 min-h-[calc(100vh-4rem)] flex flex-col justify-between border-r border-slate-800 shrink-0">
-      <div className="py-6 px-4 space-y-6">
+    <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 flex flex-col justify-between border-r border-slate-800 shrink-0 transform transition-transform duration-300 md:sticky md:top-16 md:translate-x-0 md:h-[calc(100vh-4rem)] h-full ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className="py-6 px-4 space-y-6 relative">
+        {/* Close button for mobile */}
+        <button 
+          onClick={onClose} 
+          className="md:hidden p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg absolute top-4 right-4 transition-colors focus:outline-none" 
+          aria-label="Close menu"
+        >
+          <X size={20} />
+        </button>
+
         {/* User Identity Panel */}
         <div className="px-3 py-4 bg-slate-800/50 rounded-xl border border-slate-800 flex items-center space-x-3">
           <div className="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center font-bold text-lg">
@@ -49,6 +58,7 @@ const Sidebar = () => {
             <NavLink
               key={link.name}
               to={link.path}
+              onClick={onClose}
               className={({ isActive }) =>
                 `flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all duration-150 ${
                   isActive

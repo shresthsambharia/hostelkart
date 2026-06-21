@@ -171,7 +171,7 @@ const AdminOrders = () => {
       )}
 
       {/* Tabs Selector */}
-      <div className="flex border-b border-slate-200">
+      <div className="flex border-b border-slate-200 overflow-x-auto whitespace-nowrap scrollbar-none flex-nowrap">
         {[
           { key: 'active', label: 'Active Orders', count: orders.filter(o => ['Pending', 'Confirmed', 'Packed', 'Out for Delivery'].includes(o.orderStatus)).length },
           { key: 'delivered', label: 'Delivered Archive', count: orders.filter(o => o.orderStatus === 'Delivered').length },
@@ -181,7 +181,7 @@ const AdminOrders = () => {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`py-3 px-6 text-sm font-bold border-b-2 transition-all ${
+            className={`py-3 px-6 text-sm font-bold border-b-2 transition-all inline-block shrink-0 ${
               activeTab === tab.key
                 ? 'border-primary-600 text-primary-600'
                 : 'border-transparent text-slate-400 hover:text-slate-600'

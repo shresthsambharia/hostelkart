@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
+import { Menu } from 'lucide-react';
 
 // Context Providers
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -71,6 +72,7 @@ const LoadingSkeleton = () => (
 const LayoutContainer = ({ children }) => {
   const location = useLocation();
   const { user } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const path = location.pathname;
   const isAdminPath = path.startsWith('/admin');
@@ -79,11 +81,34 @@ const LayoutContainer = ({ children }) => {
   // Sidebar Layout for Admin and Delivery riders portals
   if (user && (isAdminPath || isDeliveryPath)) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-hidden">
         <Navbar />
-        <div className="flex flex-1">
-          <Sidebar />
-          <main className="flex-1 bg-slate-50 min-h-[calc(100vh-4rem)]">
+        
+        {/* Toggle button bar for mobile */}
+        <div className="md:hidden bg-slate-900 text-white px-4 py-3 flex items-center justify-between border-t border-slate-800 shadow-sm shrink-0">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg flex items-center space-x-2 transition-colors focus:outline-none"
+            aria-label="Open portal navigation"
+          >
+            <Menu size={20} />
+            <span className="text-xs font-bold uppercase tracking-wider">Portal Menu</span>
+          </button>
+          <span className="text-xs font-extrabold text-primary-400 capitalize bg-slate-800 px-2.5 py-1 rounded-md border border-slate-700">
+            {user.role} View
+          </span>
+        </div>
+
+        <div className="flex flex-col md:flex-row flex-1 w-full max-w-[100vw] overflow-x-hidden relative">
+          {/* Backdrop overlay for mobile drawer */}
+          {sidebarOpen && (
+            <div 
+              className="fixed inset-0 bg-slate-950/60 backdrop-blur-[1px] z-40 md:hidden animate-fade-in"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <main className="flex-1 bg-slate-50 min-h-[calc(100vh-4rem)] w-full max-w-[100vw] overflow-x-hidden">
             {children}
           </main>
         </div>
