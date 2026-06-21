@@ -267,11 +267,22 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Mobile menu button */}
-          <div className="flex md:hidden items-center space-x-4">
+          {/* Mobile menu button & quick auth buttons */}
+          <div className="flex md:hidden items-center space-x-2">
+            {!user ? (
+              <div className="flex items-center space-x-1.5">
+                <Link to="/login" className="text-xs font-bold text-slate-700 hover:text-primary-600 px-2 py-1.5 border border-slate-200 rounded-lg shrink-0">
+                  Sign In
+                </Link>
+                <Link to="/register" className="bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg active:scale-95 transition-all shrink-0">
+                  Sign Up
+                </Link>
+              </div>
+            ) : null}
+
             {(!user || user.role === 'student') && (
-              <Link to="/cart" className="relative text-slate-600 p-2" title="Cart" aria-label="Cart">
-                <ShoppingCart size={22} />
+              <Link to="/cart" className="relative text-slate-600 p-1.5 flex items-center justify-center shrink-0" title="Cart" aria-label="Cart">
+                <ShoppingCart size={20} />
                 {itemsCount > 0 && (
                   <span className="absolute top-0 right-0 bg-primary-600 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
                     {itemsCount}
@@ -282,11 +293,11 @@ const Navbar = () => {
 
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-slate-600 hover:text-primary-600 focus:outline-none"
+              className="text-slate-600 hover:text-primary-600 focus:outline-none p-1.5 shrink-0"
               aria-label="Toggle menu"
               aria-expanded={mobileMenuOpen}
             >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
           </div>
         </div>
