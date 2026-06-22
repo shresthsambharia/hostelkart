@@ -35,6 +35,8 @@ const CustomRequest = React.lazy(() => import('./pages/CustomRequest'));
 const Wishlist = React.lazy(() => import('./pages/Wishlist'));
 const PaymentDebug = React.lazy(() => import('./pages/PaymentDebug'));
 const PaymentTest = React.lazy(() => import('./pages/PaymentTest'));
+const Wallet = React.lazy(() => import('./pages/Wallet'));
+const ReferralDashboard = React.lazy(() => import('./pages/ReferralDashboard'));
 
 // Static info pages
 const About = React.lazy(() => import('./pages/About'));
@@ -50,6 +52,7 @@ const AdminOrders = React.lazy(() => import('./admin/AdminOrders'));
 const AdminUsers = React.lazy(() => import('./admin/AdminUsers'));
 const AdminCustomRequests = React.lazy(() => import('./admin/AdminCustomRequests'));
 const AdminSettings = React.lazy(() => import('./admin/AdminSettings'));
+const AdminCoupons = React.lazy(() => import('./admin/AdminCoupons'));
 
 // Delivery Dashboard pages
 const DeliveryDashboard = React.lazy(() => import('./delivery/DeliveryDashboard'));
@@ -246,6 +249,22 @@ const AppContent = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/wallet"
+            element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <Wallet />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/referrals"
+            element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <ReferralDashboard />
+              </ProtectedRoute>
+            }
+          />
           
           {/* Profile Shared Protected Route (Available to student, admin, delivery) */}
           <Route
@@ -303,6 +322,14 @@ const AppContent = () => {
             element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AdminSettings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/coupons"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminCoupons />
               </ProtectedRoute>
             }
           />

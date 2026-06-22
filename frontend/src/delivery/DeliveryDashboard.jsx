@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { deliveryAPI } from '../api';
-import { Truck, CheckCircle2, Phone, MapPin, Package, ClipboardCheck } from 'lucide-react';
+import { Truck, CheckCircle2, Phone, MapPin, Package, ClipboardCheck, Play } from 'lucide-react';
 import { getThumbnail } from '../utils/image';
+import { io } from 'socket.io-client';
 
 const DeliveryDashboard = () => {
   const [orders, setOrders] = useState([]);
@@ -20,6 +21,43 @@ const DeliveryDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const simulateMovement = (orderId) => {
+    const socketURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://hostelkart-backend.onrender.com');
+    const socketServerURL = socketURL.endsWith('/api') ? socketURL.replace('/api', '') : socketURL;
+    const socket = io(socketServerURL);
+
+    const coordinates = [
+      { lat: 13.0812, lng: 80.2681, distanceRemaining: 0.5, eta: 5 },
+      { lat: 13.0816, lng: 80.2687, distanceRemaining: 0.4, eta: 4 },
+      { lat: 13.0820, lng: 80.2694, distanceRemaining: 0.2, eta: 2 },
+      { lat: 13.0824, lng: 80.2701, distanceRemaining: 0.1, eta: 1 },
+      { lat: 13.0827, lng: 80.2707, distanceRemaining: 0.0, eta: 0 }
+    ];
+
+    let stepIndex = 0;
+    setAlert({ type: 'success', message: 'Simulated rider movement started! Open student tracking screen to view.' });
+
+    const intervalId = setInterval(() => {
+      if (stepIndex >= coordinates.length) {
+        clearInterval(intervalId);
+        socket.disconnect();
+        setAlert({ type: 'success', message: 'Simulated rider arrived at destination!' });
+        return;
+      }
+
+      const step = coordinates[stepIndex];
+      socket.emit('update_location', {
+        orderId,
+        lat: step.lat,
+        lng: step.lng,
+        distanceRemaining: step.distanceRemaining,
+        eta: step.eta
+      });
+
+      stepIndex++;
+    }, 2000);
   };
 
   useEffect(() => {
@@ -295,14 +333,22 @@ const DeliveryDashboard = () => {
                 )}
 
                 {ord.orderStatus === 'Out for Delivery' && (
-                  <div className="w-full grid grid-cols-3 gap-2">
+                  <div className="w-full space-y-3">
                     <button
-                      onClick={() => handleUpdateStatus(ord._id, 'Delivered', 'Delivered directly to room')}
-                      className="btn-primary py-2.5 px-1 text-[10px] font-black flex items-center justify-center space-x-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 shadow-sm rounded-xl leading-none"
+                      onClick={() => simulateMovement(ord._id)}
+                      className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-4 rounded-xl text-xs shadow-md shadow-amber-500/10 flex items-center justify-center space-x-1.5 transition-all"
                     >
-                      <CheckCircle2 size={12} />
-                      <span>Delivered</span>
+                      <Play size={12} className="fill-white" />
+                      <span>Simulate Rider GPS Movement</span>
                     </button>
+                    <div className="w-full grid grid-cols-3 gap-2">
+                      <button
+                        onClick={() => handleUpdateStatus(ord._id, 'Delivered', 'Delivered directly to room')}
+                        className="btn-primary py-2.5 px-1 text-[10px] font-black flex items-center justify-center space-x-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 shadow-sm rounded-xl leading-none"
+                      >
+                        <CheckCircle2 size={12} />
+                        <span>Delivered</span>
+                      </button>
                     <button
                       onClick={() => handleUpdateStatus(ord._id, 'Delivered', 'Left with security guard')}
                       className="btn-primary py-2.5 px-1 text-[10px] font-black flex items-center justify-center space-x-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 shadow-sm rounded-xl leading-none"
@@ -321,11 +367,11 @@ const DeliveryDashboard = () => {
                       <span>Failed</span>
                     </button>
                   </div>
-                )}
-              </div>
-
+                </div>
+              )}
             </div>
-          ))}
+          </div>
+        ))}
         </div>
       )}
 

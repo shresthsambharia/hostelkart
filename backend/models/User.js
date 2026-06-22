@@ -34,6 +34,38 @@ const userSchema = new mongoose.Schema(
       alternatePhone: { type: String, default: '' },
       deliveryInstructions: { type: String, default: '' },
     },
+    walletBalance: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+    referralCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    referredBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    referralsCount: {
+      type: Number,
+      default: 0,
+    },
+    referralRewardClaimed: {
+      type: Boolean,
+      default: false,
+    },
+    loyaltyLevel: {
+      type: String,
+      enum: ['Bronze', 'Silver', 'Gold', 'Platinum'],
+      default: 'Bronze',
+    },
+    fcmToken: {
+      type: String,
+      default: '',
+    },
   },
   {
     timestamps: true,

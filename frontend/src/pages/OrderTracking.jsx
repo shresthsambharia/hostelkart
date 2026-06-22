@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { orderAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { io } from 'socket.io-client';
 import { Truck, Check, MapPin, Phone, User, Calendar, ShieldCheck, ChevronLeft, ClipboardList, Package, CheckCircle } from 'lucide-react';
 
 const loadJsPDF = () => {
@@ -24,6 +25,97 @@ const OrderTracking = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const { user: loggedInUser } = useAuth();
+
+  // Socket & Live location states
+  const [riderLocation, setRiderLocation] = useState(null);
+  const [distanceRemaining, setDistanceRemaining] = useState(null);
+  const [eta, setEta] = useState(null);
+  const [mapInstance, setMapInstance] = useState(null);
+  const [riderMarker, setRiderMarker] = useState(null);
+
+  // Socket listener effect
+  useEffect(() => {
+    if (!id) return;
+
+    const socketURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://hostelkart-backend.onrender.com');
+    const socketServerURL = socketURL.endsWith('/api') ? socketURL.replace('/api', '') : socketURL;
+    const socket = io(socketServerURL);
+
+    socket.emit('join_order_track', { orderId: id });
+
+    socket.on('location_updated', (data) => {
+      console.log('[Socket] Location update received:', data);
+      setRiderLocation({ lat: data.lat, lng: data.lng });
+      setDistanceRemaining(data.distanceRemaining);
+      setEta(data.eta);
+    });
+
+    socket.on('status_updated', (data) => {
+      console.log('[Socket] Order status updated:', data);
+      fetchOrderDetails();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [id]);
+
+  // Leaflet map initialization effect
+  useEffect(() => {
+    if (!order || order.orderStatus !== 'Out for Delivery' || !window.L) return;
+
+    // Center coordinates
+    const hostelCoords = [13.0827, 80.2707];
+    const initialRiderCoords = riderLocation ? [riderLocation.lat, riderLocation.lng] : [13.0812, 80.2681];
+
+    const map = window.L.map('map-container').setView(hostelCoords, 16);
+    setMapInstance(map);
+
+    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const hostelIcon = window.L.icon({
+      iconUrl: 'https://cdn-icons-png.flaticon.com/512/25/25694.png',
+      iconSize: [25, 25],
+      iconAnchor: [12, 12]
+    });
+
+    const riderIcon = window.L.icon({
+      iconUrl: 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png',
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
+    });
+
+    // Add marker for Hostel (Student)
+    window.L.marker(hostelCoords, { icon: hostelIcon })
+      .addTo(map)
+      .bindPopup('Your Room Location')
+      .openPopup();
+
+    // Add marker for Rider
+    const marker = window.L.marker(initialRiderCoords, { icon: riderIcon })
+      .addTo(map)
+      .bindPopup('Delivery Rider');
+    setRiderMarker(marker);
+
+    // Initial path polyline
+    window.L.polyline([initialRiderCoords, hostelCoords], { color: '#10b981', weight: 4 }).addTo(map);
+
+    return () => {
+      map.remove();
+    };
+  }, [order?.orderStatus]);
+
+  // React to rider coordinates updates
+  useEffect(() => {
+    if (riderMarker && riderLocation && mapInstance) {
+      const newCoords = [riderLocation.lat, riderLocation.lng];
+      riderMarker.setLatLng(newCoords);
+      const hostelCoords = [13.0827, 80.2707];
+      mapInstance.fitBounds([newCoords, hostelCoords], { padding: [40, 40] });
+    }
+  }, [riderLocation, riderMarker, mapInstance]);
 
   const fetchOrderDetails = async () => {
     try {
@@ -465,6 +557,28 @@ const OrderTracking = () => {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Live Delivery Tracking Map */}
+          {order.orderStatus === 'Out for Delivery' && (
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4 mt-6">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                  <span>Live Delivery Tracking</span>
+                </h3>
+                {distanceRemaining !== null && (
+                  <span className="text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full">
+                    {distanceRemaining} km away • {eta} mins ETA
+                  </span>
+                )}
+              </div>
+              <div id="map-container" className="w-full h-64 rounded-xl border border-slate-200 shadow-inner z-10"></div>
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-[10px] text-slate-400 leading-normal flex items-start gap-1.5">
+                <span>💡</span>
+                <span>Coordinates update in real-time as your delivery partner navigates. Please keep your delivery OTP ready.</span>
+              </div>
             </div>
           )}
         </div>

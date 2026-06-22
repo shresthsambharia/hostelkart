@@ -72,9 +72,17 @@ const updateDeliveryStatus = asyncHandler(async (req, res) => {
       if (status === 'Delivery Failed' && ['ONLINE', 'RAZORPAY'].includes(order.paymentMethod) && ['Paid', 'PAID'].includes(order.paymentStatus)) {
         await refundOrderHelper(order, `Delivery Failed: ${order.cancellationReason}`);
       }
-    }
-
     await order.save();
+
+    // Broadcast status update in real-time via Socket.io
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`order_${order._id.toString()}`).emit('status_updated', {
+        orderId: order._id.toString(),
+        status,
+        note: note || `Order status updated to ${status} by delivery partner`
+      });
+    }
 
     // Trigger notification alerts
     if (status === 'Delivered') {

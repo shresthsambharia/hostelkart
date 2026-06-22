@@ -142,6 +142,48 @@ const getDashboardAnalytics = asyncHandler(async (req, res) => {
   const refundedOrdersList = await Order.find({ refundStatus: 'REFUNDED' });
   const totalRefunds = refundedOrdersList.reduce((acc, o) => acc + (o.refundAmount || 0), 0);
 
+  // Active deliveries: Confirmed, Packed, Out for Delivery
+  const activeDeliveries = await Order.countDocuments({
+    orderStatus: { $in: ['Confirmed', 'Packed', 'Out for Delivery'] }
+  });
+
+  // Coupon usage %
+  const totalOrdersCount = await Order.countDocuments({});
+  const couponUsedCount = await Order.countDocuments({ couponCode: { $ne: '' } });
+  const couponUsagePct = totalOrdersCount > 0 ? Math.round((couponUsedCount / totalOrdersCount) * 100) : 0;
+
+  // Wallet usage %
+  const walletUsedCount = await Order.countDocuments({ walletPaidAmount: { $gt: 0 } });
+  const walletUsagePct = totalOrdersCount > 0 ? Math.round((walletUsedCount / totalOrdersCount) * 100) : 0;
+
+  // Top Customers
+  const topCustomers = await Order.aggregate([
+    { $match: { $or: [{ orderStatus: 'Delivered' }, { paymentStatus: 'Paid' }, { paymentStatus: 'PAID' }] } },
+    {
+      $group: {
+        _id: '$user',
+        totalSpent: { $sum: '$totalAmount' },
+        orderCount: { $sum: 1 }
+      }
+    },
+    { $sort: { totalSpent: -1 } },
+    { $limit: 10 }
+  ]);
+
+  const topCustomersList = [];
+  for (const c of topCustomers) {
+    const userObj = await User.findById(c._id).select('name email');
+    if (userObj) {
+      topCustomersList.push({
+        _id: c._id,
+        name: userObj.name,
+        email: userObj.email,
+        totalSpent: c.totalSpent,
+        orderCount: c.orderCount
+      });
+    }
+  }
+
   res.json({
     totalRevenue,
     todayRevenue,
@@ -171,6 +213,10 @@ const getDashboardAnalytics = asyncHandler(async (req, res) => {
     refundedPayments,
     paymentRevenue,
     totalRefunds,
+    activeDeliveries,
+    couponUsagePct,
+    walletUsagePct,
+    topCustomers: topCustomersList,
   });
 });
 
@@ -294,6 +340,16 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     }
 
     const updatedOrder = await order.save();
+
+    // Broadcast status update in real-time via Socket.io
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`order_${order._id.toString()}`).emit('status_updated', {
+        orderId: order._id.toString(),
+        status,
+        note: note || `Order status updated to ${status}`
+      });
+    }
 
     // Trigger notification alerts for student & rider
     let title = 'Order Status Update';

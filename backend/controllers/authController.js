@@ -15,13 +15,31 @@ const generateToken = (id) => {
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, phone } = req.body;
+  const { name, email, password, phone, referralCode } = req.body;
 
   const userExists = await User.findOne({ email });
 
   if (userExists) {
     res.status(400);
     throw new Error('User already exists');
+  }
+
+  // Generate unique referral code for this new user
+  let myReferralCode = '';
+  let uniqueCodeFound = false;
+  while (!uniqueCodeFound) {
+    const code = (name.split(' ')[0] || 'HK').substring(0, 5).toUpperCase() + Math.floor(1000 + Math.random() * 9000);
+    const codeExists = await User.findOne({ referralCode: code });
+    if (!codeExists) {
+      myReferralCode = code;
+      uniqueCodeFound = true;
+    }
+  }
+
+  // Check if referred by someone else
+  let referredByUser = null;
+  if (referralCode) {
+    referredByUser = await User.findOne({ referralCode: referralCode.toUpperCase() });
   }
 
   // Creating the user
@@ -31,6 +49,8 @@ const registerUser = asyncHandler(async (req, res) => {
     password,
     phone,
     role: 'student', // Enforced role
+    referralCode: myReferralCode,
+    referredBy: referredByUser ? referredByUser._id : null,
   });
 
   if (user) {
@@ -44,6 +64,8 @@ const registerUser = asyncHandler(async (req, res) => {
       email: user.email,
       role: user.role,
       phone: user.phone,
+      referralCode: user.referralCode,
+      referredBy: user.referredBy,
       hostelDetails: user.hostelDetails,
       token: generateToken(user._id),
     });
@@ -153,4 +175,21 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   }
 });
 
-export { registerUser, authUser, getUserProfile, updateUserProfile };
+// @desc    Update user FCM token
+// @route   PUT /api/auth/fcm-token
+// @access  Private
+const updateFcmToken = asyncHandler(async (req, res) => {
+  const { fcmToken } = req.body;
+  const user = await User.findById(req.user._id);
+
+  if (user) {
+    user.fcmToken = fcmToken || '';
+    await user.save();
+    res.json({ success: true, message: 'FCM Token updated successfully' });
+  } else {
+    res.status(404);
+    throw new Error('User not found');
+  }
+});
+
+export { registerUser, authUser, getUserProfile, updateUserProfile, updateFcmToken };

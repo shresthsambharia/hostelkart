@@ -17,7 +17,7 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['StatusUpdate', 'NewOrder', 'CustomRequest', 'LowStockAlert', 'CancellationAlert', 'AssignedOrder'],
+      enum: ['StatusUpdate', 'NewOrder', 'CustomRequest', 'LowStockAlert', 'CancellationAlert', 'AssignedOrder', 'Cashback', 'Promo'],
       required: true,
     },
     isRead: {

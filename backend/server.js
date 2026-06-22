@@ -19,6 +19,8 @@ import deliveryRoutes from './routes/deliveryRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
+import couponRoutes from './routes/couponRoutes.js';
+import walletRoutes from './routes/walletRoutes.js';
 
 // Load environmental variables
 dotenv.config();
@@ -59,6 +61,8 @@ app.use('/api/delivery', deliveryRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/coupons', couponRoutes);
+app.use('/api/wallet', walletRoutes);
 app.use('/api', paymentRoutes);
 
 // Root route
@@ -70,8 +74,48 @@ app.get('/', (req, res) => {
 app.use(notFound);
 app.use(errorHandler);
 
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  },
+});
+
+io.on('connection', (socket) => {
+  console.log(`[Socket] Connected: ${socket.id}`);
+
+  // Students join this room to track an order
+  socket.on('join_order_track', ({ orderId }) => {
+    socket.join(`order_${orderId}`);
+    console.log(`[Socket] Client ${socket.id} joined tracking room order_${orderId}`);
+  });
+
+  // Rider publishes live coordinates & telemetry
+  socket.on('update_location', ({ orderId, lat, lng, distanceRemaining, eta }) => {
+    console.log(`[Socket] Location update for order_${orderId}: Lat ${lat}, Lng ${lng}, Dist ${distanceRemaining}, ETA ${eta}`);
+    io.to(`order_${orderId}`).emit('location_updated', {
+      orderId,
+      lat,
+      lng,
+      distanceRemaining,
+      eta,
+    });
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`[Socket] Disconnected: ${socket.id}`);
+  });
+});
+
+// Set io globally on Express app so controllers can access it
+app.set('io', io);
+
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });
