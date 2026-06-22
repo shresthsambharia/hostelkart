@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { orderAPI, paymentAPI } from '../api';
+import { orderAPI, paymentAPI, couponAPI, walletAPI } from '../api';
 import { Check, ClipboardList, MapPin, CreditCard, ChevronRight, AlertCircle } from 'lucide-react';
 
 const loadRazorpayScript = () => {
@@ -42,6 +42,63 @@ const Checkout = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [showSimulatedModal, setShowSimulatedModal] = useState(false);
+
+  // Coupon states
+  const [couponCode, setCouponCode] = useState('');
+  const [couponApplied, setCouponApplied] = useState(false);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [allowWalletCombination, setAllowWalletCombination] = useState(true);
+  const [couponError, setCouponError] = useState('');
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+
+  // Wallet states
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [walletChecked, setWalletChecked] = useState(false);
+
+  // Load wallet balance on mount
+  useEffect(() => {
+    const fetchWallet = async () => {
+      try {
+        const { data } = await walletAPI.getDetails();
+        setWalletBalance(data.walletBalance || 0);
+      } catch (err) {
+        console.error('Error fetching wallet balance:', err);
+      }
+    };
+    fetchWallet();
+  }, []);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setValidatingCoupon(true);
+    setCouponError('');
+    try {
+      const { data } = await couponAPI.validate(couponCode, total);
+      setCouponDiscount(data.discountAmount);
+      setAllowWalletCombination(data.allowWalletCombination);
+      setCouponApplied(true);
+      
+      // Enforce combination cap rule
+      if (!data.allowWalletCombination) {
+        setWalletChecked(false);
+      }
+    } catch (err) {
+      setCouponError(err.response?.data?.message || 'Invalid coupon code');
+      setCouponApplied(false);
+      setCouponDiscount(0);
+      setAllowWalletCombination(true);
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponCode('');
+    setCouponApplied(false);
+    setCouponDiscount(0);
+    setAllowWalletCombination(true);
+    setCouponError('');
+  };
   const [simulatedOrderData, setSimulatedOrderData] = useState(null);
   const [simulatedTab, setSimulatedTab] = useState('card');
   const [simulatedCard, setSimulatedCard] = useState('');
@@ -53,7 +110,13 @@ const Checkout = () => {
 
   const deliveryCharge = total < 100 ? 15 : 0;
   const platformFee = 15;
-  const finalTotal = total + platformFee + deliveryCharge;
+  
+  const subtotalWithFees = total + platformFee + deliveryCharge;
+  const intermediateTotal = Math.max(0, subtotalWithFees - couponDiscount);
+  const maxWalletUsage = intermediateTotal * 0.5;
+  const walletDeduction = walletChecked ? Math.min(walletBalance, maxWalletUsage) : 0;
+  const finalPayable = Math.max(0, intermediateTotal - walletDeduction);
+  const finalTotal = subtotalWithFees;
 
 
   // Load user hostel details on mount
@@ -113,7 +176,9 @@ const Checkout = () => {
         paymentStatus,
         platformFee,
         deliveryCharge,
-        totalAmount: finalTotal,
+        totalAmount: finalPayable,
+        couponCode: couponApplied ? couponCode : '',
+        walletPaidAmount: walletDeduction,
         utrNumber,
         razorpayOrderId,
         razorpayPaymentId,
@@ -244,6 +309,13 @@ const Checkout = () => {
     }
 
     if (paymentMethod === 'ONLINE') {
+      const finalAmountInPaise = Math.round(finalPayable * 100);
+      if (finalAmountInPaise === 0) {
+        setLoading(true);
+        await completeOrderPlacement('Paid');
+        return;
+      }
+
       setLoading(true);
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
@@ -253,8 +325,8 @@ const Checkout = () => {
       }
 
       try {
-        console.log('[DEBUG-PAYMENT] Frontend initiating createOrder with amount (paise):', Math.round(finalTotal * 100));
-        const { data: rzpOrder } = await paymentAPI.createOrder(Math.round(finalTotal * 100));
+        console.log('[DEBUG-PAYMENT] Frontend initiating createOrder with amount (paise):', finalAmountInPaise);
+        const { data: rzpOrder } = await paymentAPI.createOrder(finalAmountInPaise);
         console.log('[DEBUG-PAYMENT] Frontend createOrder response:', rzpOrder);
 
         if (rzpOrder.isMock) {
@@ -667,46 +739,156 @@ const Checkout = () => {
             })}
           </div>
 
-          {/* Pricing list */}
-          <div className="border-t border-slate-100 pt-4 space-y-3 text-sm">
-            <div className="flex justify-between text-slate-500 font-medium">
-              <span>Items Subtotal</span>
-              <span>₹{total}</span>
-            </div>
-            <div className="flex justify-between text-slate-500 font-medium">
-              <span>Platform Fee</span>
-              <span>₹{platformFee}</span>
-            </div>
-            <div className="flex justify-between text-slate-500 font-medium">
-              <span>Delivery Fee</span>
-              {deliveryCharge === 0 ? (
-                <div className="flex items-center space-x-1.5">
-                  <span className="line-through text-slate-400">₹15</span>
-                  <span className="text-emerald-600 font-bold">FREE</span>
+          {/* Coupon Code Input */}
+          <div className="border-t border-slate-100 pt-4 space-y-2">
+            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Apply Coupon</h3>
+            {couponApplied ? (
+              <div className="flex items-center justify-between bg-emerald-50 border border-emerald-100 p-2.5 rounded-xl">
+                <div className="text-xs">
+                  <span className="font-extrabold text-emerald-800 tracking-wide bg-emerald-100/50 border border-emerald-200 px-1.5 py-0.5 rounded uppercase">{couponCode}</span>
+                  <p className="text-[10px] text-emerald-600 mt-1 font-medium">Applied! Saved ₹{couponDiscount}</p>
                 </div>
-              ) : (
-                <span>₹{deliveryCharge}</span>
-              )}
-            </div>
-            {deliveryCharge > 0 && (
-              <div className="text-[11px] text-slate-400 bg-slate-50 p-2 rounded-lg leading-relaxed">
-                Add <strong>₹{100 - total}</strong> more to your cart to get <strong>FREE delivery</strong>!
+                <button
+                  type="button"
+                  onClick={handleRemoveCoupon}
+                  className="text-xs font-extrabold text-red-500 hover:text-red-700 shrink-0"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="ENTER COUPON CODE"
+                    value={couponCode}
+                    onChange={(e) => {
+                      setCouponCode(e.target.value.toUpperCase());
+                      setCouponError('');
+                    }}
+                    className="flex-1 rounded-xl border border-slate-200 py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary-500/25 focus:border-primary-500 font-bold uppercase tracking-wider text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    disabled={validatingCoupon || !couponCode.trim()}
+                    className="bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white font-bold py-2 px-4 rounded-xl text-xs shadow-md shadow-primary-600/10 transition-all shrink-0"
+                  >
+                    {validatingCoupon ? 'Applying...' : 'Apply'}
+                  </button>
+                </div>
+                {couponError && (
+                  <p className="text-[10px] font-semibold text-red-500">⚠️ {couponError}</p>
+                )}
               </div>
             )}
-            <div className="border-t border-slate-100 pt-3 flex justify-between text-slate-800 font-extrabold text-base">
-              <span>Total Amount</span>
-              <span>₹{finalTotal}</span>
+          </div>
+
+          {/* Wallet Balance Apply */}
+          <div className="border-t border-slate-100 pt-4 space-y-2">
+            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Pay using Wallet</h3>
+            <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex items-center justify-between">
+              <div className="space-y-0.5 pr-2">
+                <div className="text-xs font-bold text-slate-700">Wallet Balance: ₹{walletBalance.toFixed(2)}</div>
+                {walletBalance > 0 ? (
+                  <div className="text-[10px] text-slate-400">
+                    {!allowWalletCombination && couponApplied ? (
+                      <span className="text-amber-600 font-semibold">Cannot combine this coupon with wallet</span>
+                    ) : (
+                      <span>Use up to 50% of order value (Max: ₹{((total + platformFee + deliveryCharge - couponDiscount) * 0.5).toFixed(2)})</span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-slate-400">No balance available in wallet</div>
+                )}
+              </div>
+              <input
+                type="checkbox"
+                disabled={walletBalance <= 0 || (!allowWalletCombination && couponApplied)}
+                checked={walletChecked}
+                onChange={(e) => setWalletChecked(e.target.checked)}
+                className="rounded text-primary-600 focus:ring-primary-500 h-4.5 w-4.5 border-slate-300 disabled:opacity-40"
+              />
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full btn-primary py-3.5 flex items-center justify-center space-x-2 text-sm shadow-md hover:shadow-lg"
-          >
-            <span>{loading ? 'Processing...' : 'Place Room Order'}</span>
-            <ChevronRight size={16} />
-          </button>
+          {/* Pricing list */}
+          {(() => {
+            const subtotalWithFees = total + platformFee + deliveryCharge;
+            const intermediateTotal = Math.max(0, subtotalWithFees - couponDiscount);
+            const maxWalletUsage = intermediateTotal * 0.5;
+            const walletDeduction = walletChecked ? Math.min(walletBalance, maxWalletUsage) : 0;
+            const finalPayable = Math.max(0, intermediateTotal - walletDeduction);
+
+            return (
+              <div className="border-t border-slate-100 pt-4 space-y-3 text-sm">
+                <div className="flex justify-between text-slate-500 font-medium">
+                  <span>Items Subtotal</span>
+                  <span>₹{total}</span>
+                </div>
+                <div className="flex justify-between text-slate-500 font-medium">
+                  <span>Platform Fee</span>
+                  <span>₹{platformFee}</span>
+                </div>
+                <div className="flex justify-between text-slate-500 font-medium">
+                  <span>Delivery Fee</span>
+                  {deliveryCharge === 0 ? (
+                    <div className="flex items-center space-x-1.5">
+                      <span className="line-through text-slate-400">₹15</span>
+                      <span className="text-emerald-600 font-bold">FREE</span>
+                    </div>
+                  ) : (
+                    <span>₹{deliveryCharge}</span>
+                  )}
+                </div>
+                {couponApplied && (
+                  <div className="flex justify-between text-emerald-600 font-semibold">
+                    <span>Coupon Discount</span>
+                    <span>-₹{couponDiscount}</span>
+                  </div>
+                )}
+                {walletChecked && walletDeduction > 0 && (
+                  <div className="flex justify-between text-primary-600 font-semibold">
+                    <span>Paid via Wallet</span>
+                    <span>-₹{walletDeduction.toFixed(2)}</span>
+                  </div>
+                )}
+                {deliveryCharge > 0 && (
+                  <div className="text-[11px] text-slate-400 bg-slate-50 p-2 rounded-lg leading-relaxed">
+                    Add <strong>₹{100 - total}</strong> more to your cart to get <strong>FREE delivery</strong>!
+                  </div>
+                )}
+                <div className="border-t border-slate-100 pt-3 flex justify-between text-slate-800 font-extrabold text-base">
+                  <span>Payable Amount</span>
+                  <span>₹{finalPayable.toFixed(2)}</span>
+                </div>
+              </div>
+            );
+          })()}
+
+          {(() => {
+            const subtotalWithFees = total + platformFee + deliveryCharge;
+            const intermediateTotal = Math.max(0, subtotalWithFees - couponDiscount);
+            const maxWalletUsage = intermediateTotal * 0.5;
+            const walletDeduction = walletChecked ? Math.min(walletBalance, maxWalletUsage) : 0;
+            const finalPayable = Math.max(0, intermediateTotal - walletDeduction);
+
+            // Export variable helpers to the surrounding functional component scope
+            window.finalPayable = finalPayable;
+            window.walletDeduction = walletDeduction;
+
+            return (
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full btn-primary py-3.5 flex items-center justify-center space-x-2 text-sm shadow-md hover:shadow-lg"
+              >
+                <span>{loading ? 'Processing...' : 'Place Room Order'}</span>
+                <ChevronRight size={16} />
+              </button>
+            );
+          })()}
         </div>
       </form>
 
@@ -855,7 +1037,7 @@ const Checkout = () => {
             {/* Footer buttons */}
             <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex items-center justify-between">
               <span className="text-sm font-black text-slate-800">
-                Amount: ₹{finalTotal}
+                Amount: ₹{finalPayable.toFixed(2)}
               </span>
               <div className="flex space-x-2">
                 <button

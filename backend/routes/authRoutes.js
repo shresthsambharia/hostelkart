@@ -4,6 +4,7 @@ import {
   authUser,
   getUserProfile,
   updateUserProfile,
+  updateFcmToken,
 } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -15,5 +16,6 @@ router
   .route('/profile')
   .get(protect, getUserProfile)
   .put(protect, updateUserProfile);
+router.put('/fcm-token', protect, updateFcmToken);
 
 export default router;

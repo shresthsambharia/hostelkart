@@ -54,13 +54,15 @@ const AdminDashboard = () => {
     { name: "Today's Revenue", value: `₹${stats.todayRevenue || 0}`, icon: <IndianRupee size={20} className="text-emerald-500" />, bg: 'bg-emerald-50/70' },
     { name: 'Total Orders', value: stats.totalOrders || 0, icon: <ShoppingCart size={20} className="text-blue-600" />, bg: 'bg-blue-50' },
     { name: "Today's Orders", value: stats.todayOrders || 0, icon: <ShoppingCart size={20} className="text-blue-500" />, bg: 'bg-blue-50/70' },
+    { name: 'Active Deliveries', value: stats.activeDeliveries || 0, icon: <Bike size={20} className="text-primary-600" />, bg: 'bg-primary-50' },
     { name: 'Pending Orders', value: stats.pendingOrders || 0, icon: <Clock size={20} className="text-amber-600" />, bg: 'bg-amber-50' },
     { name: 'Delivered Orders', value: stats.deliveredOrders || 0, icon: <CheckCircle size={20} className="text-teal-600" />, bg: 'bg-teal-50' },
     { name: 'Cancelled Orders', value: stats.cancelledOrders || 0, icon: <Clock size={20} className="text-red-650" />, bg: 'bg-red-50' },
-    { name: 'Total Products', value: stats.totalProducts || 0, icon: <Package size={20} className="text-indigo-600" />, bg: 'bg-indigo-50' },
+    { name: 'Coupon Usage Rate', value: `${stats.couponUsagePct || 0}%`, icon: <TrendingUp size={20} className="text-indigo-600" />, bg: 'bg-indigo-50' },
+    { name: 'Wallet Usage Rate', value: `${stats.walletUsagePct || 0}%`, icon: <IndianRupee size={20} className="text-violet-600" />, bg: 'bg-violet-50' },
+    { name: 'Total Products', value: stats.totalProducts || 0, icon: <Package size={20} className="text-slate-600" />, bg: 'bg-slate-50' },
     { name: 'Low Stock Products', value: stats.lowStockProductsCount || 0, icon: <Package size={20} className="text-rose-600" />, bg: 'bg-rose-50' },
     { name: 'Registered Students', value: stats.totalUsers || 0, icon: <Users size={20} className="text-purple-600" />, bg: 'bg-purple-50' },
-    { name: 'Delivery Partners', value: stats.totalDeliveryPartners || 0, icon: <Users size={20} className="text-violet-600" />, bg: 'bg-violet-50' },
   ];
 
   const renderSalesChart = () => {
@@ -479,6 +481,39 @@ const AdminDashboard = () => {
               </table>
             </div>
           )}
+          
+          {/* Top Spending Customers */}
+          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-100/80 shadow-premium space-y-4 mt-6">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">Top Spending Customers</h3>
+            </div>
+            {stats.topCustomers && stats.topCustomers.length === 0 ? (
+              <p className="text-sm text-slate-400 italic py-6 text-center">No customer spend logged yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-slate-400 font-bold">
+                      <th className="py-3 px-2">Customer</th>
+                      <th className="py-3 px-2">Email</th>
+                      <th className="py-3 px-2 text-center">Orders</th>
+                      <th className="py-3 px-2 text-right">Total Spent</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50 font-medium text-slate-600">
+                    {stats.topCustomers && stats.topCustomers.map((cust, idx) => (
+                      <tr key={cust._id || idx} className="hover:bg-slate-50/50">
+                        <td className="py-3 px-2 font-bold text-slate-800">{cust.name}</td>
+                        <td className="py-3 px-2 text-slate-500 font-semibold">{cust.email}</td>
+                        <td className="py-3 px-2 text-center text-slate-700 font-bold">{cust.orderCount}</td>
+                        <td className="py-3 px-2 text-right text-emerald-600 font-black">₹{cust.totalSpent.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Side panel for Low Stock and Top Selling */}

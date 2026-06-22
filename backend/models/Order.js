@@ -75,6 +75,22 @@ const orderSchema = new mongoose.Schema(
       required: true,
       default: 0.0,
     },
+    couponCode: {
+      type: String,
+      default: '',
+    },
+    discountAmount: {
+      type: Number,
+      default: 0.0,
+    },
+    walletPaidAmount: {
+      type: Number,
+      default: 0.0,
+    },
+    cashbackAmount: {
+      type: Number,
+      default: 0.0,
+    },
     deliveryPartner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -151,6 +167,139 @@ const orderSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+orderSchema.pre('save', async function (next) {
+  if (this.isModified('orderStatus')) {
+    const status = this.orderStatus;
+    
+    try {
+      const { sendPushNotification } = await import('../utils/fcm.js');
+      let title = '';
+      let message = '';
+      
+      if (status === 'Confirmed') {
+        title = 'Order Confirmed';
+        message = `Your order #${this._id.toString().substring(12).toUpperCase()} has been confirmed and is being processed.`;
+      } else if (status === 'Packed') {
+        title = 'Order Prepared';
+        message = `Your order #${this._id.toString().substring(12).toUpperCase()} has been packed and is ready for pickup.`;
+      } else if (status === 'Out for Delivery') {
+        title = 'Order Out for Delivery';
+        message = `Your order #${this._id.toString().substring(12).toUpperCase()} is out for delivery! A rider is heading to your room.`;
+      } else if (status === 'Delivered') {
+        title = 'Order Delivered';
+        message = `Your order #${this._id.toString().substring(12).toUpperCase()} was successfully delivered to your room.`;
+      }
+      
+      if (title && message) {
+        // Run push notification
+        sendPushNotification(this.user, title, message, 'StatusUpdate').catch(console.error);
+      }
+    } catch (fcmErr) {
+      console.error('FCM error in order status pre-save:', fcmErr);
+    }
+  }
+
+  // Handle Delivered status processing
+  if (this.isModified('orderStatus') && this.orderStatus === 'Delivered') {
+    const User = mongoose.model('User');
+    const WalletTransaction = mongoose.model('WalletTransaction');
+    
+    try {
+      const userObj = await User.findById(this.user);
+      if (userObj) {
+        // Count previous delivered orders
+        const OrderModel = mongoose.model('Order');
+        const deliveredOrdersCount = await OrderModel.countDocuments({
+          user: this.user,
+          orderStatus: 'Delivered',
+          _id: { $ne: this._id }
+        });
+        
+        // Determine cashback percent:
+        // Bronze: 0-4 orders (1%)
+        // Silver: 5-14 orders (2%)
+        // Gold: 15-29 orders (3%)
+        // Platinum: 30+ orders (5%)
+        let cashbackPercent = 1;
+        let loyaltyLevel = 'Bronze';
+        if (deliveredOrdersCount >= 30) {
+          cashbackPercent = 5;
+          loyaltyLevel = 'Platinum';
+        } else if (deliveredOrdersCount >= 15) {
+          cashbackPercent = 3;
+          loyaltyLevel = 'Gold';
+        } else if (deliveredOrdersCount >= 5) {
+          cashbackPercent = 2;
+          loyaltyLevel = 'Silver';
+        }
+        
+        const cashbackAmount = Math.round((this.totalAmount * cashbackPercent) / 100);
+        this.cashbackAmount = cashbackAmount;
+        
+        if (cashbackAmount > 0) {
+          userObj.walletBalance += cashbackAmount;
+          
+          const cashbackTx = new WalletTransaction({
+            user: this.user,
+            type: 'cashback',
+            amount: cashbackAmount,
+            description: `Cashback earned on order #${this._id.toString().substring(12).toUpperCase()} (${loyaltyLevel} Tier)`
+          });
+          await cashbackTx.save();
+        }
+        
+        userObj.loyaltyLevel = loyaltyLevel;
+        await userObj.save();
+        
+        // Referral reward processing ( ₹50 cashback only on invitee's first delivered order )
+        if (userObj.referredBy && !userObj.referralRewardClaimed) {
+          if (deliveredOrdersCount === 0) {
+            const referrer = await User.findById(userObj.referredBy);
+            if (referrer) {
+              // Credit ₹50 to referee
+              userObj.walletBalance += 50;
+              const refereeTx = new WalletTransaction({
+                user: userObj._id,
+                type: 'referral',
+                amount: 50,
+                description: `Referral signup cashback (referred by ${referrer.name})`
+              });
+              await refereeTx.save();
+              
+              // Credit ₹50 to referrer
+              referrer.walletBalance += 50;
+              referrer.referralsCount += 1;
+              const referrerTx = new WalletTransaction({
+                user: referrer._id,
+                type: 'referral',
+                amount: 50,
+                description: `Referral referral cashback (referred user ${userObj.name} delivered first order)`
+              });
+              await referrerTx.save();
+              await referrer.save();
+              
+              userObj.referralRewardClaimed = true;
+              await userObj.save();
+              
+              const { sendPushNotification } = await import('../utils/fcm.js');
+              await sendPushNotification(userObj._id, '₹50 Referral Cashback Credited!', `Your first order was delivered! You and your referrer both earned ₹50 cashback.`, 'Cashback');
+              await sendPushNotification(referrer._id, '₹50 Referral Cashback Credited!', `Your invitee ${userObj.name} just completed their first order. You earned ₹50 cashback!`, 'Cashback');
+            }
+          }
+        }
+        
+        if (cashbackAmount > 0) {
+          const { sendPushNotification } = await import('../utils/fcm.js');
+          await sendPushNotification(userObj._id, 'Cashback Credited!', `You earned ₹${cashbackAmount} cashback on order #${this._id.toString().substring(12).toUpperCase()}!`, 'Cashback');
+        }
+      }
+    } catch (err) {
+      console.error('Error in Order pre-save hook for Delivered state:', err);
+    }
+  }
+  next();
+});
 
 const Order = mongoose.model('Order', orderSchema);
 

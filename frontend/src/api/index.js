@@ -30,6 +30,7 @@ export const authAPI = {
   register: (userData) => API.post('/auth/register', userData),
   getProfile: () => API.get('/auth/profile'),
   updateProfile: (profileData) => API.put('/auth/profile', profileData),
+  updateFcmToken: (fcmToken) => API.put('/auth/fcm-token', { fcmToken }),
 };
 
 export const productAPI = {
@@ -106,6 +107,19 @@ export const paymentAPI = {
   createOrder: (amount) => API.post('/create-order', { amount }),
   verifyPayment: (payload) => API.post('/verify-payment', payload),
   refund: (orderId, refundReason) => API.post('/payments/refund', { orderId, refundReason }),
+};
+
+export const couponAPI = {
+  validate: (code, orderAmount) => API.post('/coupons/validate', { code, orderAmount }),
+  getActive: () => API.get('/coupons'),
+  adminGetAll: () => API.get('/coupons/admin'),
+  adminCreate: (couponData) => API.post('/coupons/admin', couponData),
+  adminUpdate: (id, couponData) => API.put(`/coupons/admin/${id}`, couponData),
+  adminDelete: (id) => API.delete(`/coupons/admin/${id}`),
+};
+
+export const walletAPI = {
+  getDetails: () => API.get('/wallet'),
 };
 
 export default API;
