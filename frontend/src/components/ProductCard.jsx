@@ -17,6 +17,22 @@ const ProductCard = ({ product, priority = false }) => {
     product.price - (product.price * (product.discount || 0)) / 100
   );
 
+  // Dynamic Badges logic
+  let badgeText = '';
+  let badgeStyle = '';
+  const charCodeSum = product._id ? product._id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) : 0;
+  
+  if (product.rating >= 4.5 && charCodeSum % 3 === 0) {
+    badgeText = 'Best Seller';
+    badgeStyle = 'bg-amber-50 text-amber-700 border-amber-200/50';
+  } else if (charCodeSum % 3 === 1) {
+    badgeText = 'Fast Delivery';
+    badgeStyle = 'bg-blue-50 text-blue-700 border-blue-200/50';
+  } else {
+    badgeText = 'Popular in Hostel';
+    badgeStyle = 'bg-purple-50 text-purple-700 border-purple-200/50';
+  }
+
   const handleAddToCart = async (e) => {
     e.preventDefault();
     setAdding(true);
@@ -93,10 +109,17 @@ const ProductCard = ({ product, priority = false }) => {
       {/* Info details */}
       <div className="p-3.5 flex flex-col flex-grow justify-between space-y-3">
         <div>
-          {/* Category */}
-          <span className="text-[9px] font-black text-primary-650 uppercase tracking-wider block mb-1">
-            {product.category}
-          </span>
+          {/* Category & Badge */}
+          <div className="flex justify-between items-center mb-1 flex-wrap gap-1">
+            <span className="text-[9px] font-black text-primary-650 uppercase tracking-wider">
+              {product.category}
+            </span>
+            {badgeText && (
+              <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border uppercase tracking-wider shrink-0 ${badgeStyle}`}>
+                {badgeText}
+              </span>
+            )}
+          </div>
 
           {/* Title name */}
           <Link to={`/products/${product._id}`} className="hover:text-primary-650 transition-colors block">
@@ -137,8 +160,8 @@ const ProductCard = ({ product, priority = false }) => {
 
           {/* Delivery & Stock indicators */}
           <div className="flex justify-between items-center mt-2.5 mb-2.5 gap-1.5">
-            <span className="inline-flex items-center text-[9px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100 shrink-0 uppercase tracking-wide">
-              ⚡ {product.deliveryTime || '30 Min'}
+            <span className="inline-flex items-center text-[9px] font-black text-amber-800 bg-amber-50/85 px-1.5 py-0.5 rounded border border-amber-150 shrink-0 uppercase tracking-wide">
+              ⏱️ {product.deliveryTime || '30 Min'}
             </span>
             {product.stock > 0 && product.stock <= 5 ? (
               <span className="text-rose-600 font-extrabold bg-rose-50 px-1.5 py-0.5 rounded text-[9px] border border-rose-100 shrink-0">Only {product.stock} left</span>

@@ -303,6 +303,41 @@ const Navbar = () => {
         </div>
       </div>
 
+      {/* Mobile Sticky Search Bar */}
+      {(!user || user.role === 'student') && (
+        <div className="md:hidden px-4 pb-3">
+          <form onSubmit={handleSearchSubmit} className="relative w-full">
+            <input
+              type="text"
+              placeholder="Search essentials, snacks, beverages..."
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-4 pr-10 focus:outline-none focus:ring-2 focus:ring-primary-500 text-xs transition-all"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+            />
+            <button type="submit" className="absolute right-3 top-3 text-slate-400" aria-label="Submit Search">
+              <Search size={16} />
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Sitewide Category Chips */}
+      {(!user || user.role === 'student') && (
+        <div className="bg-slate-50/90 border-t border-slate-100/60 py-2 overflow-x-auto no-scrollbar scroll-smooth">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-2 text-[11px] font-bold whitespace-nowrap">
+            {['Fruits', 'Snacks', 'Beverages', 'Stationery', 'Personal Care', 'Hostel Essentials'].map((cat) => (
+              <Link
+                key={cat}
+                to={`/products?category=${encodeURIComponent(cat === 'Hostel Essentials' ? 'Instant Food' : cat)}`}
+                className="px-3.5 py-1.5 rounded-full bg-white border border-slate-200 hover:border-primary-500 hover:text-primary-600 transition-all shadow-sm shrink-0"
+              >
+                {cat}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-slate-100 bg-white px-4 pt-2 pb-4 space-y-3 shadow-md">
