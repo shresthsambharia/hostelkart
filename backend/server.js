@@ -86,17 +86,18 @@ const io = new Server(server, {
 });
 
 io.on('connection', (socket) => {
-  console.log(`[Socket] Connected: ${socket.id}`);
+  console.log("Client Connected", socket.id);
 
   // Students join this room to track an order
   socket.on('join_order_track', ({ orderId }) => {
     socket.join(`order_${orderId}`);
-    console.log(`[Socket] Client ${socket.id} joined tracking room order_${orderId}`);
+    console.log("Join Order", orderId);
   });
 
   // Rider publishes live coordinates & telemetry
-  socket.on('update_location', ({ orderId, lat, lng, distanceRemaining, eta }) => {
-    console.log(`[Socket] Location update for order_${orderId}: Lat ${lat}, Lng ${lng}, Dist ${distanceRemaining}, ETA ${eta}`);
+  socket.on('update_location', (payload) => {
+    console.log("Location Update", payload);
+    const { orderId, lat, lng, distanceRemaining, eta } = payload;
     io.to(`order_${orderId}`).emit('location_updated', {
       orderId,
       lat,

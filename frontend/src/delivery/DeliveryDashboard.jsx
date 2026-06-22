@@ -24,8 +24,12 @@ const DeliveryDashboard = () => {
   };
 
   const simulateMovement = (orderId) => {
-    const socketURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://hostelkart-backend.onrender.com');
-    const socketServerURL = socketURL.endsWith('/api') ? socketURL.replace('/api', '') : socketURL;
+    const host = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:5000'
+      : (import.meta.env.VITE_API_URL || 'https://hostelkart-backend.onrender.com');
+    const socketServerURL = host.endsWith('/api') ? host.replace('/api', '') : host;
+    
+    console.log("[Socket] Connecting delivery partner to socket at:", socketServerURL);
     const socket = io(socketServerURL);
 
     const coordinates = [
@@ -36,6 +40,7 @@ const DeliveryDashboard = () => {
       { lat: 13.0827, lng: 80.2707, distanceRemaining: 0.0, eta: 0 }
     ];
 
+    console.log("Before click coordinates", coordinates[0]);
     let stepIndex = 0;
     setAlert({ type: 'success', message: 'Simulated rider movement started! Open student tracking screen to view.' });
 
@@ -48,13 +53,18 @@ const DeliveryDashboard = () => {
       }
 
       const step = coordinates[stepIndex];
-      socket.emit('update_location', {
+      console.log("After click coordinates", step);
+
+      const payload = {
         orderId,
         lat: step.lat,
         lng: step.lng,
         distanceRemaining: step.distanceRemaining,
         eta: step.eta
-      });
+      };
+      
+      console.log("Socket payload emitted", payload);
+      socket.emit('update_location', payload);
 
       stepIndex++;
     }, 2000);
