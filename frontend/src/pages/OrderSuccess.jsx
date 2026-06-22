@@ -10,10 +10,21 @@ const OrderSuccess = () => {
   return (
     <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center py-12 px-4 bg-slate-50">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 text-center animate-slide-up">
-        {/* Animated Green Checkmark Icon */}
-        <div className="flex justify-center">
-          <div className="p-4 bg-primary-50 rounded-full text-primary-600 animate-bounce">
-            <CheckCircle2 size={56} className="stroke-[2.5]" />
+        {/* Animated Drawing Success Checkmark and Confetti */}
+        <div className="flex justify-center relative py-4">
+          <div className="success-checkmark-wrapper relative z-10">
+            <svg className="success-checkmark-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+              <circle className="success-checkmark-circle" cx="26" cy="26" r="25" fill="none" />
+              <path className="success-checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+            </svg>
+            <div className="absolute top-0 left-0 w-full h-full pointer-events-none success-particles">
+              <div className="particle p1 bg-emerald-500"></div>
+              <div className="particle p2 bg-amber-500"></div>
+              <div className="particle p3 bg-indigo-500"></div>
+              <div className="particle p4 bg-rose-500"></div>
+              <div className="particle p5 bg-emerald-400"></div>
+              <div className="particle p6 bg-yellow-500"></div>
+            </div>
           </div>
         </div>
 

@@ -232,7 +232,7 @@ const getOrderById = asyncHandler(async (req, res) => {
 
 // @desc    Get logged in user orders
 const getMyOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find({ user: req.user._id }).sort({ createdAt: -1 });
+  const orders = await Order.find({ user: req.user._id }).populate('items.product').sort({ createdAt: -1 });
   res.json(orders);
 });
 

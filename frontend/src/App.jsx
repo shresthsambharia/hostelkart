@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 
 // Context Providers
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { CartProvider } from './context/CartContext';
+import { CartProvider, useCart } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
 
 // Protected Route Wrapper
@@ -70,6 +70,38 @@ const LoadingSkeleton = () => (
   </div>
 );
 
+// Floating Cart Button component for Mobile viewports
+const FloatingCartButton = () => {
+  const { itemsCount, total } = useCart();
+  const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const isCartOrCheckout = ['/cart', '/checkout', '/order-success'].includes(location.pathname);
+  const showFloatingCart = itemsCount > 0 && !isCartOrCheckout && (!user || user.role === 'student');
+
+  if (!showFloatingCart) return null;
+
+  return (
+    <div className="fixed bottom-20 left-4 right-4 z-40 md:hidden animate-bounce-subtle">
+      <button
+        onClick={() => navigate('/cart')}
+        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white p-3.5 rounded-xl shadow-lg flex items-center justify-between font-black text-xs uppercase tracking-wider transition-all active:scale-[0.98] border border-emerald-500/20"
+      >
+        <div className="flex items-center space-x-2">
+          <span>🛒 {itemsCount} {itemsCount === 1 ? 'Item' : 'Items'}</span>
+          <span className="opacity-40">|</span>
+          <span>₹{total}</span>
+        </div>
+        <div className="flex items-center space-x-1.5">
+          <span>View Cart</span>
+          <span>&rarr;</span>
+        </div>
+      </button>
+    </div>
+  );
+};
+
 // Layout switcher helper component
 const LayoutContainer = ({ children }) => {
   const location = useLocation();
@@ -124,7 +156,7 @@ const LayoutContainer = ({ children }) => {
 
   // Standard student/public e-commerce layout
   return (
-    <div className="min-h-screen flex flex-col justify-between pb-16 md:pb-0">
+    <div className="min-h-screen flex flex-col justify-between pb-16 md:pb-0 relative">
       <div className="flex-grow flex flex-col">
         <Navbar />
         <main className="flex-grow bg-slate-50/50">
@@ -132,6 +164,7 @@ const LayoutContainer = ({ children }) => {
         </main>
       </div>
       <Footer />
+      <FloatingCartButton />
       <MobileBottomNav />
     </div>
   );

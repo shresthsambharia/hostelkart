@@ -83,3 +83,105 @@
   scrollbar-width: none;  /* Firefox */
 }
 
+/* Success Checkmark Drawing Animation */
+.success-checkmark-wrapper {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto;
+}
+
+.success-checkmark-svg {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: block;
+  stroke-width: 4;
+  stroke: #10b981; /* emerald-500 */
+  stroke-miterlimit: 10;
+  box-shadow: inset 0px 0px 0px #10b981;
+  animation: fill-checkmark .4s ease-in-out .4s forwards, scale-checkmark .3s ease-in-out .9s both;
+}
+
+.success-checkmark-circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  stroke-width: 4;
+  stroke-miterlimit: 10;
+  stroke: #10b981;
+  fill: none;
+  animation: stroke-circle .6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.success-checkmark-check {
+  transform-origin: 50% 50%;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  stroke: #fff;
+  animation: stroke-check .3s cubic-bezier(0.65, 0, 0.45, 1) .8s forwards;
+}
+
+@keyframes stroke-circle {
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes stroke-check {
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fill-checkmark {
+  100% {
+    box-shadow: inset 0px 0px 0px 40px #10b981;
+  }
+}
+
+@keyframes scale-checkmark {
+  0%, 100% {
+    transform: none;
+  }
+  50% {
+    transform: scale3d(1.1, 1.1, 1);
+  }
+}
+
+/* Confetti particles */
+.success-particles .particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  opacity: 0;
+  animation: particle-burst 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) 0.8s both;
+}
+
+.particle.p1 { top: 10%; left: 50%; animation-delay: 0.8s; --tx: -40px; --ty: -50px; }
+.particle.p2 { top: 30%; left: 80%; animation-delay: 0.85s; --tx: 50px; --ty: -30px; }
+.particle.p3 { top: 70%; left: 70%; animation-delay: 0.9s; --tx: 40px; --ty: 40px; }
+.particle.p4 { top: 80%; left: 30%; animation-delay: 0.95s; --tx: -40px; --ty: 50px; }
+.particle.p5 { top: 40%; left: 10%; animation-delay: 1s; --tx: -60px; --ty: -10px; }
+.particle.p6 { top: 20%; left: 30%; animation-delay: 1.05s; --tx: -20px; --ty: -40px; }
+
+@keyframes particle-burst {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* Floating Cart Subtle Bouncing */
+@keyframes bounceSubtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.animate-bounce-subtle {
+  animation: bounceSubtle 2s infinite ease-in-out;
+}
+
