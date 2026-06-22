@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ShoppingCart, Heart, Star } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
-import { getOptimizedImageUrl, getSrcSet } from '../utils/image';
+import { getOptimizedImage, getResponsiveSrcSet, getOptimizedImageUrl } from '../utils/image';
 
 const ProductCard = ({ product, priority = false }) => {
   const { addToCart } = useCart();
