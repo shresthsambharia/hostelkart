@@ -4,21 +4,8 @@ import { orderAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
 import { Truck, Check, MapPin, Phone, User, Calendar, ShieldCheck, ChevronLeft, ClipboardList, Package, CheckCircle } from 'lucide-react';
-
-const loadJsPDF = () => {
-  return new Promise((resolve) => {
-    if (window.jspdf) {
-      resolve(window.jspdf);
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    script.onload = () => {
-      resolve(window.jspdf);
-    };
-    document.head.appendChild(script);
-  });
-};
+import { getThumbnail } from '../utils/image';
+import { downloadInvoice } from '../utils/invoice';
 
 const OrderTracking = () => {
   const { id } = useParams();
@@ -160,134 +147,7 @@ const OrderTracking = () => {
   };
 
   const handleDownloadInvoice = async (order) => {
-    try {
-      const jspdfModule = await loadJsPDF();
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-
-      // Colors
-      const primaryColor = '#4f46e5'; 
-      const darkColor = '#1e293b'; 
-      const lightColor = '#f8fafc'; 
-
-      // Header Banner
-      doc.setFillColor(primaryColor);
-      doc.rect(0, 0, 210, 35, 'F');
-      
-      doc.setTextColor('#ffffff');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(22);
-      doc.text('HOSTELKART', 15, 23);
-      
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Daily Hostel Essentials Delivered to Your Room', 15, 29);
-
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.text('INVOICE', 160, 23);
-
-      // Metadata
-      doc.setTextColor(darkColor);
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Order ID:', 15, 50);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`#${order._id.toUpperCase()}`, 45, 50);
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('Date:', 15, 56);
-      doc.setFont('helvetica', 'normal');
-      doc.text(new Date(order.createdAt).toLocaleString(), 45, 56);
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('Payment Method:', 15, 62);
-      doc.setFont('helvetica', 'normal');
-      doc.text(order.paymentMethod, 45, 62);
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('Payment Status:', 15, 68);
-      doc.setFont('helvetica', 'normal');
-      doc.text(order.paymentStatus, 45, 68);
-
-      // Customer Details
-      doc.setFont('helvetica', 'bold');
-      doc.text('Customer Name:', 115, 50);
-      doc.setFont('helvetica', 'normal');
-      doc.text(loggedInUser?.name || 'Student', 150, 50);
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('Phone Number:', 115, 56);
-      doc.setFont('helvetica', 'normal');
-      doc.text(order.deliveryDetails?.phone || 'N/A', 150, 56);
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('Delivery Address:', 115, 62);
-      doc.setFont('helvetica', 'normal');
-      const address = `${order.deliveryDetails?.hostelName}, Block ${order.deliveryDetails?.block}, Room ${order.deliveryDetails?.roomNumber}`;
-      doc.text(address, 150, 62, { maxWidth: 50 });
-
-      // Table Header
-      let y = 85;
-      doc.setFillColor(lightColor);
-      doc.rect(15, y, 180, 8, 'F');
-      
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.text('Items Summary', 20, y + 5.5);
-      doc.text('Qty', 120, y + 5.5);
-      doc.text('Unit Price', 145, y + 5.5);
-      doc.text('Total', 175, y + 5.5);
-      
-      y += 8;
-
-      // Items rows
-      doc.setFont('helvetica', 'normal');
-      order.items.forEach((item) => {
-        const discount = item.discount || 0;
-        const discountedPrice = Math.round(item.price * (1 - discount / 100));
-        const itemTotal = discountedPrice * item.quantity;
-        
-        doc.text(item.name, 20, y + 6);
-        doc.text(item.quantity.toString(), 120, y + 6);
-        doc.text(`INR ${discountedPrice}`, 145, y + 6);
-        doc.text(`INR ${itemTotal}`, 175, y + 6);
-        
-        y += 10;
-      });
-
-      // Divider line
-      doc.setDrawColor('#e2e8f0');
-      doc.line(15, y, 195, y);
-      y += 5;
-
-      // Fees breakdown
-      doc.setFontSize(9);
-      doc.text('Platform Fee:', 130, y + 5);
-      doc.text(`INR ${order.platformFee !== undefined ? order.platformFee : 15}`, 175, y + 5);
-      
-      y += 6;
-      doc.text('Delivery Charge:', 130, y + 5);
-      doc.text(order.deliveryCharge === 0 ? 'FREE' : `INR ${order.deliveryCharge}`, 175, y + 5);
-      
-      y += 6;
-      doc.setFont('helvetica', 'bold');
-      doc.text('Total Amount:', 130, y + 5);
-      doc.text(`INR ${order.totalAmount}`, 175, y + 5);
-
-      // Invoice footer info
-      doc.setTextColor('#94a3b8');
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'italic');
-      doc.text('Thank you for choosing HostelKart!', 105, 280, { align: 'center' });
-      doc.text('For queries or support, reach out at supporthostelkart@gmail.com', 105, 284, { align: 'center' });
-
-      // Save PDF document
-      doc.save(`HostelKart_Invoice_${order._id.substring(12).toUpperCase()}.pdf`);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to download PDF invoice.");
-    }
+    await downloadInvoice(order, loggedInUser);
   };
 
   useEffect(() => {
