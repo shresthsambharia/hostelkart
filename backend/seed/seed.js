@@ -175,8 +175,13 @@ const seedData = async () => {
       }
       return { ...p, category: mappedCategory };
     });
-    const seededProducts = await Product.insertMany(mappedProductsData);
-    console.log(`Products seeded (${seededProducts.length} items loaded).`);
+    const seededProducts = [];
+    for (const p of mappedProductsData) {
+      const newProduct = new Product(p);
+      const savedProduct = await newProduct.save();
+      seededProducts.push(savedProduct);
+    }
+    console.log(`Products seeded (${seededProducts.length} items loaded with optimized WebP URLs).`);
 
     // 4. Create one initial sample order for the student to make the app feel populated
     const sampleItems = [

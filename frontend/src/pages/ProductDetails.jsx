@@ -5,7 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { productAPI } from '../api';
 import { Star, ShoppingCart, Heart, ArrowLeft, Clock, ShieldCheck, RefreshCcw } from 'lucide-react';
-import { getOptimizedImageUrl, getSrcSet } from '../utils/image';
+import { getOptimizedImage, getResponsiveSrcSet } from '../utils/image';
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -83,6 +83,11 @@ const ProductDetails = () => {
     setAddingToCart(false);
   };
 
+  const handleToggleWishlist = async (e) => {
+    e.preventDefault();
+    await toggleWishlist(product._id);
+  };
+
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
     setReviewError('');
@@ -122,15 +127,18 @@ const ProductDetails = () => {
           {/* Product Image Panel */}
           <div className="bg-slate-55/60 rounded-3xl p-6 flex items-center justify-center min-h-[300px] md:min-h-[400px] relative border border-slate-100 shadow-sm overflow-hidden group">
             <img
-              src={getOptimizedImageUrl(product.image, 600)}
-              srcSet={getSrcSet(product.image, [300, 600, 900, 1200])}
+              src={getOptimizedImage(product, 'original')}
+              srcSet={getResponsiveSrcSet(product)}
               sizes="(max-width: 768px) 100vw, 50vw"
               alt={product.name}
               fetchPriority="high"
+              decoding="async"
+              width={600}
+              height={600}
               className="w-full h-full max-h-[350px] object-contain rounded-lg group-hover:scale-105 transition-transform duration-300"
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = getOptimizedImageUrl(null, 600);
+                e.target.src = getOptimizedImage(null, 'original');
               }}
             />
             {product.discount > 0 && (

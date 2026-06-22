@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { adminAPI, productAPI } from '../api';
 import { Plus, Edit2, Trash2, CheckCircle2, XCircle, Upload, AlertCircle } from 'lucide-react';
+import { getAdminThumbnail } from '../utils/image';
 
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
@@ -205,12 +206,16 @@ const AdminProducts = () => {
                     <td className="p-4 flex items-center space-x-3 max-w-sm">
                       <div className="w-12 h-12 bg-slate-50 rounded-lg border border-slate-100 overflow-hidden shrink-0 flex items-center justify-center">
                         <img
-                          src={p.image || '/uploads/default-product.png'}
+                          src={getAdminThumbnail(p)}
                           alt={p.name}
+                          loading="lazy"
+                          decoding="async"
+                          width={40}
+                          height={40}
                           className="w-10 h-10 object-contain"
                           onError={(e) => {
                             e.target.onerror = null;
-                            e.target.src = '/uploads/default-product.png';
+                            e.target.src = getAdminThumbnail(null);
                           }}
                         />
                       </div>
@@ -413,7 +418,7 @@ const AdminProducts = () => {
                 <div className="flex flex-col sm:flex-row gap-4 items-center">
                   {/* Preview container */}
                   <div className="w-16 h-16 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
-                    <img src={image || '/uploads/default-product.png'} className="w-12 h-12 object-contain" alt="Preview" />
+                    <img src={getAdminThumbnail(image)} className="w-12 h-12 object-contain" alt="Preview" />
                   </div>
 
                   <div className="flex-1 w-full space-y-1">

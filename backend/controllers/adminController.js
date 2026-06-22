@@ -178,7 +178,7 @@ const getDashboardAnalytics = asyncHandler(async (req, res) => {
 // @route   POST /api/admin/products
 // @access  Private/Admin
 const addProduct = asyncHandler(async (req, res) => {
-  const { name, price, discount, description, category, stock, deliveryTime, isAvailable, image } = req.body;
+  const { name, price, discount, description, category, stock, deliveryTime, isAvailable, image, imageOriginal, imageMedium, imageThumb } = req.body;
 
   const product = new Product({
     name,
@@ -190,6 +190,9 @@ const addProduct = asyncHandler(async (req, res) => {
     deliveryTime: deliveryTime || '30 mins',
     isAvailable: isAvailable !== undefined ? isAvailable : true,
     image: image || '/uploads/default-product.png',
+    imageOriginal,
+    imageMedium,
+    imageThumb,
   });
 
   const createdProduct = await product.save();
@@ -200,7 +203,7 @@ const addProduct = asyncHandler(async (req, res) => {
 // @route   PUT /api/admin/products/:id
 // @access  Private/Admin
 const editProduct = asyncHandler(async (req, res) => {
-  const { name, price, discount, description, category, stock, deliveryTime, isAvailable, image } = req.body;
+  const { name, price, discount, description, category, stock, deliveryTime, isAvailable, image, imageOriginal, imageMedium, imageThumb } = req.body;
 
   const product = await Product.findById(req.params.id);
 
@@ -214,6 +217,9 @@ const editProduct = asyncHandler(async (req, res) => {
     product.deliveryTime = deliveryTime || product.deliveryTime;
     product.isAvailable = isAvailable !== undefined ? isAvailable : product.isAvailable;
     product.image = image || product.image;
+    product.imageOriginal = imageOriginal || product.imageOriginal;
+    product.imageMedium = imageMedium || product.imageMedium;
+    product.imageThumb = imageThumb || product.imageThumb;
 
     const updatedProduct = await product.save();
     res.json(updatedProduct);

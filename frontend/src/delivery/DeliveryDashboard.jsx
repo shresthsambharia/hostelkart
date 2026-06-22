@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { deliveryAPI } from '../api';
 import { Truck, CheckCircle2, Phone, MapPin, Package, ClipboardCheck } from 'lucide-react';
+import { getThumbnail } from '../utils/image';
 
 const DeliveryDashboard = () => {
   const [orders, setOrders] = useState([]);
@@ -184,10 +185,27 @@ const DeliveryDashboard = () => {
 
                 <div className="divide-y divide-slate-150/60 space-y-1.5 text-xs">
                   {ord.items.map((it) => (
-                    <div key={it._id} className="pt-1.5 flex justify-between font-medium text-slate-650">
-                      <span className="truncate pr-3">
-                        <span className="font-extrabold text-slate-800">{it.quantity}x</span> {it.name}
-                      </span>
+                    <div key={it._id} className="pt-1.5 flex items-center justify-between font-medium text-slate-650 gap-2">
+                      <div className="flex items-center space-x-2 truncate">
+                        <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border border-slate-200/50">
+                          <img
+                            src={getThumbnail(it.product || it)}
+                            alt={it.name}
+                            loading="lazy"
+                            decoding="async"
+                            width={32}
+                            height={32}
+                            className="w-8 h-8 object-contain"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = getThumbnail(null);
+                            }}
+                          />
+                        </div>
+                        <span className="truncate">
+                          <span className="font-extrabold text-slate-800">{it.quantity}x</span> {it.name}
+                        </span>
+                      </div>
                       <span className="font-bold text-slate-800 shrink-0">₹{it.price * it.quantity}</span>
                     </div>
                   ))}

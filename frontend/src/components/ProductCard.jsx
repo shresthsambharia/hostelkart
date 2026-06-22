@@ -59,12 +59,15 @@ const ProductCard = ({ product, priority = false }) => {
       <Link to={`/products/${product._id}`} className="block overflow-hidden bg-slate-50/50 relative pt-[100%] border-b border-slate-50/60">
         {product.image ? (
           <img
-            src={getOptimizedImageUrl(product.image, 300)}
-            srcSet={getSrcSet(product.image, [150, 300, 450, 600])}
+            src={getOptimizedImage(product, 'medium')}
+            srcSet={getResponsiveSrcSet(product)}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             alt={product.name}
             loading={priority ? undefined : "lazy"}
-            fetchPriority={priority ? "high" : undefined}
+            fetchPriority={priority ? "high" : "low"}
+            decoding="async"
+            width={300}
+            height={300}
             className="absolute inset-0 w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
             onError={(e) => {
               e.target.onerror = null;
