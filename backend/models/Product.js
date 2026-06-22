@@ -70,11 +70,43 @@ const productSchema = new mongoose.Schema(
       required: true,
       default: true,
     },
+    imageOriginal: {
+      type: String,
+    },
+    imageMedium: {
+      type: String,
+    },
+    imageThumb: {
+      type: String,
+    },
   },
   {
     timestamps: true,
   }
 );
+
+// Pre-save middleware to populate optimized variants
+productSchema.pre('save', function (next) {
+  if (this.isModified('image') || !this.imageOriginal) {
+    const imgUrl = this.image;
+    if (imgUrl && imgUrl.startsWith('https://images.unsplash.com')) {
+      const baseUrl = imgUrl.split('?')[0];
+      this.imageOriginal = `${baseUrl}?auto=format&fit=crop&q=80`;
+      this.imageMedium = `${baseUrl}?w=300&fit=crop&q=70&auto=format`;
+      this.imageThumb = `${baseUrl}?w=100&fit=crop&q=70&auto=format`;
+    } else if (imgUrl && imgUrl.includes('-medium.webp')) {
+      const baseName = imgUrl.replace('-medium.webp', '');
+      this.imageOriginal = `${baseName}-original.webp`;
+      this.imageMedium = `${baseName}-medium.webp`;
+      this.imageThumb = `${baseName}-thumb.webp`;
+    } else {
+      this.imageOriginal = imgUrl;
+      this.imageMedium = imgUrl;
+      this.imageThumb = imgUrl;
+    }
+  }
+  next();
+});
 
 // Indexes for optimization
 productSchema.index({ category: 1 });

@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { Trash2, ShoppingBag, ArrowRight, ArrowLeft } from 'lucide-react';
-import { getOptimizedImageUrl } from '../utils/image';
+import { getThumbnail } from '../utils/image';
 
 const Cart = () => {
   const {
@@ -74,13 +74,16 @@ const Cart = () => {
                   {/* Image */}
                   <div className="w-20 h-20 bg-slate-50 rounded-xl flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden">
                     <img
-                      src={getOptimizedImageUrl(product.image, 150)}
+                      src={getThumbnail(product)}
                       alt={product.name}
                       loading="lazy"
+                      decoding="async"
+                      width={64}
+                      height={64}
                       className="w-16 h-16 object-contain"
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = getOptimizedImageUrl(null, 150);
+                        e.target.src = getThumbnail(null);
                       }}
                     />
                   </div>

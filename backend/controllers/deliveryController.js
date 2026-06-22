@@ -15,6 +15,7 @@ const getAssignedOrders = asyncHandler(async (req, res) => {
     orderStatus: { $in: ['Confirmed', 'Packed', 'Out for Delivery'] },
   })
     .populate('user', 'name email phone hostelDetails')
+    .populate('items.product', 'image imageOriginal imageMedium imageThumb')
     .sort({ createdAt: -1 });
 
   res.json(orders);
@@ -143,6 +144,7 @@ const getDeliveryHistory = asyncHandler(async (req, res) => {
     orderStatus: { $in: ['Delivered', 'Cancelled'] },
   })
     .populate('user', 'name email phone')
+    .populate('items.product', 'image imageOriginal imageMedium imageThumb')
     .sort({ updatedAt: -1 });
 
   res.json(orders);
