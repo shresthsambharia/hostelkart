@@ -32,19 +32,37 @@ const OrderTracking = () => {
   const [eta, setEta] = useState(null);
   const [mapInstance, setMapInstance] = useState(null);
   const [riderMarker, setRiderMarker] = useState(null);
+  const [leafletLoaded, setLeafletLoaded] = useState(!!window.L);
+
+  // Poll for Leaflet library load in case of CDN race condition
+  useEffect(() => {
+    if (window.L) return;
+    const interval = setInterval(() => {
+      if (window.L) {
+        setLeafletLoaded(true);
+        clearInterval(interval);
+      }
+    }, 200);
+    return () => clearInterval(interval);
+  }, []);
 
   // Socket listener effect
   useEffect(() => {
     if (!id) return;
 
-    const socketURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://hostelkart-backend.onrender.com');
-    const socketServerURL = socketURL.endsWith('/api') ? socketURL.replace('/api', '') : socketURL;
+    const host = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:5000'
+      : (import.meta.env.VITE_API_URL || 'https://hostelkart-backend.onrender.com');
+    const socketServerURL = host.endsWith('/api') ? host.replace('/api', '') : host;
+    
+    console.log("[Socket] Connecting student tracker to socket at:", socketServerURL);
     const socket = io(socketServerURL);
 
     socket.emit('join_order_track', { orderId: id });
+    console.log("Joined Order", id);
 
     socket.on('location_updated', (data) => {
-      console.log('[Socket] Location update received:', data);
+      console.log("Received Location", data);
       setRiderLocation({ lat: data.lat, lng: data.lng });
       setDistanceRemaining(data.distanceRemaining);
       setEta(data.eta);
@@ -105,7 +123,7 @@ const OrderTracking = () => {
     return () => {
       map.remove();
     };
-  }, [order?.orderStatus]);
+  }, [order?.orderStatus, leafletLoaded]);
 
   // React to rider coordinates updates
   useEffect(() => {
@@ -574,7 +592,7 @@ const OrderTracking = () => {
                   </span>
                 )}
               </div>
-              <div id="map-container" className="w-full h-64 rounded-xl border border-slate-200 shadow-inner z-10"></div>
+              <div id="map-container" style={{ height: '300px', minHeight: '300px' }} className="w-full rounded-xl border border-slate-200 shadow-inner z-10"></div>
               <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-[10px] text-slate-400 leading-normal flex items-start gap-1.5">
                 <span>💡</span>
                 <span>Coordinates update in real-time as your delivery partner navigates. Please keep your delivery OTP ready.</span>
