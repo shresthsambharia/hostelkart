@@ -38,8 +38,22 @@ initializeDatabase();
 const app = express();
 
 // Middlewares
+const allowedOrigins = [
+  'http://localhost:4173',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://hostelkart-backend.onrender.com'
+];
+
 app.use(cors({
-  origin: ['http://localhost:4173', 'http://localhost:5173', 'http://localhost:3000', 'https://hostelkart-backend.onrender.com'],
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app') || origin.includes('vercel.app')) {
+      callback(null, true);
+    } else {
+      callback(null, false);
+    }
+  },
   credentials: true,
 }));
 app.use(express.json());
