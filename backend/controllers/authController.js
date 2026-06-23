@@ -1,13 +1,33 @@
 import jwt from 'jsonwebtoken';
 import asyncHandler from 'express-async-handler';
+import svgCaptcha from 'svg-captcha';
 import User from '../models/User.js';
 import Cart from '../models/Cart.js';
 import Wishlist from '../models/Wishlist.js';
+import Captcha from '../models/Captcha.js';
+import RefreshToken from '../models/RefreshToken.js';
 
-// Helper to generate JWT Token
+// Helper to generate access token (15m expiry)
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '30d',
+    expiresIn: '15m',
+  });
+};
+
+// Helper to generate refresh token (7d expiry)
+const generateRefreshToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: '7d',
+  });
+};
+
+// Helper to set refresh token in secure HttpOnly cookie
+const setRefreshTokenCookie = (res, token) => {
+  res.cookie('refreshToken', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 };
 
@@ -15,7 +35,19 @@ const generateToken = (id) => {
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, phone, referralCode } = req.body;
+  const { name, email, password, phone, referralCode, captchaId, captchaAnswer } = req.body;
+
+  // CAPTCHA verification
+  if (!captchaId || !captchaAnswer) {
+    res.status(400);
+    throw new Error('CAPTCHA verification required');
+  }
+  const captcha = await Captcha.findById(captchaId);
+  if (!captcha || captcha.text !== captchaAnswer.toLowerCase()) {
+    res.status(400);
+    throw new Error('Invalid or expired CAPTCHA');
+  }
+  await Captcha.findByIdAndDelete(captchaId); // Delete immediately to prevent reuse
 
   const userExists = await User.findOne({ email });
 
@@ -58,6 +90,20 @@ const registerUser = asyncHandler(async (req, res) => {
     await Cart.create({ user: user._id, items: [] });
     await Wishlist.create({ user: user._id, products: [] });
 
+    // Generate dual-tokens
+    const token = generateToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+
+    // Save refresh token to DB
+    await RefreshToken.create({
+      user: user._id,
+      token: refreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    });
+
+    // Set refresh token in HttpOnly cookie
+    setRefreshTokenCookie(res, refreshToken);
+
     res.status(201).json({
       _id: user._id,
       name: user.name,
@@ -67,7 +113,7 @@ const registerUser = asyncHandler(async (req, res) => {
       referralCode: user.referralCode,
       referredBy: user.referredBy,
       hostelDetails: user.hostelDetails,
-      token: generateToken(user._id),
+      token,
     });
   } else {
     res.status(400);
@@ -79,7 +125,19 @@ const registerUser = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 const authUser = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, captchaId, captchaAnswer } = req.body;
+
+  // CAPTCHA verification
+  if (!captchaId || !captchaAnswer) {
+    res.status(400);
+    throw new Error('CAPTCHA verification required');
+  }
+  const captcha = await Captcha.findById(captchaId);
+  if (!captcha || captcha.text !== captchaAnswer.toLowerCase()) {
+    res.status(400);
+    throw new Error('Invalid or expired CAPTCHA');
+  }
+  await Captcha.findByIdAndDelete(captchaId); // Delete immediately to prevent reuse
 
   const user = await User.findOne({ email });
 
@@ -96,6 +154,20 @@ const authUser = asyncHandler(async (req, res) => {
       }
     }
 
+    // Generate tokens
+    const token = generateToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+
+    // Save refresh token to DB
+    await RefreshToken.create({
+      user: user._id,
+      token: refreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    });
+
+    // Set refresh token in HttpOnly cookie
+    setRefreshTokenCookie(res, refreshToken);
+
     res.json({
       _id: user._id,
       name: user.name,
@@ -103,7 +175,7 @@ const authUser = asyncHandler(async (req, res) => {
       role: user.role,
       phone: user.phone,
       hostelDetails: user.hostelDetails,
-      token: generateToken(user._id),
+      token,
     });
   } else {
     res.status(401);
@@ -192,4 +264,83 @@ const updateFcmToken = asyncHandler(async (req, res) => {
   }
 });
 
-export { registerUser, authUser, getUserProfile, updateUserProfile, updateFcmToken };
+// Helper to manually parse a cookie from req.headers.cookie
+const getCookieValue = (cookieHeader, name) => {
+  if (!cookieHeader) return null;
+  const cookies = cookieHeader.split(';').map(c => {
+    const parts = c.split('=');
+    return [parts[0].trim(), parts.slice(1).join('=')];
+  });
+  const match = cookies.find(c => c[0] === name);
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
+// @desc    Get visual CAPTCHA challenge
+// @route   GET /api/auth/captcha
+// @access  Public
+const getCaptcha = asyncHandler(async (req, res) => {
+  const cap = svgCaptcha.create({
+    size: 4,
+    noise: 2,
+    color: true,
+    background: '#f8fafc',
+  });
+  
+  const captchaRecord = await Captcha.create({ text: cap.text.toLowerCase() });
+  
+  res.json({
+    captchaId: captchaRecord._id,
+    captchaSvg: cap.data,
+  });
+});
+
+// @desc    Refresh access token using HttpOnly refresh token cookie
+// @route   POST /api/auth/refresh
+// @access  Public
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  const refreshToken = getCookieValue(req.headers.cookie, 'refreshToken');
+
+  if (!refreshToken) {
+    res.status(401);
+    throw new Error('No refresh token provided');
+  }
+
+  const activeToken = await RefreshToken.findOne({ token: refreshToken });
+  if (!activeToken) {
+    res.status(401);
+    throw new Error('Refresh token is invalid or expired');
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      res.status(401);
+      throw new Error('User not found');
+    }
+
+    const accessToken = generateToken(user._id);
+    res.json({ token: accessToken });
+  } catch (err) {
+    res.status(401);
+    throw new Error('Refresh token verification failed');
+  }
+});
+
+// @desc    Logout user & clear refresh session
+// @route   POST /api/auth/logout
+// @access  Public
+const logoutUser = asyncHandler(async (req, res) => {
+  const refreshToken = getCookieValue(req.headers.cookie, 'refreshToken');
+  if (refreshToken) {
+    await RefreshToken.deleteOne({ token: refreshToken });
+  }
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+  });
+  res.json({ success: true, message: 'Logged out successfully' });
+});
+
+export { registerUser, authUser, getUserProfile, updateUserProfile, updateFcmToken, getCaptcha, refreshAccessToken, logoutUser };

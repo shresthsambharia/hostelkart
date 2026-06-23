@@ -16,6 +16,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Sidebar from './components/Sidebar';
 import MobileBottomNav from './components/MobileBottomNav';
+import InstallPrompt from './components/InstallPrompt';
 
 // Keep Home page statically imported to optimize FCP/LCP of the initial lander
 import Home from './pages/Home';
@@ -169,6 +170,7 @@ const LayoutContainer = ({ children }) => {
       <Footer />
       <FloatingCartButton />
       <MobileBottomNav />
+      <InstallPrompt />
     </div>
   );
 };

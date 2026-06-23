@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, Heart, User, LogOut, Search, Menu, X, PlusCircle, LayoutDashboard, ClipboardList, Bell, Wallet, Gift } from 'lucide-react';
+import { ShoppingCart, Heart, User, LogOut, Search, Menu, X, PlusCircle, LayoutDashboard, ClipboardList, Bell, Wallet, Gift, Clock, TrendingUp, Trash2, Mic, MicOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { notificationAPI } from '../api';
+import { notificationAPI, productAPI } from '../api';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -13,6 +13,63 @@ const Navbar = () => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  // Advanced Search Overlay States
+  const [suggestions, setSuggestions] = useState({ products: [], categories: [] });
+  const [trending, setTrending] = useState([]);
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+
+  const searchRefDesktop = useRef(null);
+  const searchRefMobile = useRef(null);
+
+  // Close suggestions overlay when user clicks outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        (searchRefDesktop.current && !searchRefDesktop.current.contains(event.target)) &&
+        (searchRefMobile.current && !searchRefMobile.current.contains(event.target))
+      ) {
+        setShowOverlay(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Fetch trending keywords and load recent searches from localstorage on overlay open
+  useEffect(() => {
+    if (!showOverlay) return;
+    const loadRecentAndTrending = async () => {
+      const recent = JSON.parse(localStorage.getItem('recentSearches')) || [];
+      setRecentSearches(recent);
+      try {
+        const { data } = await productAPI.getTrending();
+        setTrending(data);
+      } catch (err) {
+        console.error('Trending fetch error', err);
+      }
+    };
+    loadRecentAndTrending();
+  }, [showOverlay]);
+
+  // Debounced search suggestions query (200ms)
+  useEffect(() => {
+    if (!keyword.trim()) {
+      setSuggestions({ products: [], categories: [] });
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await productAPI.getSuggestions(keyword);
+        setSuggestions(data);
+      } catch (err) {
+        console.error('Suggestions error', err);
+      }
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [keyword]);
 
   useEffect(() => {
     if (!user) return;
@@ -52,13 +109,102 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const addRecentSearch = (query) => {
+    if (!query || !query.trim()) return;
+    const trimmed = query.trim().toLowerCase();
+    const updated = [trimmed, ...recentSearches.filter(q => q !== trimmed)].slice(0, 5);
+    setRecentSearches(updated);
+    localStorage.setItem('recentSearches', JSON.stringify(updated));
+  };
+
+  const removeRecentSearch = (e, queryToDelete) => {
+    e.stopPropagation();
+    const updated = recentSearches.filter(q => q !== queryToDelete);
+    setRecentSearches(updated);
+    localStorage.setItem('recentSearches', JSON.stringify(updated));
+  };
+
+  const clearAllRecentSearches = (e) => {
+    e.stopPropagation();
+    setRecentSearches([]);
+    localStorage.removeItem('recentSearches');
+  };
+
   const handleSearchSubmit = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (keyword.trim()) {
+      addRecentSearch(keyword);
+      setShowOverlay(false);
       navigate(`/products?keyword=${encodeURIComponent(keyword)}`);
     } else {
       navigate('/products');
     }
+  };
+
+  const handleSuggestionClick = (query, type, targetId) => {
+    addRecentSearch(query);
+    setShowOverlay(false);
+    setKeyword(query);
+    if (type === 'category') {
+      navigate(`/products?category=${encodeURIComponent(query)}`);
+    } else if (type === 'product' && targetId) {
+      navigate(`/products/${targetId}`);
+    } else {
+      navigate(`/products?keyword=${encodeURIComponent(query)}`);
+    }
+  };
+
+  // Web Speech API Voice Search integration
+  const startVoiceSearch = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Speech Recognition is not supported by your browser. Try Google Chrome.');
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-IN';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onresult = (event) => {
+      const speechToText = event.results[0][0].transcript;
+      setKeyword(speechToText);
+      addRecentSearch(speechToText);
+      setShowOverlay(false);
+      navigate(`/products?keyword=${encodeURIComponent(speechToText)}`);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
+
+  // Helper to render matching keywords highlighted in search suggestions
+  const highlightMatch = (text, query) => {
+    if (!query) return text;
+    const parts = text.split(new RegExp(`(${query})`, 'gi'));
+    return (
+      <span>
+        {parts.map((part, i) => 
+          part.toLowerCase() === query.toLowerCase() ? (
+            <mark key={i} className="bg-amber-100 text-amber-950 font-bold px-0.5 rounded">{part}</mark>
+          ) : (
+            part
+          )
+        )}
+      </span>
+    );
   };
 
   const handleLogoutClick = () => {
@@ -82,24 +228,160 @@ const Navbar = () => {
 
           {/* Search bar (Desktop) - only visible for student/public */}
           {(!user || user.role === 'student') && (
-            <form onSubmit={handleSearchSubmit} className="hidden md:flex flex-1 max-w-md mx-8">
+            <form onSubmit={handleSearchSubmit} ref={searchRefDesktop} className="hidden md:flex flex-1 max-w-md mx-8 relative">
               <div className="relative w-full">
                 <input
                   type="text"
                   placeholder="Search hostel essentials, fruits, stationery..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-full py-2 pl-4 pr-10 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white text-sm transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-full py-2 pl-4 pr-16 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white text-sm transition-all"
                   value={keyword}
+                  onFocus={() => setShowOverlay(true)}
                   onChange={(e) => setKeyword(e.target.value)}
                 />
-                <button type="submit" className="absolute right-3 top-2 text-slate-400 hover:text-primary-600" aria-label="Submit Search">
+                
+                {/* Voice Search Button */}
+                <button
+                  type="button"
+                  onClick={startVoiceSearch}
+                  className={`absolute right-10 top-2.5 text-slate-400 hover:text-primary-600 transition-colors ${isListening ? 'text-red-500 animate-pulse' : ''}`}
+                  title="Search by voice"
+                  aria-label="Voice Search"
+                >
+                  <Mic size={16} />
+                </button>
+
+                <button type="submit" className="absolute right-4 top-2 text-slate-400 hover:text-primary-600" aria-label="Submit Search">
                   <Search size={18} />
                 </button>
               </div>
+
+              {/* Advanced Suggestions Dropdown Overlay */}
+              {showOverlay && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden max-h-[400px] overflow-y-auto p-4 space-y-4">
+                  {/* Keyword is empty: show Recent and Trending */}
+                  {!keyword.trim() ? (
+                    <>
+                      {recentSearches.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center text-xs font-bold text-slate-450 uppercase tracking-wider">
+                            <span>Recent Searches</span>
+                            <button 
+                              type="button" 
+                              onClick={clearAllRecentSearches}
+                              className="text-[10px] text-red-500 hover:underline capitalize"
+                            >
+                              Clear All
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {recentSearches.map((term, i) => (
+                              <span 
+                                key={i}
+                                onClick={() => handleSuggestionClick(term, 'keyword')}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-650 rounded-xl cursor-pointer transition-colors border border-slate-100"
+                              >
+                                <Clock size={12} className="text-slate-400" />
+                                <span>{term}</span>
+                                <button 
+                                  type="button"
+                                  onClick={(e) => removeRecentSearch(e, term)}
+                                  className="w-4 h-4 rounded-full hover:bg-slate-200 flex items-center justify-center text-[10px] text-slate-450 hover:text-slate-700"
+                                >
+                                  ✕
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <div className="text-xs font-bold text-slate-450 uppercase tracking-wider flex items-center gap-1">
+                          <TrendingUp size={13} className="text-primary-600" />
+                          <span>Trending Searches</span>
+                        </div>
+                        {trending.length === 0 ? (
+                          <p className="text-xs text-slate-400 italic">No trending searches yet.</p>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {trending.map((item, i) => (
+                              <span 
+                                key={i}
+                                onClick={() => handleSuggestionClick(item.keyword, 'keyword')}
+                                className="px-3 py-1.5 bg-primary-50/40 hover:bg-primary-50 text-xs font-semibold text-primary-750 rounded-xl cursor-pointer transition-colors border border-primary-50"
+                              >
+                                {item.keyword}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    /* Keyword is NOT empty: show suggestions (categories and products) */
+                    <div className="space-y-4">
+                      {/* Categories */}
+                      {suggestions.categories?.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="text-xs font-bold text-slate-450 uppercase tracking-wider">Matched Categories</div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {suggestions.categories.map((cat, i) => (
+                              <div 
+                                key={i}
+                                onClick={() => handleSuggestionClick(cat.name, 'category')}
+                                className="flex items-center gap-2 p-2 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-xl cursor-pointer transition-colors"
+                              >
+                                <img src={cat.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=100'} alt={cat.name} className="w-8 h-8 rounded-lg object-cover" />
+                                <span className="text-xs font-bold text-slate-700">{highlightMatch(cat.name, keyword)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Products */}
+                      <div className="space-y-2">
+                        <div className="text-xs font-bold text-slate-450 uppercase tracking-wider">Matched Products</div>
+                        {suggestions.products?.length === 0 ? (
+                          <p className="text-xs text-slate-400 italic py-2">No matching products found.</p>
+                        ) : (
+                          <div className="divide-y divide-slate-50">
+                            {suggestions.products.map((prod, i) => {
+                              const discountedPrice = Math.round(prod.price * (1 - (prod.discount || 0)/100));
+                              return (
+                                <div 
+                                  key={i}
+                                  onClick={() => handleSuggestionClick(prod.name, 'product', prod._id)}
+                                  className="flex items-center justify-between py-2 hover:bg-slate-50/50 cursor-pointer transition-colors rounded-lg px-2 -mx-2"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <img src={prod.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=100'} alt={prod.name} className="w-10 h-10 rounded-lg object-cover border border-slate-100" />
+                                    <div>
+                                      <p className="text-xs font-bold text-slate-800 line-clamp-1">{highlightMatch(prod.name, keyword)}</p>
+                                      <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{prod.category}</p>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="text-xs font-extrabold text-slate-800">₹{discountedPrice}</span>
+                                    {prod.discount > 0 && (
+                                      <span className="text-[9px] text-red-500 font-bold block line-through font-medium">₹{prod.price}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </form>
           )}
 
           {/* Navigation Links & Buttons (Desktop) */}
-          <div className="hidden md:flex items-center space-x-6">
+          <div className="hidden md:flex items-center space-x-4">
             {/* Student/Public links */}
             {(!user || user.role === 'student') && (
               <>
@@ -333,19 +615,150 @@ const Navbar = () => {
 
       {/* Mobile Sticky Search Bar */}
       {(!user || user.role === 'student') && (
-        <div className="md:hidden px-4 pb-3">
+        <div className="md:hidden px-4 pb-3 relative" ref={searchRefMobile}>
           <form onSubmit={handleSearchSubmit} className="relative w-full">
             <input
               type="text"
               placeholder="Search essentials, snacks, beverages..."
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-4 pr-10 focus:outline-none focus:ring-2 focus:ring-primary-500 text-xs transition-all"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-4 pr-16 focus:outline-none focus:ring-2 focus:ring-primary-500 text-xs transition-all"
               value={keyword}
+              onFocus={() => setShowOverlay(true)}
               onChange={(e) => setKeyword(e.target.value)}
             />
-            <button type="submit" className="absolute right-3 top-3 text-slate-400" aria-label="Submit Search">
+            {/* Voice Search Button */}
+            <button
+              type="button"
+              onClick={startVoiceSearch}
+              className={`absolute right-10 top-3 text-slate-400 hover:text-primary-600 transition-colors ${isListening ? 'text-red-500 animate-pulse' : ''}`}
+              title="Search by voice"
+              aria-label="Voice Search"
+            >
+              <Mic size={14} />
+            </button>
+            <button type="submit" className="absolute right-4 top-3 text-slate-400" aria-label="Submit Search">
               <Search size={16} />
             </button>
           </form>
+
+          {/* Advanced Suggestions Dropdown Overlay for Mobile */}
+          {showOverlay && (
+            <div className="absolute top-full left-4 right-4 mt-1 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden max-h-[350px] overflow-y-auto p-4 space-y-4">
+              {/* Keyword is empty: show Recent and Trending */}
+              {!keyword.trim() ? (
+                <>
+                  {recentSearches.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-xs font-bold text-slate-455 uppercase tracking-wider">
+                        <span>Recent Searches</span>
+                        <button 
+                          type="button" 
+                          onClick={clearAllRecentSearches}
+                          className="text-[10px] text-red-500 hover:underline capitalize"
+                        >
+                          Clear All
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {recentSearches.map((term, i) => (
+                          <span 
+                            key={i}
+                            onClick={() => handleSuggestionClick(term, 'keyword')}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-650 rounded-lg cursor-pointer transition-colors border border-slate-100"
+                          >
+                            <Clock size={11} className="text-slate-400" />
+                            <span>{term}</span>
+                            <button 
+                              type="button"
+                              onClick={(e) => removeRecentSearch(e, term)}
+                              className="w-3.5 h-3.5 rounded-full hover:bg-slate-200 flex items-center justify-center text-[9px] text-slate-450 hover:text-slate-700"
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <div className="text-xs font-bold text-slate-455 uppercase tracking-wider flex items-center gap-1">
+                      <TrendingUp size={13} className="text-primary-600" />
+                      <span>Trending Searches</span>
+                    </div>
+                    {trending.length === 0 ? (
+                      <p className="text-xs text-slate-400 italic">No trending searches yet.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {trending.map((item, i) => (
+                          <span 
+                            key={i}
+                            onClick={() => handleSuggestionClick(item.keyword, 'keyword')}
+                            className="px-2.5 py-1 bg-primary-50/40 hover:bg-primary-50 text-xs font-semibold text-primary-750 rounded-lg cursor-pointer transition-colors border border-primary-50"
+                          >
+                            {item.keyword}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                /* Keyword is NOT empty: show suggestions (categories and products) */
+                <div className="space-y-4">
+                  {/* Categories */}
+                  {suggestions.categories?.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-xs font-bold text-slate-455 uppercase tracking-wider">Matched Categories</div>
+                      <div className="grid grid-cols-1 gap-2">
+                        {suggestions.categories.map((cat, i) => (
+                          <div 
+                            key={i}
+                            onClick={() => handleSuggestionClick(cat.name, 'category')}
+                            className="flex items-center gap-2 p-2 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-xl cursor-pointer transition-colors"
+                          >
+                            <img src={cat.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=100'} alt={cat.name} className="w-8 h-8 rounded-lg object-cover" />
+                            <span className="text-xs font-bold text-slate-700">{highlightMatch(cat.name, keyword)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Products */}
+                  <div className="space-y-2">
+                    <div className="text-xs font-bold text-slate-455 uppercase tracking-wider">Matched Products</div>
+                    {suggestions.products?.length === 0 ? (
+                      <p className="text-xs text-slate-400 italic py-2">No matching products found.</p>
+                    ) : (
+                      <div className="divide-y divide-slate-50">
+                        {suggestions.products.map((prod, i) => {
+                          const discountedPrice = Math.round(prod.price * (1 - (prod.discount || 0)/100));
+                          return (
+                            <div 
+                              key={i}
+                              onClick={() => handleSuggestionClick(prod.name, 'product', prod._id)}
+                              className="flex items-center justify-between py-2 hover:bg-slate-50/50 cursor-pointer transition-colors rounded-lg px-2 -mx-2"
+                            >
+                              <div className="flex items-center gap-3">
+                                <img src={prod.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=100'} alt={prod.name} className="w-10 h-10 rounded-lg object-cover border border-slate-100" />
+                                <div>
+                                  <p className="text-xs font-bold text-slate-800 line-clamp-1">{highlightMatch(prod.name, keyword)}</p>
+                                  <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{prod.category}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-xs font-extrabold text-slate-800">₹{discountedPrice}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
