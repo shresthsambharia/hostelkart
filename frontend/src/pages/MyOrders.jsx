@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { orderAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import { ShoppingBag, Truck, Calendar, DollarSign, Eye } from 'lucide-react';
 
 import { downloadInvoice } from '../utils/invoice';
@@ -9,7 +10,10 @@ import { downloadInvoice } from '../utils/invoice';
 const MyOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reorderingId, setReorderingId] = useState(null);
   const { user: loggedInUser } = useAuth();
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -41,6 +45,32 @@ const MyOrders = () => {
 
   const handleDownloadInvoice = async (order) => {
     await downloadInvoice(order, loggedInUser);
+  };
+
+  const handleReorder = async (order) => {
+    setReorderingId(order._id);
+    try {
+      let successCount = 0;
+      for (const item of order.items) {
+        const productId = item.product?._id || item.product;
+        if (productId) {
+          const res = await addToCart(productId, item.quantity);
+          if (res.success) {
+            successCount++;
+          }
+        }
+      }
+      if (successCount > 0) {
+        navigate('/cart');
+      } else {
+        alert("Could not reorder any items. They might be out of stock.");
+      }
+    } catch (error) {
+      console.error('Error reordering items:', error);
+      alert("An error occurred during reorder.");
+    } finally {
+      setReorderingId(null);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -270,6 +300,14 @@ const MyOrders = () => {
               </div>
               
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleReorder(order)}
+                  disabled={reorderingId !== null}
+                  className="text-xs font-bold text-primary-700 bg-primary-50 hover:bg-primary-100 px-4 py-2.5 rounded-xl border border-primary-200/50 transition-colors text-center flex items-center justify-center space-x-1.5 disabled:opacity-50"
+                >
+                  <span>{reorderingId === order._id ? 'Reordering...' : 'Reorder Items'}</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => handleDownloadInvoice(order)}

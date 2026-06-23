@@ -2,11 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Lock, Mail, AlertCircle } from 'lucide-react';
+import { authAPI } from '../api';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [captchaId, setCaptchaId] = useState('');
+  const [captchaSvg, setCaptchaSvg] = useState('');
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
   const { login, user } = useAuth();
   const navigate = useNavigate();
 
@@ -19,6 +23,21 @@ const Login = () => {
     }
   }, [user, navigate]);
 
+  const fetchCaptcha = async () => {
+    try {
+      const { data } = await authAPI.getCaptcha();
+      setCaptchaId(data.captchaId);
+      setCaptchaSvg(data.captchaSvg);
+      setCaptchaAnswer('');
+    } catch (err) {
+      console.error('Error fetching captcha:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCaptcha();
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -28,9 +47,15 @@ const Login = () => {
       return;
     }
 
-    const res = await login(email, password);
+    if (!captchaAnswer) {
+      setError('Please enter the CAPTCHA verification code');
+      return;
+    }
+
+    const res = await login(email, password, captchaId, captchaAnswer);
     if (!res.success) {
       setError(res.message);
+      fetchCaptcha();
     }
   };
 
@@ -94,6 +119,32 @@ const Login = () => {
                 />
                 <Lock className="w-5 h-5 text-slate-400 absolute left-3 top-2.5" />
               </div>
+            </div>
+
+            <div>
+              <label htmlFor="captcha" className="text-xs font-semibold text-slate-600 block mb-1">
+                Verification Code
+              </label>
+              <div className="flex items-center space-x-3">
+                <div 
+                  className="bg-slate-100 rounded-xl border border-slate-200 shrink-0 flex items-center justify-center cursor-pointer overflow-hidden"
+                  onClick={fetchCaptcha}
+                  title="Click to refresh CAPTCHA"
+                  dangerouslySetInnerHTML={{ __html: captchaSvg }}
+                  style={{ height: '42px', width: '120px' }}
+                />
+                <input
+                  id="captcha"
+                  name="captchaAnswer"
+                  type="text"
+                  required
+                  className="input-field"
+                  placeholder="Enter code"
+                  value={captchaAnswer}
+                  onChange={(e) => setCaptchaAnswer(e.target.value)}
+                />
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">Can't read the image? Click it to refresh</p>
             </div>
           </div>
 
