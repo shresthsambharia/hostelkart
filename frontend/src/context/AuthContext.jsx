@@ -33,10 +33,10 @@ export const AuthProvider = ({ children }) => {
     checkLoggedIn();
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (email, password, captchaId, captchaAnswer) => {
     setLoading(true);
     try {
-      const { data } = await authAPI.login({ email, password });
+      const { data } = await authAPI.login({ email, password, captchaId, captchaAnswer });
       
       // Store credentials
       localStorage.setItem('token', data.token);
@@ -68,10 +68,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (name, email, password, phone) => {
+  const register = async (name, email, password, phone, captchaId, captchaAnswer) => {
     setLoading(true);
     try {
-      const { data } = await authAPI.register({ name, email, password, phone });
+      const { data } = await authAPI.register({ name, email, password, phone, captchaId, captchaAnswer });
       
       localStorage.setItem('token', data.token);
       localStorage.setItem('userInfo', JSON.stringify({
@@ -102,7 +102,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await authAPI.logout();
+    } catch (err) {
+      console.error('Logout error on backend:', err);
+    }
     localStorage.removeItem('token');
     localStorage.removeItem('userInfo');
     setUser(null);
