@@ -719,6 +719,18 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Get Admin Audit Activity Logs
+// @route   GET /api/admin/logs
+// @access  Private/Admin
+const getAdminLogs = asyncHandler(async (req, res) => {
+  const AdminLog = (await import('../models/AdminLog.js')).default;
+  const logs = await AdminLog.find({})
+    .populate('admin', 'name email role')
+    .sort({ timestamp: -1 })
+    .limit(200);
+  res.json(logs);
+});
+
 export {
   getDashboardAnalytics,
   addProduct,
@@ -737,4 +749,5 @@ export {
   getPaymentSettings,
   updatePaymentSettings,
   updateOrderPaymentStatus,
+  getAdminLogs,
 };

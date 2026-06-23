@@ -4,6 +4,8 @@ import {
   getProductById,
   createProductReview,
   getCategories,
+  getSearchSuggestions,
+  getTrendingSearches,
 } from '../controllers/productController.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
 
@@ -11,6 +13,8 @@ const router = express.Router();
 
 router.get('/', getProducts);
 router.get('/categories', getCategories);
+router.get('/search/suggest', getSearchSuggestions);
+router.get('/search/trending', getTrendingSearches);
 router.get('/:id', getProductById);
 router.post('/:id/reviews', protect, authorize('student'), createProductReview);
 

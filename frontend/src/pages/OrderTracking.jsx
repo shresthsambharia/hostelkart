@@ -69,27 +69,34 @@ const OrderTracking = () => {
   useEffect(() => {
     if (!order || order.orderStatus !== 'Out for Delivery' || !window.L) return;
 
+    const container = document.getElementById('map-container');
+    if (!container) return;
+    if (container._leaflet_id) return; // Prevent double-initialization crash
+
     // Center coordinates
     const hostelCoords = [13.0827, 80.2707];
     const initialRiderCoords = riderLocation ? [riderLocation.lat, riderLocation.lng] : [13.0812, 80.2681];
 
-    const map = window.L.map('map-container').setView(hostelCoords, 16);
+    const map = window.L.map(container).setView(hostelCoords, 16);
     setMapInstance(map);
 
     window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    const hostelIcon = window.L.icon({
-      iconUrl: 'https://cdn-icons-png.flaticon.com/512/25/25694.png',
-      iconSize: [25, 25],
-      iconAnchor: [12, 12]
+    // Premium styling via divIcon (no external URLs, avoiding CORS blocks)
+    const hostelIcon = window.L.divIcon({
+      html: `<div class="w-7 h-7 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center shadow-lg text-xs hover:scale-110 transition-transform">🏠</div>`,
+      className: '',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
     });
 
-    const riderIcon = window.L.icon({
-      iconUrl: 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png',
-      iconSize: [30, 30],
-      iconAnchor: [15, 15]
+    const riderIcon = window.L.divIcon({
+      html: `<div class="w-9 h-9 bg-amber-500 rounded-full border-2 border-white flex items-center justify-center shadow-lg text-sm animate-bounce">🚴</div>`,
+      className: '',
+      iconSize: [36, 36],
+      iconAnchor: [18, 18]
     });
 
     // Add marker for Hostel (Student)

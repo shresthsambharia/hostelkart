@@ -20,6 +20,12 @@ const storage = multer.diskStorage({
 });
 
 function checkFileType(file, cb) {
+  // Prevent double extension upload bypass attacks (e.g. image.png.php)
+  const parts = file.originalname.split('.');
+  if (parts.length > 2) {
+    return cb(new Error('Images only - multiple file extensions not allowed!'));
+  }
+
   const filetypes = /jpg|jpeg|png|webp/;
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = filetypes.test(file.mimetype);
@@ -33,6 +39,7 @@ function checkFileType(file, cb) {
 
 const upload = multer({
   storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Enforce 5MB upload file size limit
   fileFilter: function (req, file, cb) {
     checkFileType(file, cb);
   },

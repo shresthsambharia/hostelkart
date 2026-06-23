@@ -5,6 +5,7 @@ const baseURL = apiURL.endsWith('/api') ? apiURL : `${apiURL}/api`;
 
 const API = axios.create({
   baseURL,
+  withCredentials: true, // Send secure HttpOnly cookies (refresh tokens) with API requests
   headers: {
     'Content-Type': 'application/json',
   },
@@ -24,6 +25,80 @@ API.interceptors.request.use(
   }
 );
 
+// Interceptor to handle session expirations and perform token refreshing
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+API.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      // Prevent infinite refresh loop on auth endpoints
+      if (
+        originalRequest.url.includes('/auth/login') ||
+        originalRequest.url.includes('/auth/register') ||
+        originalRequest.url.includes('/auth/refresh')
+      ) {
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return API(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const { data } = await axios.post(`${baseURL}/auth/refresh`, {}, { withCredentials: true });
+        const newToken = data.token;
+
+        localStorage.setItem('token', newToken);
+        API.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+
+        processQueue(null, newToken);
+        isRefreshing = false;
+
+        return API(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        isRefreshing = false;
+
+        localStorage.removeItem('token');
+        localStorage.removeItem('userInfo');
+
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login?session_expired=true';
+        }
+        return Promise.reject(refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 // Endpoints definitions
 export const authAPI = {
   login: (credentials) => API.post('/auth/login', credentials),
@@ -31,6 +106,8 @@ export const authAPI = {
   getProfile: () => API.get('/auth/profile'),
   updateProfile: (profileData) => API.put('/auth/profile', profileData),
   updateFcmToken: (fcmToken) => API.put('/auth/fcm-token', { fcmToken }),
+  getCaptcha: () => API.get('/auth/captcha'),
+  logout: () => API.post('/auth/logout'),
 };
 
 export const productAPI = {
@@ -38,6 +115,8 @@ export const productAPI = {
   getById: (id) => API.get(`/products/${id}`),
   getCategories: () => API.get('/products/categories'),
   submitReview: (productId, reviewData) => API.post(`/products/${productId}/reviews`, reviewData),
+  getSuggestions: (q) => API.get('/products/search/suggest', { params: { q } }),
+  getTrending: () => API.get('/products/search/trending'),
 };
 
 export const cartAPI = {
@@ -68,6 +147,7 @@ export const customRequestAPI = {
 
 export const adminAPI = {
   getAnalytics: () => API.get('/admin/analytics'),
+  getLogs: () => API.get('/admin/logs'),
   addProduct: (productData) => API.post('/admin/products', productData),
   updateProduct: (id, productData) => API.put(`/admin/products/${id}`, productData),
   deleteProduct: (id) => API.delete(`/admin/products/${id}`),
@@ -89,6 +169,20 @@ export const adminAPI = {
     },
   }),
   updateOrderPaymentStatus: (id, paymentStatus) => API.put(`/admin/orders/${id}/payment`, { paymentStatus }),
+  exportProducts: () => API.get('/admin/excel/export-products', { responseType: 'blob' }),
+  exportOrders: () => API.get('/admin/excel/export-orders', { responseType: 'blob' }),
+  exportCustomers: () => API.get('/admin/excel/export-customers', { responseType: 'blob' }),
+  exportRevenue: () => API.get('/admin/excel/export-revenue', { responseType: 'blob' }),
+  importProducts: (formData) => API.post('/admin/excel/import-products', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
+  bulkInventoryUpdate: (formData) => API.post('/admin/excel/bulk-inventory', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
 };
 
 export const deliveryAPI = {
@@ -120,6 +214,10 @@ export const couponAPI = {
 
 export const walletAPI = {
   getDetails: () => API.get('/wallet'),
+};
+
+export const recommendationAPI = {
+  get: () => API.get('/recommendations'),
 };
 
 export default API;

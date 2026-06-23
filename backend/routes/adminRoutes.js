@@ -17,15 +17,19 @@ import {
   getPaymentSettings,
   updatePaymentSettings,
   updateOrderPaymentStatus,
+  getAdminLogs,
 } from '../controllers/adminController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
+import { logAdminActivity } from '../middleware/adminLogMiddleware.js';
 
 const router = express.Router();
 
 // Enforce admin check for all subroutes
 router.use(protect, admin);
+router.use(logAdminActivity); // Audit logs for all admin write operations
 
 router.get('/analytics', getDashboardAnalytics);
+router.get('/logs', getAdminLogs);
 router.post('/products', addProduct);
 router.route('/products/:id')
   .put(editProduct)

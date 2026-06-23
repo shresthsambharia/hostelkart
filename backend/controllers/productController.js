@@ -2,6 +2,23 @@ import asyncHandler from 'express-async-handler';
 import Product from '../models/Product.js';
 import Category from '../models/Category.js';
 
+// Helper to log search keyword frequency asynchronously
+const logSearchKeyword = async (rawKeyword) => {
+  if (!rawKeyword) return;
+  const keyword = rawKeyword.trim().toLowerCase();
+  if (keyword.length < 2) return;
+  try {
+    const SearchKeyword = (await import('../models/SearchKeyword.js')).default;
+    await SearchKeyword.findOneAndUpdate(
+      { keyword },
+      { $inc: { count: 1 } },
+      { upsert: true, new: true }
+    );
+  } catch (err) {
+    console.error('Failed to log search keyword:', err);
+  }
+};
+
 // @desc    Fetch all products with filters, search, and category selection
 // @route   GET /api/products
 // @access  Public
@@ -16,6 +33,8 @@ const getProducts = asyncHandler(async (req, res) => {
       $regex: keyword,
       $options: 'i',
     };
+    // Log search keyword for trending recommendations
+    logSearchKeyword(keyword);
   }
 
   // Category filter
@@ -104,4 +123,49 @@ const getCategories = asyncHandler(async (req, res) => {
   res.json(categories);
 });
 
-export { getProducts, getProductById, createProductReview, getCategories };
+// @desc    Get instant search suggestions
+// @route   GET /api/products/search/suggest
+// @access  Public
+const getSearchSuggestions = asyncHandler(async (req, res) => {
+  const q = req.query.q;
+  if (!q || q.trim() === '') {
+    return res.json({ products: [], categories: [] });
+  }
+
+  const queryRegex = { $regex: q, $options: 'i' };
+
+  // Find matching products
+  const products = await Product.find({
+    $or: [
+      { name: queryRegex },
+      { description: queryRegex },
+      { category: queryRegex }
+    ]
+  })
+  .select('name category image price discount')
+  .limit(6);
+
+  // Find matching categories
+  const categories = await Category.find({ name: queryRegex })
+    .select('name image')
+    .limit(3);
+
+  // Track the search query asynchronously
+  logSearchKeyword(q);
+
+  res.json({ products, categories });
+});
+
+// @desc    Get trending searches
+// @route   GET /api/products/search/trending
+// @access  Public
+const getTrendingSearches = asyncHandler(async (req, res) => {
+  const SearchKeyword = (await import('../models/SearchKeyword.js')).default;
+  const trending = await SearchKeyword.find({})
+    .sort({ count: -1 })
+    .limit(8)
+    .select('keyword count');
+  res.json(trending);
+});
+
+export { getProducts, getProductById, createProductReview, getCategories, getSearchSuggestions, getTrendingSearches };
