@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { cartAPI } from '../api';
 import { useAuth } from './AuthContext';
 
@@ -11,7 +11,7 @@ export const CartProvider = ({ children }) => {
   const [toastTimeoutId, setToastTimeoutId] = useState(null);
   const { user } = useAuth();
 
-  const fetchCart = async () => {
+  const fetchCart = useCallback(async () => {
     if (user && user.role === 'student') {
       setLoading(true);
       try {
@@ -25,13 +25,13 @@ export const CartProvider = ({ children }) => {
     } else {
       setCart({ items: [] });
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchCart();
   }, [user]);
 
-  const addToCart = async (productId, quantity = 1) => {
+  const addToCart = useCallback(async (productId, quantity = 1) => {
     if (!user) return { success: false, message: 'Please login to add items to cart.' };
     if (user.role !== 'student') return { success: false, message: 'Only students can order items.' };
 
@@ -55,9 +55,9 @@ export const CartProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, toastTimeoutId]);
 
-  const updateQuantity = async (productId, quantity) => {
+  const updateQuantity = useCallback(async (productId, quantity) => {
     setLoading(true);
     try {
       const { data } = await cartAPI.updateQuantity(productId, quantity);
@@ -72,9 +72,9 @@ export const CartProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const removeFromCart = async (productId) => {
+  const removeFromCart = useCallback(async (productId) => {
     setLoading(true);
     try {
       const { data } = await cartAPI.remove(productId);
@@ -89,9 +89,9 @@ export const CartProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const clearCart = async () => {
+  const clearCart = useCallback(async () => {
     setLoading(true);
     try {
       await cartAPI.clear();
@@ -103,7 +103,7 @@ export const CartProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Compute stats
   const itemsCount = cart.items.reduce((acc, item) => acc + item.quantity, 0);
@@ -122,22 +122,34 @@ export const CartProvider = ({ children }) => {
 
   const total = Math.round(subtotal - discountAmount);
 
+  const contextValue = useMemo(() => ({
+    cart,
+    loading,
+    fetchCart,
+    addToCart,
+    updateQuantity,
+    removeFromCart,
+    clearCart,
+    itemsCount,
+    subtotal,
+    discountAmount,
+    total,
+  }), [
+    cart,
+    loading,
+    fetchCart,
+    addToCart,
+    updateQuantity,
+    removeFromCart,
+    clearCart,
+    itemsCount,
+    subtotal,
+    discountAmount,
+    total,
+  ]);
+
   return (
-    <CartContext.Provider
-      value={{
-        cart,
-        loading,
-        fetchCart,
-        addToCart,
-        updateQuantity,
-        removeFromCart,
-        clearCart,
-        itemsCount,
-        subtotal,
-        discountAmount,
-        total,
-      }}
-    >
+    <CartContext.Provider value={contextValue}>
       {children}
       {showToast && (
         <div className="fixed bottom-5 right-5 z-50 bg-emerald-600 text-white font-semibold px-4 py-3 rounded-xl shadow-2xl border border-emerald-500 animate-slide-up flex items-center space-x-2">

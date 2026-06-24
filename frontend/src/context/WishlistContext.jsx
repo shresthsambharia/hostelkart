@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { wishlistAPI } from '../api';
 import { useAuth } from './AuthContext';
 
@@ -9,7 +9,7 @@ export const WishlistProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
 
-  const fetchWishlist = async () => {
+  const fetchWishlist = useCallback(async () => {
     if (user && user.role === 'student') {
       setLoading(true);
       try {
@@ -23,13 +23,13 @@ export const WishlistProvider = ({ children }) => {
     } else {
       setWishlist({ products: [] });
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchWishlist();
   }, [user]);
 
-  const toggleWishlist = async (productId) => {
+  const toggleWishlist = useCallback(async (productId) => {
     if (!user) return { success: false, message: 'Please login to add items to wishlist.' };
     if (user.role !== 'student') return { success: false, message: 'Only students can manage wishlists.' };
 
@@ -47,26 +47,26 @@ export const WishlistProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const isInWishlist = (productId) => {
+  const isInWishlist = useCallback((productId) => {
     if (!wishlist || !wishlist.products) return false;
     return wishlist.products.some((p) => {
       const pId = typeof p === 'object' ? p._id : p;
       return pId.toString() === productId.toString();
     });
-  };
+  }, [wishlist]);
+
+  const contextValue = useMemo(() => ({
+    wishlist,
+    loading,
+    fetchWishlist,
+    toggleWishlist,
+    isInWishlist,
+  }), [wishlist, loading, fetchWishlist, toggleWishlist, isInWishlist]);
 
   return (
-    <WishlistContext.Provider
-      value={{
-        wishlist,
-        loading,
-        fetchWishlist,
-        toggleWishlist,
-        isInWishlist,
-      }}
-    >
+    <WishlistContext.Provider value={contextValue}>
       {children}
     </WishlistContext.Provider>
   );

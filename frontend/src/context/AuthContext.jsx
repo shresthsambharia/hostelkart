@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../api';
 
@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }) => {
     checkLoggedIn();
   }, []);
 
-  const login = async (email, password) => {
+  const login = useCallback(async (email, password) => {
     setLoading(true);
     try {
       const { data } = await authAPI.login({ email, password });
@@ -66,9 +66,9 @@ export const AuthProvider = ({ children }) => {
       const message = error.response?.data?.message || 'Login failed. Please try again.';
       return { success: false, message };
     }
-  };
+  }, [navigate]);
 
-  const register = async (name, email, password, phone, captchaId, captchaAnswer) => {
+  const register = useCallback(async (name, email, password, phone, captchaId, captchaAnswer) => {
     setLoading(true);
     try {
       const { data } = await authAPI.register({ name, email, password, phone, captchaId, captchaAnswer });
@@ -100,9 +100,9 @@ export const AuthProvider = ({ children }) => {
       const message = error.response?.data?.message || 'Registration failed.';
       return { success: false, message };
     }
-  };
+  }, [navigate]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await authAPI.logout();
     } catch (err) {
@@ -112,9 +112,9 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('userInfo');
     setUser(null);
     navigate('/login');
-  };
+  }, [navigate]);
 
-  const updateProfile = async (profileData) => {
+  const updateProfile = useCallback(async (profileData) => {
     setLoading(true);
     try {
       const { data } = await authAPI.updateProfile(profileData);
@@ -137,22 +137,22 @@ export const AuthProvider = ({ children }) => {
       const message = error.response?.data?.message || 'Failed to update profile.';
       return { success: false, message };
     }
-  };
+  }, []);
+
+  const contextValue = useMemo(() => ({
+    user,
+    loading,
+    login,
+    register,
+    logout,
+    updateProfile,
+    isAdmin: user?.role === 'admin',
+    isDelivery: user?.role === 'delivery',
+    isStudent: user?.role === 'student',
+  }), [user, loading, login, register, logout, updateProfile]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        login,
-        register,
-        logout,
-        updateProfile,
-        isAdmin: user?.role === 'admin',
-        isDelivery: user?.role === 'delivery',
-        isStudent: user?.role === 'student',
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

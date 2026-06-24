@@ -21,15 +21,43 @@ const OrderTracking = () => {
   const [riderMarker, setRiderMarker] = useState(null);
   const [leafletLoaded, setLeafletLoaded] = useState(!!window.L);
 
-  // Poll for Leaflet library load in case of CDN race condition
+  // Dynamically load Leaflet assets and poll to verify
   useEffect(() => {
-    if (window.L) return;
+    if (window.L) {
+      setLeafletLoaded(true);
+      return;
+    }
+
+    // Dynamic inject Leaflet CSS
+    const linkId = 'leaflet-css-cdn';
+    if (!document.getElementById(linkId)) {
+      const link = document.createElement('link');
+      link.id = linkId;
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      link.crossOrigin = '';
+      document.head.appendChild(link);
+    }
+
+    // Dynamic inject Leaflet JS
+    const scriptId = 'leaflet-js-cdn';
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.crossOrigin = '';
+      script.onload = () => setLeafletLoaded(true);
+      document.head.appendChild(script);
+    }
+
+    // Fallback polling in case it was already injected but loading
     const interval = setInterval(() => {
       if (window.L) {
         setLeafletLoaded(true);
         clearInterval(interval);
       }
     }, 200);
+
     return () => clearInterval(interval);
   }, []);
 

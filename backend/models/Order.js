@@ -301,6 +301,10 @@ orderSchema.pre('save', async function (next) {
   next();
 });
 
+// Indexes for query optimization
+orderSchema.index({ user: 1, orderStatus: 1 });
+orderSchema.index({ createdAt: -1 });
+
 const Order = mongoose.model('Order', orderSchema);
 
 export default Order;

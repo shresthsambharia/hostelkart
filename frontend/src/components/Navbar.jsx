@@ -4,6 +4,7 @@ import { ShoppingCart, Heart, User, LogOut, Search, Menu, X, PlusCircle, LayoutD
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { notificationAPI, productAPI } from '../api';
+import { getOptimizedImageUrl } from '../utils/image';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -331,7 +332,7 @@ const Navbar = () => {
                                 onClick={() => handleSuggestionClick(cat.name, 'category')}
                                 className="flex items-center gap-2 p-2 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-xl cursor-pointer transition-colors"
                               >
-                                <img src={cat.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=100'} alt={cat.name} className="w-8 h-8 rounded-lg object-cover" />
+                                <img src={getOptimizedImageUrl(cat.image, 32)} alt={cat.name} width={32} height={32} loading="lazy" decoding="async" className="w-8 h-8 rounded-lg object-cover" />
                                 <span className="text-xs font-bold text-slate-700">{highlightMatch(cat.name, keyword)}</span>
                               </div>
                             ))}
@@ -355,7 +356,7 @@ const Navbar = () => {
                                   className="flex items-center justify-between py-2 hover:bg-slate-50/50 cursor-pointer transition-colors rounded-lg px-2 -mx-2"
                                 >
                                   <div className="flex items-center gap-3">
-                                    <img src={prod.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=100'} alt={prod.name} className="w-10 h-10 rounded-lg object-cover border border-slate-100" />
+                                    <img src={getOptimizedImageUrl(prod.image, 40)} alt={prod.name} width={40} height={40} loading="lazy" decoding="async" className="w-10 h-10 rounded-lg object-cover border border-slate-100" />
                                     <div>
                                       <p className="text-xs font-bold text-slate-800 line-clamp-1">{highlightMatch(prod.name, keyword)}</p>
                                       <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{prod.category}</p>
@@ -716,7 +717,7 @@ const Navbar = () => {
                             onClick={() => handleSuggestionClick(cat.name, 'category')}
                             className="flex items-center gap-2 p-2 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-xl cursor-pointer transition-colors"
                           >
-                            <img src={cat.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=100'} alt={cat.name} className="w-8 h-8 rounded-lg object-cover" />
+                            <img src={getOptimizedImageUrl(cat.image, 32)} alt={cat.name} width={32} height={32} loading="lazy" decoding="async" className="w-8 h-8 rounded-lg object-cover" />
                             <span className="text-xs font-bold text-slate-700">{highlightMatch(cat.name, keyword)}</span>
                           </div>
                         ))}
@@ -740,7 +741,7 @@ const Navbar = () => {
                               className="flex items-center justify-between py-2 hover:bg-slate-50/50 cursor-pointer transition-colors rounded-lg px-2 -mx-2"
                             >
                               <div className="flex items-center gap-3">
-                                <img src={prod.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=100'} alt={prod.name} className="w-10 h-10 rounded-lg object-cover border border-slate-100" />
+                                <img src={getOptimizedImageUrl(prod.image, 40)} alt={prod.name} width={40} height={40} loading="lazy" decoding="async" className="w-10 h-10 rounded-lg object-cover border border-slate-100" />
                                 <div>
                                   <p className="text-xs font-bold text-slate-800 line-clamp-1">{highlightMatch(prod.name, keyword)}</p>
                                   <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{prod.category}</p>

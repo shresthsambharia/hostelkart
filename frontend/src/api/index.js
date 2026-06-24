@@ -110,13 +110,26 @@ export const authAPI = {
   logout: () => API.post('/auth/logout'),
 };
 
+let categoriesCache = null;
+let trendingCache = null;
+
 export const productAPI = {
   getAll: (params) => API.get('/products', { params }),
   getById: (id) => API.get(`/products/${id}`),
-  getCategories: () => API.get('/products/categories'),
+  getCategories: async () => {
+    if (categoriesCache) return categoriesCache;
+    const res = await API.get('/products/categories');
+    categoriesCache = res;
+    return res;
+  },
   submitReview: (productId, reviewData) => API.post(`/products/${productId}/reviews`, reviewData),
   getSuggestions: (q) => API.get('/products/search/suggest', { params: { q } }),
-  getTrending: () => API.get('/products/search/trending'),
+  getTrending: async () => {
+    if (trendingCache) return trendingCache;
+    const res = await API.get('/products/search/trending');
+    trendingCache = res;
+    return res;
+  },
 };
 
 export const cartAPI = {
