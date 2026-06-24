@@ -1,19 +1,47 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NFJ2GPVCSX"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-NFJ2GPVCSX');
-    </script>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7808569576221532"
-
-     crossorigin="anonymous"></script>
     <meta charset="UTF-8" />
+    <script>
+      // Performance Optimization: Defer Google Tag and AdSense loading to post-render or user interaction
+      function loadThirdPartyScripts() {
+        if (window.thirdPartyScriptsLoaded) return;
+        window.thirdPartyScriptsLoaded = true;
+
+        // 1. Google Analytics (gtag.js)
+        const gtagScript = document.createElement('script');
+        gtagScript.async = true;
+        gtagScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-NFJ2GPVCSX';
+        document.head.appendChild(gtagScript);
+
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function() { window.dataLayer.push(arguments); };
+        window.gtag('js', new Date());
+        window.gtag('config', 'G-NFJ2GPVCSX');
+
+        // 2. Google AdSense (adsbygoogle.js)
+        const adsenseScript = document.createElement('script');
+        adsenseScript.async = true;
+        adsenseScript.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7808569576221532';
+        adsenseScript.crossOrigin = 'anonymous';
+        document.head.appendChild(adsenseScript);
+      }
+
+      // Load dynamically after 3.5 seconds OR on first user interaction
+      const loadTimeout = setTimeout(loadThirdPartyScripts, 3500);
+
+      function triggerScriptLoad() {
+        clearTimeout(loadTimeout);
+        loadThirdPartyScripts();
+        ['scroll', 'mousedown', 'touchstart', 'keydown'].forEach(event => {
+          window.removeEventListener(event, triggerScriptLoad);
+        });
+      }
+
+      ['scroll', 'mousedown', 'touchstart', 'keydown'].forEach(event => {
+        window.addEventListener(event, triggerScriptLoad, { passive: true });
+      });
+    </script>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>HostelKart - Daily hostel essentials delivered to your room</title>
