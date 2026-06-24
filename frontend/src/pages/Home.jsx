@@ -174,14 +174,14 @@ const Home = () => {
 
           {recsLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-              {[...Array(4)].map((_, i) => (
+              {[...Array(8)].map((_, i) => (
                 <ProductCardSkeleton key={i} />
               ))}
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-              {recs.buyAgain.map((product) => (
-                <ProductCard key={product._id} product={product} />
+              {recs.buyAgain.map((product, idx) => (
+                <ProductCard key={product._id} product={product} priority={idx < 4} />
               ))}
             </div>
           )}
@@ -202,14 +202,14 @@ const Home = () => {
 
         {recsLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            {[...Array(4)].map((_, i) => (
+            {[...Array(8)].map((_, i) => (
               <ProductCardSkeleton key={i} />
             ))}
           </div>
         ) : recs.recommendedForYou?.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            {recs.recommendedForYou.map((product) => (
-              <ProductCard key={product._id} product={product} />
+            {recs.recommendedForYou.map((product, idx) => (
+              <ProductCard key={product._id} product={product} priority={idx < 4} />
             ))}
           </div>
         ) : (
@@ -233,7 +233,7 @@ const Home = () => {
 
         {recsLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            {[...Array(4)].map((_, i) => (
+            {[...Array(8)].map((_, i) => (
               <ProductCardSkeleton key={i} />
             ))}
           </div>
@@ -264,7 +264,7 @@ const Home = () => {
 
         {recsLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            {[...Array(4)].map((_, i) => (
+            {[...Array(8)].map((_, i) => (
               <ProductCardSkeleton key={i} />
             ))}
           </div>
@@ -295,7 +295,7 @@ const Home = () => {
 
         {recsLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            {[...Array(4)].map((_, i) => (
+            {[...Array(8)].map((_, i) => (
               <ProductCardSkeleton key={i} />
             ))}
           </div>
