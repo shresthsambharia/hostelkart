@@ -214,4 +214,4 @@ export const ProductCardSkeleton = () => (
   </div>
 );
 
-export default ProductCard;
+export default React.memo(ProductCard);

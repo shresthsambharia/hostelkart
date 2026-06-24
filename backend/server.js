@@ -3,6 +3,7 @@ import fs from 'fs';
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import connectDB from './config/db.js';
 import { seedIfEmpty } from './seed/seedDataInline.js';
@@ -56,6 +57,7 @@ app.use(cors({
   },
   credentials: true,
 }));
+app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -66,8 +68,12 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Serve uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve uploaded files statically with long-term caching
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  maxAge: '1y',
+  etag: true,
+  lastModified: true
+}));
 
 // Rate Limiting Security Hardening for APIs
 const apiLimiter = rateLimit({

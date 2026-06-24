@@ -20,6 +20,9 @@ const searchKeywordSchema = new mongoose.Schema(
   }
 );
 
+// Index for trending searches query optimization
+searchKeywordSchema.index({ count: -1 });
+
 const SearchKeyword = mongoose.model('SearchKeyword', searchKeywordSchema);
 
 export default SearchKeyword;
