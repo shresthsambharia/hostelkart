@@ -125,19 +125,7 @@ const registerUser = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 const authUser = asyncHandler(async (req, res) => {
-  const { email, password, captchaId, captchaAnswer } = req.body;
-
-  // CAPTCHA verification
-  if (!captchaId || !captchaAnswer) {
-    res.status(400);
-    throw new Error('CAPTCHA verification required');
-  }
-  const captcha = await Captcha.findById(captchaId);
-  if (!captcha || captcha.text !== captchaAnswer.toLowerCase()) {
-    res.status(400);
-    throw new Error('Invalid or expired CAPTCHA');
-  }
-  await Captcha.findByIdAndDelete(captchaId); // Delete immediately to prevent reuse
+  const { email, password } = req.body;
 
   const user = await User.findOne({ email });
 
