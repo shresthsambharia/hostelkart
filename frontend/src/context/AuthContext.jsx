@@ -33,10 +33,10 @@ export const AuthProvider = ({ children }) => {
     checkLoggedIn();
   }, []);
 
-  const login = async (email, password, captchaId, captchaAnswer) => {
+  const login = async (email, password) => {
     setLoading(true);
     try {
-      const { data } = await authAPI.login({ email, password, captchaId, captchaAnswer });
+      const { data } = await authAPI.login({ email, password });
       
       // Store credentials
       localStorage.setItem('token', data.token);
