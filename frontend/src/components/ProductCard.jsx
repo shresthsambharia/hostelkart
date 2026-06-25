@@ -77,7 +77,7 @@ const ProductCard = ({ product, priority = false }) => {
           <img
             src={getOptimizedImage(product, 'medium')}
             srcSet={getResponsiveSrcSet(product)}
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            sizes="(max-width: 640px) 40vw, (max-width: 1024px) 25vw, 220px"
             alt={product.name}
             loading={priority ? undefined : "lazy"}
             fetchPriority={priority ? "high" : "low"}

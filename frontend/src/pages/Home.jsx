@@ -23,7 +23,6 @@ const staticCategories = [
 
 const Home = () => {
   const { user } = useAuth();
-  const [products, setProducts] = useState([]);
   const [recs, setRecs] = useState({
     buyAgain: [],
     trending: [],
@@ -31,75 +30,55 @@ const Home = () => {
     studentsAlsoBought: [],
     frequentlyBoughtTogether: []
   });
-  const [loading, setLoading] = useState(true);
   const [recsLoading, setRecsLoading] = useState(true);
+  const [delayedRecsLoading, setDelayedRecsLoading] = useState(true);
   const [searchKeyword, setSearchKeyword] = useState('');
   const navigate = useNavigate();
 
+  // Fetch recommendations after initial mount to prioritize static content rendering
   useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        // Fetch only products to minimize network roundtrips and improve speed
-        const prodRes = await productAPI.getAll({});
-        const allProds = prodRes.data;
-
-        const targetCategories = ['Fruits', 'Vegetables', 'Dairy Products', 'Stationery', 'Instant Food', 'Electronics Accessories', 'Personal Care'];
-        const mixedItems = [];
-        const itemsByCategory = {};
-        
-        targetCategories.forEach(cat => {
-          itemsByCategory[cat] = allProds.filter(p => p.category === cat);
-        });
-        
-        let index = 0;
-        while (mixedItems.length < 8) {
-          let addedInThisRound = false;
-          for (const cat of targetCategories) {
-            const list = itemsByCategory[cat] || [];
-            if (index < list.length) {
-              mixedItems.push(list[index]);
-              addedInThisRound = true;
-            }
-            if (mixedItems.length >= 8) break;
-          }
-          if (!addedInThisRound) break;
-          index++;
-        }
-        
-        if (mixedItems.length < 8) {
-          const remaining = allProds.filter(p => !mixedItems.some(m => m._id === p._id));
-          mixedItems.push(...remaining.slice(0, 8 - mixedItems.length));
-        }
-
-        if (mixedItems.length === 0 && allProds.length > 0) {
-          mixedItems.push(...allProds.slice(0, 8));
-        }
-        
-        setProducts(mixedItems.slice(0, 8));
-      } catch (error) {
-        console.error('Error loading home data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchInitialData();
-  }, []);
-
-  // Fetch recommendations
-  useEffect(() => {
+    let active = true;
+    
     const fetchRecommendations = async () => {
       setRecsLoading(true);
+      setDelayedRecsLoading(true);
       try {
         const { data } = await recommendationAPI.get();
-        setRecs(data);
+        if (!active) return;
+        
+        // Show primary recommendations first (Buy Again, Recommended For You, Trending)
+        setRecs(prev => ({
+          ...prev,
+          buyAgain: data.buyAgain || [],
+          recommendedForYou: data.recommendedForYou || [],
+          trending: data.trending || []
+        }));
+        setRecsLoading(false);
+
+        // Stagger setting below-the-fold recommendation sections to prevent layout calculations blocking
+        setTimeout(() => {
+          if (!active) return;
+          setRecs(prev => ({
+            ...prev,
+            studentsAlsoBought: data.studentsAlsoBought || [],
+            frequentlyBoughtTogether: data.frequentlyBoughtTogether || []
+          }));
+          setDelayedRecsLoading(false);
+        }, 300);
       } catch (err) {
         console.error('Failed to fetch recommendations:', err);
-      } finally {
-        setRecsLoading(false);
+        if (active) {
+          setRecsLoading(false);
+          setDelayedRecsLoading(false);
+        }
       }
     };
+
     fetchRecommendations();
+    
+    return () => {
+      active = false;
+    };
   }, [user]);
 
   const handleSearchSubmit = (e) => {
@@ -113,9 +92,9 @@ const Home = () => {
     <div className="space-y-6 sm:space-y-10 pb-16">
       
       {/* Compact Hero Banner Card */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-emerald-950 via-primary-900 to-slate-900 text-white rounded-xl sm:rounded-2xl mx-4 sm:mx-8 mt-4 px-4 py-6 sm:py-8 shadow-lg">
+      <section className="relative overflow-hidden bg-gradient-to-r from-emerald-950 via-primary-900 to-slate-900 text-white rounded-xl sm:rounded-2xl mx-4 sm:mx-8 mt-4 px-5 py-6 sm:py-8 shadow-lg flex items-center justify-between gap-4">
         <div className="absolute top-0 right-0 w-48 h-48 rounded-full bg-emerald-500/10 blur-2xl pointer-events-none"></div>
-        <div className="max-w-2xl relative z-10 space-y-2.5 animate-slide-up">
+        <div className="max-w-xl relative z-10 space-y-2.5 animate-slide-up">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="inline-flex items-center px-2 py-0.5 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-[9px] sm:text-xs font-black tracking-wide text-emerald-300">
               ⚡ 30 Min Delivery
@@ -131,6 +110,17 @@ const Home = () => {
           <p className="text-[10px] sm:text-xs text-slate-100 font-bold opacity-90 max-w-lg">
             Snacks, fresh fruits, veggies, stationery, and personal care.
           </p>
+        </div>
+        <div className="relative z-10 shrink-0">
+          <img
+            src="https://images.unsplash.com/photo-1607344645866-009c320b5ab8?w=300&q=60&fm=webp&fit=crop"
+            alt="Hostel Essentials"
+            fetchPriority="high"
+            decoding="async"
+            width={128}
+            height={128}
+            className="w-24 h-24 sm:w-36 sm:h-36 object-contain drop-shadow-md rounded-xl"
+          />
         </div>
       </section>
 
@@ -231,7 +221,7 @@ const Home = () => {
           </div>
         </div>
 
-        {recsLoading ? (
+        {delayedRecsLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {[...Array(8)].map((_, i) => (
               <ProductCardSkeleton key={i} />
@@ -262,7 +252,7 @@ const Home = () => {
           </div>
         </div>
 
-        {recsLoading ? (
+        {delayedRecsLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {[...Array(8)].map((_, i) => (
               <ProductCardSkeleton key={i} />

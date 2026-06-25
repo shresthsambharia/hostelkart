@@ -229,8 +229,27 @@ export const walletAPI = {
   getDetails: () => API.get('/wallet'),
 };
 
+let recommendationCache = null;
+let recommendationCacheTime = 0;
+let recommendationCacheToken = null;
+
 export const recommendationAPI = {
-  get: () => API.get('/recommendations'),
+  get: async () => {
+    const token = localStorage.getItem('token');
+    const now = Date.now();
+    if (
+      recommendationCache &&
+      recommendationCacheToken === token &&
+      (now - recommendationCacheTime < 60 * 1000)
+    ) {
+      return recommendationCache;
+    }
+    const res = await API.get('/recommendations');
+    recommendationCache = res;
+    recommendationCacheTime = now;
+    recommendationCacheToken = token;
+    return res;
+  },
 };
 
 export default API;

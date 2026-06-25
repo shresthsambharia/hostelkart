@@ -28,6 +28,14 @@ export default defineConfig({
             if (id.includes('jspdf') || id.includes('html2canvas')) {
               return 'vendor-pdf';
             }
+            // Split heavy charting library to keep customer landing pages lightweight
+            if (id.includes('recharts') || id.includes('d3')) {
+              return 'vendor-charts';
+            }
+            // Split socket connection to keep initial load lightweight
+            if (id.includes('socket.io-client')) {
+              return 'vendor-socket';
+            }
             // Isolate icons to allow parallel download
             if (id.includes('lucide-react')) {
               return 'vendor-icons';

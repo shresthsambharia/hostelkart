@@ -2,7 +2,7 @@
  * Helper to get optimized Unsplash image URLs by stripping existing size params
  * and appending high-performance format (webp) and compression parameters.
  */
-export const getOptimizedImageUrl = (imgUrl, width = 300, quality = 75, format = 'webp') => {
+export const getOptimizedImageUrl = (imgUrl, width = 300, quality = 60, format = 'webp') => {
   if (!imgUrl) {
     return `https://images.unsplash.com/photo-1542838132-92c53300491e?w=${width}&q=${quality}&fm=${format}&fit=crop&auto=format`;
   }
@@ -22,7 +22,7 @@ export const getOptimizedImageUrl = (imgUrl, width = 300, quality = 75, format =
 /**
  * Helper to generate responsive srcset string for Unsplash images
  */
-export const getSrcSet = (imgUrl, widths = [150, 300, 450, 600], quality = 75, format = 'webp') => {
+export const getSrcSet = (imgUrl, widths = [150, 300, 450, 600], quality = 60, format = 'webp') => {
   if (!imgUrl || !imgUrl.startsWith('https://images.unsplash.com')) {
     return undefined;
   }
