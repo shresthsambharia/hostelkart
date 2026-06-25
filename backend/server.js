@@ -43,7 +43,9 @@ const allowedOrigins = [
   'http://localhost:4173',
   'http://localhost:5173',
   'http://localhost:3000',
-  'https://hostelkart-backend.onrender.com'
+  'https://hostelkart-backend.onrender.com',
+  'https://hostelkart.online',
+  'https://www.hostelkart.online'
 ];
 
 app.use(cors({
