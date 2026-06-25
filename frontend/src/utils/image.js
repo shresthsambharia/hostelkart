@@ -10,6 +10,12 @@ export const getOptimizedImageUrl = (imgUrl, width = 300, quality = 75, format =
     const baseUrl = imgUrl.split('?')[0];
     return `${baseUrl}?w=${width}&q=${quality}&fm=${format}&fit=crop&auto=format`;
   }
+  if (imgUrl.startsWith('/uploads/') || imgUrl.startsWith('uploads/')) {
+    const relativePath = imgUrl.startsWith('/') ? imgUrl : `/${imgUrl}`;
+    const apiURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://hostelkart-backend.onrender.com');
+    const backendBase = apiURL.replace(/\/api\/?$/, '');
+    return `${backendBase}${relativePath}`;
+  }
   return imgUrl;
 };
 
