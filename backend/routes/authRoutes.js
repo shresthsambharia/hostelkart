@@ -9,8 +9,13 @@ import {
   getCaptcha,
   refreshAccessToken,
   logoutUser,
+  setup2FA,
+  verify2FASetup,
+  disable2FA,
+  login2FA,
+  regenerateRecoveryCodes,
 } from '../controllers/authController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, admin } from '../middleware/authMiddleware.js';
 
 // Rate limiter for security hardening on register and login endpoints
 const authLimiter = rateLimit({
@@ -29,6 +34,13 @@ router.post('/logout', logoutUser);
 
 router.post('/register', authLimiter, registerUser);
 router.post('/login', authLimiter, authUser);
+
+// Two-Factor Authentication (2FA) Routes
+router.post('/2fa/setup', protect, setup2FA);
+router.post('/2fa/verify-setup', protect, verify2FASetup);
+router.post('/2fa/disable', protect, disable2FA);
+router.post('/2fa/login', authLimiter, login2FA);
+router.post('/2fa/recovery-codes', protect, regenerateRecoveryCodes);
 
 router
   .route('/profile')

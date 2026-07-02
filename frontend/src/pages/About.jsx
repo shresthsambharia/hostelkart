@@ -13,7 +13,7 @@ const About = () => {
           Direct to Room <span className="text-primary-600">Hostel Deliveries</span>
         </h1>
         <p className="text-slate-500 text-base max-w-xl mx-auto leading-relaxed">
-          HostelKart is your campus companion. We deliver fresh fruits, vegetables, dairy products, personal care, electronics accessories, and stationery straight to your hostel wing and room number in under 30 minutes!
+          HostelKart is your campus companion. We deliver fresh fruits, vegetables, dairy products, personal care, electronics accessories, and stationery straight to your hostel wing and room number in your selected time slot!
         </p>
       </div>
 
@@ -23,7 +23,7 @@ const About = () => {
           <div className="p-3 bg-amber-50 rounded-xl w-fit text-amber-600">
             <Zap size={22} />
           </div>
-          <h3 className="font-bold text-slate-800 text-base">Under 30 Mins Delivery</h3>
+          <h3 className="font-bold text-slate-800 text-base">Scheduled Slot Delivery</h3>
           <p className="text-xs text-slate-500 leading-relaxed">
             No need to step outside your hostel block. Our student delivery riders know every corridor, lift, and wing on campus.
           </p>

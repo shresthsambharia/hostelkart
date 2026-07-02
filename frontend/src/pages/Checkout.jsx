@@ -5,14 +5,14 @@ import { useAuth } from '../context/AuthContext';
 import { orderAPI, paymentAPI, couponAPI, walletAPI } from '../api';
 import { Check, ClipboardList, MapPin, CreditCard, ChevronRight, AlertCircle } from 'lucide-react';
 
-const loadRazorpayScript = () => {
+const loadCashfreeScript = () => {
   return new Promise((resolve) => {
-    if (window.Razorpay) {
+    if (window.Cashfree) {
       resolve(true);
       return;
     }
     const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
     script.onload = () => resolve(true);
     script.onerror = () => resolve(false);
     document.body.appendChild(script);
@@ -143,8 +143,8 @@ const Checkout = () => {
     }
   }, [itemsCount, navigate, loading]);
 
-  const completeOrderPlacement = async (paymentStatus, utrNumber = '', razorpayOrderId = '', razorpayPaymentId = '', razorpaySignature = '', failureReason = '') => {
-    console.log('[DEBUG-PAYMENT] Frontend completeOrderPlacement INITIATED:', { paymentStatus, razorpayOrderId, razorpayPaymentId, failureReason });
+  const completeOrderPlacement = async (paymentStatus, utrNumber = '', cfOrderId = '', transactionId = '', failureReason = '') => {
+    console.log('[DEBUG-PAYMENT] Frontend completeOrderPlacement INITIATED:', { paymentStatus, cfOrderId, transactionId, failureReason });
     try {
       const orderItems = cart.items.map(item => ({
         product: item.product._id,
@@ -180,9 +180,8 @@ const Checkout = () => {
         couponCode: couponApplied ? couponCode : '',
         walletPaidAmount: walletDeduction,
         utrNumber,
-        razorpayOrderId,
-        razorpayPaymentId,
-        razorpaySignature,
+        cf_order_id: cfOrderId,
+        transaction_id: transactionId,
         paymentFailureReason: failureReason
       });
 
@@ -237,8 +236,8 @@ const Checkout = () => {
         return;
       }
     } else if (simulatedTab === 'upi') {
-      if (simulatedUpi.trim() !== 'test@razorpay') {
-        setSimulatedError('Invalid UPI ID. Use UPI ID: test@razorpay');
+      if (simulatedUpi.trim() !== 'test@cashfree') {
+        setSimulatedError('Invalid UPI ID. Use UPI ID: test@cashfree');
         setSimulatedLoading(false);
         return;
       }
@@ -246,17 +245,11 @@ const Checkout = () => {
 
     // Process successful payment simulation
     console.log('[DEBUG-PAYMENT] Simulated Payment SUCCESS:', { tab: simulatedTab });
-    const order_id = simulatedOrderData.order_id || simulatedOrderData.id;
-    const payment_id = 'pay_sim_' + Math.random().toString(36).substring(2, 11).toUpperCase();
-    const signature = 'mock_signature_passed';
+    const order_id = simulatedOrderData.cfOrderId;
 
     try {
-      console.log('[DEBUG-PAYMENT] Simulated calling verifyPayment API...');
-      await paymentAPI.verifyPayment({
-        razorpay_order_id: order_id,
-        razorpay_payment_id: payment_id,
-        razorpay_signature: signature,
-      });
+      console.log('[DEBUG-PAYMENT] Simulated calling verifyPayment API for order:', order_id);
+      await paymentAPI.verifyById(order_id);
 
       console.log('[DEBUG-PAYMENT] Simulated verifyPayment SUCCESS, completing order placement...');
       
@@ -264,13 +257,8 @@ const Checkout = () => {
       setShowSimulatedModal(false);
       setSimulatedLoading(false);
 
-      await completeOrderPlacement(
-        'Paid',
-        '', // no UTR for Razorpay
-        order_id,
-        payment_id,
-        signature
-      );
+      await clearCart();
+      navigate(`/order-success?id=${order_id}`);
     } catch (err) {
       const errMsg = err.response?.data?.message || 'Payment verification failed';
       console.error('[DEBUG-PAYMENT] Simulated verification failed:', err);
@@ -281,17 +269,9 @@ const Checkout = () => {
 
   const handleCancelSimulatedPayment = async () => {
     console.log('[DEBUG-PAYMENT] Simulated Payment CANCELLED');
-    const order_id = simulatedOrderData.order_id || simulatedOrderData.id;
     setShowSimulatedModal(false);
-    
-    await completeOrderPlacement(
-      'FAILED',
-      '',
-      order_id,
-      '',
-      '',
-      'Payment cancelled by user (Simulation)'
-    );
+    setErrorMsg('Payment cancelled by user (Simulation)');
+    setLoading(false);
   };
 
   const handlePlaceOrder = async (e) => {
@@ -309,148 +289,78 @@ const Checkout = () => {
     }
 
     if (paymentMethod === 'ONLINE') {
-      const finalAmountInPaise = Math.round(finalPayable * 100);
-      if (finalAmountInPaise === 0) {
-        setLoading(true);
-        await completeOrderPlacement('Paid');
-        return;
-      }
-
       setLoading(true);
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) {
-        setErrorMsg('Razorpay SDK failed to load. Are you offline?');
-        setLoading(false);
-        return;
-      }
-
+      
       try {
-        console.log('[DEBUG-PAYMENT] Frontend initiating createOrder with amount (paise):', finalAmountInPaise);
-        const { data: rzpOrder } = await paymentAPI.createOrder(finalAmountInPaise);
-        console.log('[DEBUG-PAYMENT] Frontend createOrder response:', rzpOrder);
+        // 1. Create the pending order first in the database
+        console.log('[DEBUG-PAYMENT] Frontend creating pending order first...');
+        const orderItems = cart.items.map(item => ({
+          product: item.product._id,
+          name: item.product.name,
+          quantity: item.quantity,
+          price: item.product.price,
+          discount: item.product.discount || 0
+        }));
 
-        if (rzpOrder.isMock) {
-          console.log('[DEBUG-PAYMENT] Mock order detected, opening simulated payment modal...');
-          setSimulatedOrderData(rzpOrder);
+        const { data: pendingOrder } = await orderAPI.create({
+          orderItems,
+          deliveryDetails: {
+            hostelName,
+            block,
+            floor,
+            roomNumber,
+            phone,
+            alternatePhone,
+            landmark,
+            deliveryInstructions
+          },
+          deliverySlot: deliverySlot === 'Custom Time Slot' ? customSlot : deliverySlot,
+          paymentMethod: 'ONLINE',
+          paymentStatus: 'Pending',
+          platformFee,
+          deliveryCharge,
+          totalAmount: finalPayable,
+          couponCode: couponApplied ? couponCode : '',
+          walletPaidAmount: walletDeduction
+        });
+        
+        console.log('[DEBUG-PAYMENT] Pending order created:', pendingOrder);
+
+        // 2. Create Cashfree Session
+        console.log('[DEBUG-PAYMENT] Frontend initiating createOrder session for amount:', finalPayable, 'Order ID:', pendingOrder._id);
+        const { data: cfSession } = await paymentAPI.createOrder(finalPayable, 'INR', pendingOrder._id);
+        console.log('[DEBUG-PAYMENT] Frontend Cashfree session response:', cfSession);
+
+        if (cfSession.isMock) {
+          console.log('[DEBUG-PAYMENT] Mock Cashfree session detected, opening simulated payment modal...');
+          setSimulatedOrderData(cfSession);
           setShowSimulatedModal(true);
           return;
         }
 
-        const options = {
-          key: rzpOrder.key || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_T0oyPuoxShGQTU',
-          amount: rzpOrder.amount,
-          currency: rzpOrder.currency || 'INR',
-          name: 'HostelKart',
-          description: 'Hostel Room Order Payment',
-          order_id: rzpOrder.order_id || rzpOrder.id,
-          handler: async function (response) {
-            console.log('[DEBUG-PAYMENT] Frontend Razorpay handler SUCCESS event:', response);
-            setLoading(true);
-            try {
-              // Verify payment on backend
-              console.log('[DEBUG-PAYMENT] Frontend calling verifyPayment API with response...');
-              const verifyRes = await paymentAPI.verifyPayment({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-              });
-              console.log('[DEBUG-PAYMENT] Frontend verifyPayment API response:', verifyRes.data);
-
-              // Submit order as Paid
-              await completeOrderPlacement(
-                'Paid',
-                '', // no UTR for Razorpay
-                response.razorpay_order_id,
-                response.razorpay_payment_id,
-                response.razorpay_signature
-              );
-            } catch (err) {
-              const errMsg = err.response?.data?.message || 'Payment verification failed';
-              console.error('[DEBUG-PAYMENT] Frontend payment verification ERROR:', err);
-              setErrorMsg(errMsg);
-              setLoading(false);
-
-              // Submit failed order in background
-              await completeOrderPlacement(
-                'FAILED',
-                '',
-                response.razorpay_order_id || rzpOrder.order_id || rzpOrder.id,
-                response.razorpay_payment_id || '',
-                response.razorpay_signature || '',
-                errMsg
-              );
-            }
-          },
-          prefill: {
-            name: name,
-            contact: phone,
-            email: user?.email || '',
-          },
-          notes: {
-            address: `${hostelName}, Block ${block}, Room ${roomNumber}`,
-          },
-          modal: {
-            ondismiss: async function () {
-              const errMsg = 'Payment cancelled by user';
-              console.log('[DEBUG-PAYMENT] Frontend Razorpay modal DISMISSED');
-              setErrorMsg(errMsg);
-              setLoading(false);
-
-              // Submit failed order in background
-              await completeOrderPlacement(
-                'FAILED',
-                '',
-                rzpOrder.order_id || rzpOrder.id,
-                '',
-                '',
-                errMsg
-              );
-            }
-          },
-          method: {
-            upi: true,
-            card: true,
-            netbanking: true,
-            wallet: true
-          },
-          theme: {
-            color: '#4f46e5',
-          },
-        };
-
-        localStorage.setItem('last_razorpay_options', JSON.stringify(options));
-        console.log('[DEBUG-PAYMENT] options:', options);
-        console.log('[DEBUG-PAYMENT] key:', options.key);
-        console.log('[DEBUG-PAYMENT] order_id:', options.order_id);
-        console.log('[DEBUG-PAYMENT] amount:', options.amount);
-        console.log('[DEBUG-PAYMENT] currency:', options.currency);
-        const rzp = new window.Razorpay(options);
-        rzp.on('payment.failed', async function (response) {
-          const errMsg = response.error.description || 'Payment failed';
-          console.error('[DEBUG-PAYMENT] Frontend Razorpay payment.failed EVENT:', response);
-          console.error('[DEBUG-PAYMENT] Failed Code:', response.error.code);
-          console.error('[DEBUG-PAYMENT] Failed Description:', response.error.description);
-          console.error('[DEBUG-PAYMENT] Failed Source:', response.error.source);
-          console.error('[DEBUG-PAYMENT] Failed Step:', response.error.step);
-          console.error('[DEBUG-PAYMENT] Failed Reason:', response.error.reason);
-          console.error('[DEBUG-PAYMENT] Failed Metadata:', response.error.metadata);
-          setErrorMsg(errMsg);
+        // 3. Load Cashfree SDK
+        const scriptLoaded = await loadCashfreeScript();
+        if (!scriptLoaded) {
+          setErrorMsg('Cashfree SDK failed to load. Are you offline?');
           setLoading(false);
+          return;
+        }
 
-          // Submit failed order in background
-          await completeOrderPlacement(
-            'FAILED',
-            '',
-            response.error.metadata.order_id || rzpOrder.order_id || rzpOrder.id,
-            response.error.metadata.payment_id || '',
-            '',
-            errMsg
-          );
+        // 4. Open Cashfree Checkout
+        const isProd = import.meta.env.VITE_CASHFREE_ENV === 'PRODUCTION';
+        console.log('[DEBUG-PAYMENT] Initializing Cashfree SDK with mode:', isProd ? 'production' : 'sandbox');
+        const cashfree = window.Cashfree({
+          mode: isProd ? 'production' : 'sandbox'
         });
-        rzp.open();
+
+        console.log('[DEBUG-PAYMENT] Redirecting to Cashfree checkout with session ID:', cfSession.paymentSessionId);
+        cashfree.checkout({
+          paymentSessionId: cfSession.paymentSessionId,
+          redirectTarget: "_self"
+        });
       } catch (error) {
-        console.error('[DEBUG-PAYMENT] Frontend createOrder or modal open ERROR:', error);
-        setErrorMsg(error.response?.data?.message || 'Failed to initialize payment gateway. Try again.');
+        console.error('[DEBUG-PAYMENT] Frontend order creation or session checkout ERROR:', error);
+        setErrorMsg(error.response?.data?.message || 'Failed to initialize payment. Try again.');
         setLoading(false);
       }
     } else {
@@ -461,7 +371,7 @@ const Checkout = () => {
   };
 
   const deliverySlots = [
-    { label: 'Deliver Now (⚡ under 30 mins)', value: 'Immediate' },
+    { label: 'Scheduled Delivery (⚡ at your preferred time)', value: 'Immediate' },
     { label: 'Evening slot (6 PM - 9 PM)', value: 'Evening slot' },
     { label: 'Custom Time Slot', value: 'Custom Time Slot' }
   ];
@@ -696,7 +606,7 @@ const Checkout = () => {
                   <p className="font-bold text-primary-800 text-sm">📱 Online Payment Instructions</p>
                   <ul className="list-disc list-inside space-y-1 bg-white p-3 rounded-lg border border-slate-100 shadow-sm leading-relaxed">
                     <li>UPI app redirection works best on mobile devices.</li>
-                    <li>On laptop/desktop, you can choose to enter a UPI ID or scan the dynamically generated QR code inside the Razorpay Checkout popup.</li>
+                    <li>On laptop/desktop, you can choose to enter a UPI ID or scan the dynamically generated QR code inside the Cashfree Checkout popup.</li>
                     <li>Click <strong>Place Room Order</strong> below to open the secure payment screen.</li>
                   </ul>
                   <div className="bg-slate-50 p-2.5 rounded-lg text-slate-500 font-semibold italic border border-slate-100/50">
@@ -898,7 +808,7 @@ const Checkout = () => {
             {/* Header */}
             <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4 text-white flex justify-between items-center">
               <div>
-                <h3 className="font-extrabold text-lg">Razorpay Checkout</h3>
+                <h3 className="font-extrabold text-lg">Cashfree Checkout</h3>
                 <p className="text-xs text-indigo-100/80">HostelKart Room Order Payment (Simulation)</p>
               </div>
               <button 
@@ -1003,14 +913,14 @@ const Checkout = () => {
                     <label className="text-[10px] font-bold text-slate-500 uppercase">UPI ID / VPA</label>
                     <input
                       type="text"
-                      placeholder="e.g. test@razorpay"
+                      placeholder="e.g. test@cashfree"
                       className="input-field text-sm mt-1"
                       value={simulatedUpi}
                       onChange={(e) => setSimulatedUpi(e.target.value)}
                     />
                   </div>
                   <div className="bg-slate-50 p-2.5 rounded-lg text-[10px] text-slate-400 leading-relaxed border border-slate-100">
-                    💡 <strong>Test UPI details:</strong> Use UPI ID <code>test@razorpay</code> to pass the simulation.
+                    💡 <strong>Test UPI details:</strong> Use UPI ID <code>test@cashfree</code> to pass the simulation.
                   </div>
                 </div>
               )}

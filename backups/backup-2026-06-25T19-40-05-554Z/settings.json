@@ -1,0 +1,13 @@
+[
+  {
+    "_id": "6a2bb940631c5a3223b73fb1",
+    "key": "payment_config",
+    "value": {
+      "upiId": "rawlanineev@okhdfcbank",
+      "qrCodeUrl": "/uploads/image-1781286272874.png"
+    },
+    "createdAt": "2026-06-12T07:46:08.210Z",
+    "updatedAt": "2026-06-12T17:45:19.113Z",
+    "__v": 0
+  }
+]

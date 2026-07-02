@@ -345,7 +345,7 @@ const OrderTracking = () => {
                     Reason: "{order.cancellationReason}"
                   </p>
                 )}
-                {['ONLINE', 'RAZORPAY'].includes(order.paymentMethod) && order.paymentStatus === 'Paid' && (
+                {['ONLINE', 'CASHFREE'].includes(order.paymentMethod) && order.paymentStatus === 'Paid' && (
                   <p className="text-xs text-blue-700 font-bold bg-blue-50 border border-blue-100 p-2.5 rounded-lg max-w-md mx-auto animate-pulse mt-2">
                     ⚡ Online prepaid payment detected. Refund is being processed automatically.
                   </p>
@@ -353,7 +353,7 @@ const OrderTracking = () => {
               </div>
 
               {/* Refund Tracking Timeline */}
-              {['ONLINE', 'RAZORPAY'].includes(order.paymentMethod) && order.refundStatus && order.refundStatus !== 'NOT_REQUESTED' && (
+              {['ONLINE', 'CASHFREE'].includes(order.paymentMethod) && order.refundStatus && order.refundStatus !== 'NOT_REQUESTED' && (
                 <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 space-y-6">
                   <h4 className="font-extrabold text-slate-800 text-sm border-b border-slate-200 pb-2">
                     Refund Processing Tracking Timeline
@@ -367,7 +367,7 @@ const OrderTracking = () => {
                         ✓
                       </div>
                       <h5 className="text-xs font-bold text-slate-800 font-extrabold">1. Payment Verified (PAID)</h5>
-                      <p className="text-[11px] text-slate-500">Transaction ID: {order.razorpayPaymentId}</p>
+                      <p className="text-[11px] text-slate-500">Transaction ID: {order.transaction_id}</p>
                     </div>
 
                     {/* Step 2: Cancelled */}
@@ -393,7 +393,7 @@ const OrderTracking = () => {
                           </div>
                           <h5 className={`text-xs font-bold ${isInitiated ? 'text-slate-800 font-extrabold' : 'text-slate-400'}`}>3. Refund Initiated</h5>
                           <p className={`text-[11px] ${isInitiated ? 'text-slate-500' : 'text-slate-400'}`}>
-                            Refund request generated and transmitted to Razorpay gateway.
+                            Refund request generated and transmitted to Cashfree gateway.
                           </p>
                           {order.refundId && (
                             <span className="text-[10px] text-slate-500 font-mono bg-white px-2 py-0.5 rounded border mt-1">
@@ -423,7 +423,7 @@ const OrderTracking = () => {
                               ? `Funds settled back to your original source. Settled on: ${order.refundedAt ? new Date(order.refundedAt).toLocaleDateString() : 'N/A'}`
                               : isFailed
                               ? `Refund failed: "${order.refundError || 'Unknown Error'}"`
-                              : 'Amount will be credited within 5-7 working days as per bank/Razorpay terms.'}
+                              : 'Amount will be credited within 5-7 working days as per bank/Cashfree terms.'}
                           </p>
                         </div>
                       );

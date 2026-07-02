@@ -66,12 +66,15 @@ const updateGlobalRecommendationCache = async (limit) => {
 
   let trending = [];
   if (sortedOverallIds.length > 0) {
-    trending = await Product.find({ _id: { $in: sortedOverallIds } }).lean();
+    trending = await Product.find({ _id: { $in: sortedOverallIds } })
+      .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
+      .lean();
     trending.sort((a, b) => sortedOverallIds.indexOf(a._id.toString()) - sortedOverallIds.indexOf(b._id.toString()));
   }
 
   if (trending.length < limit) {
     const fallbackTrending = await Product.find({ _id: { $nin: trending.map(p => p._id) } })
+      .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
       .sort({ rating: -1, numReviews: -1 })
       .limit(limit - trending.length)
       .lean();
@@ -82,12 +85,14 @@ const updateGlobalRecommendationCache = async (limit) => {
   let studentsAlsoBought = await Product.find({
     rating: { $gte: 4 }
   })
+  .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
   .sort({ numReviews: -1, rating: -1 })
   .limit(limit)
   .lean();
 
   if (studentsAlsoBought.length < limit) {
     const fallbackAlsoBought = await Product.find({ _id: { $nin: studentsAlsoBought.map(p => p._id) } })
+      .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
       .sort({ rating: -1 })
       .limit(limit - studentsAlsoBought.length)
       .lean();
@@ -136,7 +141,9 @@ const updateGlobalRecommendationCache = async (limit) => {
     candidates = [...bestPair, ...union];
   }
   if (candidates.length > 0) {
-    defaultFBT = await Product.find({ _id: { $in: candidates.slice(0, limit) } }).lean();
+    defaultFBT = await Product.find({ _id: { $in: candidates.slice(0, limit) } })
+      .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
+      .lean();
   }
   if (defaultFBT.length < limit) {
     const excludeIds = defaultFBT.map(p => p._id.toString());
@@ -144,6 +151,7 @@ const updateGlobalRecommendationCache = async (limit) => {
       _id: { $nin: excludeIds },
       discount: { $gt: 0 } 
     })
+    .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
     .sort({ discount: -1, rating: -1 })
     .limit(limit - defaultFBT.length)
     .lean();
@@ -193,7 +201,9 @@ const getRecommendations = asyncHandler(async (req, res) => {
     const uniqueIds = [...new Set(productIds)].sort((a, b) => counts[b] - counts[a]).slice(0, limit);
 
     if (uniqueIds.length > 0) {
-      buyAgain = await Product.find({ _id: { $in: uniqueIds } }).lean();
+      buyAgain = await Product.find({ _id: { $in: uniqueIds } })
+        .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
+        .lean();
       buyAgain.sort((a, b) => uniqueIds.indexOf(a._id.toString()) - uniqueIds.indexOf(b._id.toString()));
     }
   }
@@ -228,6 +238,7 @@ const getRecommendations = asyncHandler(async (req, res) => {
         category: { $in: favoriteCategories },
         _id: { $nin: userProductIds }
       })
+      .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
       .sort({ rating: -1, numReviews: -1 })
       .limit(limit)
       .lean();
@@ -237,6 +248,7 @@ const getRecommendations = asyncHandler(async (req, res) => {
           category: { $in: favoriteCategories },
           _id: { $in: userProductIds }
         })
+        .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
         .sort({ rating: -1 })
         .limit(limit - recommendedForYou.length)
         .lean();
@@ -248,6 +260,7 @@ const getRecommendations = asyncHandler(async (req, res) => {
   if (recommendedForYou.length < limit) {
     const excludeIds = recommendedForYou.map(p => p._id);
     const fallbackRec = await Product.find({ _id: { $nin: excludeIds } })
+      .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
       .sort({ rating: -1, numReviews: -1 })
       .limit(limit - recommendedForYou.length)
       .lean();
@@ -273,13 +286,16 @@ const getRecommendations = asyncHandler(async (req, res) => {
 
   if (targetProductId && globalData.coOccurrences[targetProductId]) {
     const candidates = Object.keys(globalData.coOccurrences[targetProductId]).sort((a, b) => globalData.coOccurrences[targetProductId][b] - globalData.coOccurrences[targetProductId][a]);
-    frequentlyBoughtTogether = await Product.find({ _id: { $in: candidates.slice(0, limit) } }).lean();
+    frequentlyBoughtTogether = await Product.find({ _id: { $in: candidates.slice(0, limit) } })
+      .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
+      .lean();
     if (frequentlyBoughtTogether.length < limit) {
       const excludeIds = frequentlyBoughtTogether.map(p => p._id.toString());
       const fallbackFBT = await Product.find({ 
         _id: { $nin: excludeIds },
         discount: { $gt: 0 } 
       })
+      .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
       .sort({ discount: -1, rating: -1 })
       .limit(limit - frequentlyBoughtTogether.length)
       .lean();

@@ -38,6 +38,15 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data } = await authAPI.login({ email, password });
       
+      if (data.twoFactorRequired) {
+        setLoading(false);
+        return {
+          success: true,
+          twoFactorRequired: true,
+          twoFactorToken: data.twoFactorToken,
+        };
+      }
+
       // Store credentials
       localStorage.setItem('token', data.token);
       localStorage.setItem('userInfo', JSON.stringify({
@@ -114,6 +123,39 @@ export const AuthProvider = ({ children }) => {
     navigate('/login');
   }, [navigate]);
 
+  const login2FA = useCallback(async (code, twoFactorToken, isRecovery = false) => {
+    setLoading(true);
+    try {
+      const { data } = await authAPI.login2FA({ code, twoFactorToken, isRecovery });
+      
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('userInfo', JSON.stringify({
+        _id: data._id,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        phone: data.phone,
+        hostelDetails: data.hostelDetails,
+      }));
+
+      setUser(data);
+      setLoading(false);
+
+      if (data.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else if (data.role === 'delivery') {
+        navigate('/delivery/dashboard');
+      } else {
+        navigate('/');
+      }
+      return { success: true };
+    } catch (error) {
+      setLoading(false);
+      const message = error.response?.data?.message || 'Verification failed.';
+      return { success: false, message };
+    }
+  }, [navigate]);
+
   const updateProfile = useCallback(async (profileData) => {
     setLoading(true);
     try {
@@ -139,6 +181,18 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  const refreshProfile = useCallback(async () => {
+    try {
+      const { data } = await authAPI.getProfile();
+      setUser(data);
+      localStorage.setItem('userInfo', JSON.stringify(data));
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+      return { success: false, error };
+    }
+  }, []);
+
   const contextValue = useMemo(() => ({
     user,
     loading,
@@ -146,10 +200,12 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateProfile,
+    login2FA,
+    refreshProfile,
     isAdmin: user?.role === 'admin',
     isDelivery: user?.role === 'delivery',
     isStudent: user?.role === 'student',
-  }), [user, loading, login, register, logout, updateProfile]);
+  }), [user, loading, login, register, logout, updateProfile, login2FA, refreshProfile]);
 
   return (
     <AuthContext.Provider value={contextValue}>

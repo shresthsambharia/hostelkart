@@ -396,7 +396,7 @@ const DeliveryDashboard = () => {
             {/* Warning for prepaid orders */}
             {(() => {
               const ord = orders.find(o => o._id === failingOrderId);
-              if (ord && ['ONLINE', 'RAZORPAY'].includes(ord.paymentMethod) && ord.paymentStatus === 'Paid') {
+              if (ord && ['ONLINE', 'CASHFREE'].includes(ord.paymentMethod) && ord.paymentStatus === 'Paid') {
                 return (
                   <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl text-[11px] text-blue-750 font-semibold leading-relaxed">
                     ℹ️ ONLINE PREPAID ORDER: A refund will be automatically initiated for this student upon failure confirmation.

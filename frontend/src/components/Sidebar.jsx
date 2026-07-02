@@ -17,7 +17,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { name: 'Manage Coupons', path: '/admin/coupons', icon: <Tag size={20} /> },
     { name: 'View Users', path: '/admin/users', icon: <Users size={20} /> },
     { name: 'Custom Requests', path: '/admin/custom-requests', icon: <HelpCircle size={20} /> },
-    { name: 'Payment Settings', path: '/admin/settings', icon: <Settings size={20} /> },
+    { name: 'Settings & Security', path: '/admin/settings', icon: <Settings size={20} /> },
     { name: 'My Profile', path: '/profile', icon: <User size={20} /> },
   ];
 

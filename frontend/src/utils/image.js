@@ -1,35 +1,102 @@
 /**
- * Helper to get optimized Unsplash image URLs by stripping existing size params
- * and appending high-performance format (webp) and compression parameters.
+ * Helper to get optimized image URLs by applying high-performance parameters
+ * for both Unsplash and Cloudinary images.
  */
 export const getOptimizedImageUrl = (imgUrl, width = 300, quality = 60, format = 'webp') => {
   if (!imgUrl) {
     return `https://images.unsplash.com/photo-1542838132-92c53300491e?w=${width}&q=${quality}&fm=${format}&fit=crop&auto=format`;
   }
+  
+  // Cloudinary Optimization
+  if (imgUrl.includes('res.cloudinary.com')) {
+    const parts = imgUrl.split('image/upload/');
+    if (parts.length === 2) {
+      let rest = parts[1];
+      const pathSegments = rest.split('/');
+      const cleanedSegments = [];
+      let foundVersionOrPublicId = false;
+
+      for (const segment of pathSegments) {
+        if (foundVersionOrPublicId) {
+          cleanedSegments.push(segment);
+        } else {
+          const isVersion = /^v\d+$/.test(segment);
+          const isTransformation = segment.includes('_') || segment.includes(',');
+          if (isVersion || !isTransformation) {
+            foundVersionOrPublicId = true;
+            cleanedSegments.push(segment);
+          }
+        }
+      }
+      
+      const cleanPath = cleanedSegments.join('/');
+      return `${parts[0]}image/upload/w_${width},f_auto,q_auto/${cleanPath}`;
+    }
+  }
+
+  // Unsplash Optimization
   if (imgUrl.startsWith('https://images.unsplash.com')) {
     const baseUrl = imgUrl.split('?')[0];
     return `${baseUrl}?w=${width}&q=${quality}&fm=${format}&fit=crop&auto=format`;
   }
+
+  // Local Uploads fallback
   if (imgUrl.startsWith('/uploads/') || imgUrl.startsWith('uploads/')) {
     const relativePath = imgUrl.startsWith('/') ? imgUrl : `/${imgUrl}`;
     const apiURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://hostelkart-backend.onrender.com');
     const backendBase = apiURL.replace(/\/api\/?$/, '');
     return `${backendBase}${relativePath}`;
   }
+
   return imgUrl;
 };
 
 /**
- * Helper to generate responsive srcset string for Unsplash images
+ * Helper to generate responsive srcset string for Unsplash and Cloudinary images
  */
 export const getSrcSet = (imgUrl, widths = [150, 300, 450, 600], quality = 60, format = 'webp') => {
-  if (!imgUrl || !imgUrl.startsWith('https://images.unsplash.com')) {
+  if (!imgUrl) {
     return undefined;
   }
-  const baseUrl = imgUrl.split('?')[0];
-  return widths
-    .map((w) => `${baseUrl}?w=${w}&q=${quality}&fm=${format}&fit=crop&auto=format ${w}w`)
-    .join(', ');
+
+  // Cloudinary SrcSet
+  if (imgUrl.includes('res.cloudinary.com')) {
+    const parts = imgUrl.split('image/upload/');
+    if (parts.length === 2) {
+      let rest = parts[1];
+      const pathSegments = rest.split('/');
+      const cleanedSegments = [];
+      let foundVersionOrPublicId = false;
+
+      for (const segment of pathSegments) {
+        if (foundVersionOrPublicId) {
+          cleanedSegments.push(segment);
+        } else {
+          const isVersion = /^v\d+$/.test(segment);
+          const isTransformation = segment.includes('_') || segment.includes(',');
+          if (isVersion || !isTransformation) {
+            foundVersionOrPublicId = true;
+            cleanedSegments.push(segment);
+          }
+        }
+      }
+      
+      const cleanPath = cleanedSegments.join('/');
+      return widths
+        .map((w) => `${parts[0]}image/upload/w_${w},f_auto,q_auto/${cleanPath} ${w}w`)
+        .join(', ');
+    }
+  }
+
+  // Unsplash SrcSet
+  if (imgUrl.startsWith('https://images.unsplash.com')) {
+    const baseUrl = imgUrl.split('?')[0];
+    return widths
+      .map((w) => `${baseUrl}?w=${w}&q=${quality}&fm=${format}&fit=crop&auto=format ${w}w`)
+      .join(', ');
+  }
+
+  return undefined;
 };
 
 /**

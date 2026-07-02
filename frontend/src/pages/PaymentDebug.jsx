@@ -4,18 +4,18 @@ const PaymentDebug = () => {
   const [options, setOptions] = useState(null);
 
   useEffect(() => {
-    const savedOptions = localStorage.getItem('last_razorpay_options');
+    const savedOptions = localStorage.getItem('last_cashfree_session');
     if (savedOptions) {
       try {
         setOptions(JSON.parse(savedOptions));
       } catch (err) {
-        console.error('Failed to parse saved options:', err);
+        console.error('Failed to parse saved session:', err);
       }
     }
   }, []);
 
   const handleClear = () => {
-    localStorage.removeItem('last_razorpay_options');
+    localStorage.removeItem('last_cashfree_session');
     setOptions(null);
   };
 
@@ -24,8 +24,8 @@ const PaymentDebug = () => {
       <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-6">
         <div className="flex justify-between items-center border-b border-slate-100 pb-3">
           <div>
-            <h1 className="text-xl font-extrabold text-slate-800 tracking-tight">🔍 Razorpay Integration Debugger</h1>
-            <p className="text-xs text-slate-500">Inspect the exact options payload dispatched to Checkout.js</p>
+            <h1 className="text-xl font-extrabold text-slate-800 tracking-tight">🔍 Cashfree Integration Debugger</h1>
+            <p className="text-xs text-slate-500">Inspect the exact options payload dispatched to Cashfree SDK</p>
           </div>
           {options && (
             <button
@@ -41,20 +41,20 @@ const PaymentDebug = () => {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4 text-xs font-semibold text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-100">
               <div>
-                <span className="block text-[10px] text-slate-400 uppercase">Key ID</span>
-                <span className="font-mono text-slate-800 break-all">{options.key}</span>
+                <span className="block text-[10px] text-slate-400 uppercase">Session ID</span>
+                <span className="font-mono text-slate-800 break-all">{options.paymentSessionId}</span>
               </div>
               <div>
                 <span className="block text-[10px] text-slate-400 uppercase">Order ID</span>
-                <span className="font-mono text-slate-800 break-all">{options.order_id || 'Not generated (simulated)'}</span>
+                <span className="font-mono text-slate-800 break-all">{options.cfOrderId}</span>
               </div>
               <div>
-                <span className="block text-[10px] text-slate-400 uppercase">Amount (Paise)</span>
-                <span className="text-slate-800">{options.amount} (₹{options.amount / 100})</span>
+                <span className="block text-[10px] text-slate-400 uppercase">Amount</span>
+                <span className="text-slate-800">₹{options.order_amount}</span>
               </div>
               <div>
                 <span className="block text-[10px] text-slate-400 uppercase">Currency</span>
-                <span className="text-slate-800">{options.currency}</span>
+                <span className="text-slate-800">{options.order_currency}</span>
               </div>
             </div>
 

@@ -100,17 +100,28 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
-    razorpayOrderId: {
+    paymentProvider: {
+      type: String,
+      default: 'COD',
+    },
+    cf_order_id: {
       type: String,
       default: '',
     },
-    razorpayPaymentId: {
+    payment_session_id: {
       type: String,
       default: '',
     },
-    razorpaySignature: {
+    transaction_id: {
       type: String,
       default: '',
+    },
+    payment_status: {
+      type: String,
+      default: 'Pending',
+    },
+    payment_time: {
+      type: Date,
     },
     refundStatus: {
       type: String,
@@ -304,6 +315,7 @@ orderSchema.pre('save', async function (next) {
 // Indexes for query optimization
 orderSchema.index({ user: 1, orderStatus: 1 });
 orderSchema.index({ createdAt: -1 });
+orderSchema.index({ deliveryPartner: 1 });
 
 const Order = mongoose.model('Order', orderSchema);
 

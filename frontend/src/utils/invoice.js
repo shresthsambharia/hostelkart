@@ -80,7 +80,7 @@ export const downloadInvoice = async (order, loggedInUser) => {
     doc.setTextColor(grayColor);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    doc.text('Daily Hostel Essentials Delivered in 30 Mins', 28, 23);
+    doc.text('Daily Hostel Essentials Scheduled Delivery', 28, 23);
 
     // 4. Invoice Header
     doc.setTextColor(darkColor);

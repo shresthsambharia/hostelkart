@@ -1,0 +1,70 @@
+[
+  {
+    "_id": "6a3a360f61b171bd43bd24ed",
+    "user": "6a3a360f61b171bd43bd2363",
+    "items": [
+      {
+        "product": "6a3a360f61b171bd43bd2397",
+        "name": "Fresh Kiwi (Pack of 3)",
+        "quantity": 3,
+        "price": 110,
+        "discount": 15,
+        "_id": "6a3a360f61b171bd43bd24ee"
+      },
+      {
+        "product": "6a3a360f61b171bd43bd23e7",
+        "name": "Pumpkin (1 Unit, ~1kg)",
+        "quantity": 2,
+        "price": 40,
+        "discount": 5,
+        "_id": "6a3a360f61b171bd43bd24ef"
+      }
+    ],
+    "deliveryDetails": {
+      "hostelName": "Ramanujan Hostel",
+      "block": "A-Block",
+      "floor": "3rd Floor",
+      "roomNumber": "302",
+      "phone": "9876543212",
+      "deliveryInstructions": "Deliver by knocking the door twice.",
+      "alternatePhone": "",
+      "landmark": ""
+    },
+    "deliverySlot": "Immediate",
+    "paymentMethod": "COD",
+    "paymentStatus": "Pending",
+    "orderStatus": "Pending",
+    "platformFee": 15,
+    "deliveryCharge": 0,
+    "totalAmount": 357,
+    "couponCode": "",
+    "discountAmount": 0,
+    "walletPaidAmount": 0,
+    "cashbackAmount": 0,
+    "deliveryPartner": null,
+    "utrNumber": "",
+    "razorpayOrderId": "",
+    "razorpayPaymentId": "",
+    "razorpaySignature": "",
+    "refundStatus": "NOT_REQUESTED",
+    "refundId": "",
+    "refundAmount": 0,
+    "refundReason": "",
+    "refundError": "",
+    "paymentFailureReason": "",
+    "deliveryOtp": "",
+    "otpVerified": false,
+    "cancellationReason": "",
+    "timeline": [
+      {
+        "status": "Pending",
+        "note": "Order placed successfully",
+        "_id": "6a3a360f61b171bd43bd24f0",
+        "timestamp": "2026-06-23T07:30:23.995Z"
+      }
+    ],
+    "createdAt": "2026-06-23T07:30:23.996Z",
+    "updatedAt": "2026-06-23T07:30:23.996Z",
+    "__v": 0
+  }
+]

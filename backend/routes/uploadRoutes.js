@@ -2,22 +2,11 @@ import path from 'path';
 import express from 'express';
 import multer from 'multer';
 import { protect, admin } from '../middleware/authMiddleware.js';
-import sharp from 'sharp';
-import fs from 'fs';
+import { uploadBufferToCloudinary, getMediumUrl, getThumbUrl, getOriginalUrl } from '../config/cloudinary.js';
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination(req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename(req, file, cb) {
-    cb(
-      null,
-      `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`
-    );
-  },
-});
+const storage = multer.memoryStorage();
 
 function checkFileType(file, cb) {
   // Prevent double extension upload bypass attacks (e.g. image.png.php)
@@ -45,7 +34,7 @@ const upload = multer({
   },
 });
 
-// Admin-only upload endpoint
+// Admin-only upload endpoint (Uploads directly to Cloudinary)
 router.post('/', protect, admin, upload.single('image'), async (req, res) => {
   if (!req.file) {
     res.status(400);
@@ -53,51 +42,26 @@ router.post('/', protect, admin, upload.single('image'), async (req, res) => {
   }
 
   try {
-    const ext = path.extname(req.file.originalname).toLowerCase();
-    const baseFilename = req.file.filename.replace(ext, '');
+    console.log('[Upload] Uploading image buffer to Cloudinary...');
+    const uploadResult = await uploadBufferToCloudinary(req.file.buffer, 'hostelkart/products');
     
-    const originalFilename = `${baseFilename}-original.webp`;
-    const mediumFilename = `${baseFilename}-medium.webp`;
-    const thumbFilename = `${baseFilename}-thumb.webp`;
+    console.log('[Upload] Cloudinary upload successful.');
 
-    const originalPath = path.join('uploads', originalFilename);
-    const mediumPath = path.join('uploads', mediumFilename);
-    const thumbPath = path.join('uploads', thumbFilename);
-
-    // 1. Generate original optimized WebP
-    await sharp(req.file.path)
-      .webp({ quality: 80 })
-      .toFile(originalPath);
-
-    // 2. Generate 300px width WebP
-    await sharp(req.file.path)
-      .resize(300)
-      .webp({ quality: 75 })
-      .toFile(mediumPath);
-
-    // 3. Generate 100px width WebP
-    await sharp(req.file.path)
-      .resize(100)
-      .webp({ quality: 70 })
-      .toFile(thumbPath);
-
-    // 4. Delete the temporary raw uploaded file
-    try {
-      fs.unlinkSync(req.file.path);
-    } catch (unlinkErr) {
-      console.error('Error deleting temp uploaded file:', unlinkErr);
-    }
+    // Construct optimized and responsive formats using Cloudinary transformations
+    const imageOriginal = getOriginalUrl(uploadResult.secure_url);
+    const imageMedium = getMediumUrl(uploadResult.secure_url);
+    const imageThumb = getThumbUrl(uploadResult.secure_url);
 
     res.send({
-      message: 'Image uploaded and optimized successfully',
-      image: `/uploads/${mediumFilename}`,
-      imageOriginal: `/uploads/${originalFilename}`,
-      imageMedium: `/uploads/${mediumFilename}`,
-      imageThumb: `/uploads/${thumbFilename}`,
+      message: 'Image uploaded and optimized on Cloudinary successfully',
+      image: imageMedium,
+      imageOriginal: imageOriginal,
+      imageMedium: imageMedium,
+      imageThumb: imageThumb,
     });
   } catch (error) {
-    console.error('Image processing error:', error);
-    res.status(500).json({ message: `Image processing failed: ${error.message}` });
+    console.error('Cloudinary upload error:', error);
+    res.status(500).json({ message: `Cloudinary upload failed: ${error.message}` });
   }
 });
 

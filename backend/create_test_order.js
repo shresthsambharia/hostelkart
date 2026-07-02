@@ -157,8 +157,9 @@ const run = async () => {
     walletPaidAmount: 200,
     deliveryOtp: '7482',
     utrNumber: 'TXN987654321',
-    razorpayOrderId: 'order_test_rp123',
-    razorpayPaymentId: 'pay_test_rp987',
+    paymentProvider: 'Cashfree',
+    cf_order_id: 'test_order_cf123',
+    transaction_id: 'pay_test_cf987',
     deliveredAt: new Date(Date.now() - 600000), // 10 minutes ago
     timeline: [
       { status: 'Pending', note: 'Order placed successfully', timestamp: new Date(Date.now() - 3600000) },
