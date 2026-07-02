@@ -7,6 +7,7 @@ import DeliveryPartner from '../models/DeliveryPartner.js';
 import Settings from '../models/Settings.js';
 import { createAlert } from './notificationController.js';
 import { refundOrderHelper } from './paymentController.js';
+import { deleteFromCloudinary, getPublicIdFromUrl } from '../config/cloudinary.js';
 
 // @desc    Get Admin Dashboard Analytics
 // @route   GET /api/admin/analytics
@@ -262,6 +263,14 @@ const editProduct = asyncHandler(async (req, res) => {
     product.stock = stock !== undefined ? Number(stock) : product.stock;
     product.deliveryTime = deliveryTime || product.deliveryTime;
     product.isAvailable = isAvailable !== undefined ? isAvailable : product.isAvailable;
+    // Delete old image from Cloudinary if it's being replaced with a new one
+    if (image && image !== product.image) {
+      const oldPublicId = getPublicIdFromUrl(product.image);
+      if (oldPublicId) {
+        await deleteFromCloudinary(oldPublicId);
+      }
+    }
+
     product.image = image || product.image;
     product.imageOriginal = imageOriginal || product.imageOriginal;
     product.imageMedium = imageMedium || product.imageMedium;
@@ -282,6 +291,11 @@ const deleteProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
 
   if (product) {
+    // Delete from Cloudinary if it's hosted there
+    const publicId = getPublicIdFromUrl(product.image);
+    if (publicId) {
+      await deleteFromCloudinary(publicId);
+    }
     await Product.deleteOne({ _id: req.params.id });
     res.json({ message: 'Product removed' });
   } else {
@@ -324,7 +338,7 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
       }
 
       // If prepaid online order, auto-trigger refund
-      if (['ONLINE', 'RAZORPAY'].includes(order.paymentMethod) && ['Paid', 'PAID'].includes(order.paymentStatus)) {
+      if (['ONLINE', 'CASHFREE'].includes(order.paymentMethod) && ['Paid', 'PAID'].includes(order.paymentStatus)) {
         await refundOrderHelper(order, note || 'Cancelled by Admin');
       }
     }

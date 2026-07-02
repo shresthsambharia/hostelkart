@@ -1,0 +1,22 @@
+[
+  {
+    "_id": "6a3985829453847a12c268e2",
+    "user": "6a39855eedec06021f91d3f3",
+    "type": "cashback",
+    "amount": 500,
+    "description": "Manual credit for testing PDF invoice upgrades",
+    "createdAt": "2026-06-22T18:57:06.667Z",
+    "updatedAt": "2026-06-22T18:57:06.667Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a3985829453847a12c268f3",
+    "user": "6a39855eedec06021f91d3f3",
+    "type": "cashback",
+    "amount": 11,
+    "description": "Cashback earned on order #847A12C268E5 (Bronze Tier)",
+    "createdAt": "2026-06-22T18:57:06.691Z",
+    "updatedAt": "2026-06-22T18:57:06.691Z",
+    "__v": 0
+  }
+]

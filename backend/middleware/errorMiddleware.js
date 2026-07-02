@@ -1,3 +1,6 @@
+import { logger } from '../utils/logger.js';
+import { captureException } from '../utils/sentry.js';
+
 const notFound = (req, res, next) => {
   const error = new Error(`Not Found - ${req.originalUrl}`);
   res.status(404);
@@ -13,6 +16,24 @@ const errorHandler = (err, req, res, next) => {
     statusCode = 400;
     message = 'Resource not found';
   }
+
+  // Log to structured logger
+  logger.error('API_ERROR', message, {
+    url: req.originalUrl,
+    method: req.method,
+    status: statusCode,
+    ip: req.ip,
+    stack: err.stack,
+  });
+
+  // Capture exception in Sentry dynamically
+  captureException(err, {
+    tags: {
+      url: req.originalUrl,
+      method: req.method,
+      status: statusCode.toString(),
+    },
+  });
 
   res.status(statusCode).json({
     message,

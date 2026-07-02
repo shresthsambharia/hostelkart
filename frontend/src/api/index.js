@@ -95,6 +95,22 @@ API.interceptors.response.use(
       }
     }
 
+    // Automatic retry with exponential backoff for GET requests
+    if (originalRequest && originalRequest.method === 'get') {
+      originalRequest.retry = originalRequest.retry !== undefined ? originalRequest.retry : 3;
+      originalRequest.retryDelay = originalRequest.retryDelay !== undefined ? originalRequest.retryDelay : 1000;
+      originalRequest.__retryCount = originalRequest.__retryCount || 0;
+
+      if (originalRequest.__retryCount < originalRequest.retry) {
+        originalRequest.__retryCount += 1;
+        const delay = originalRequest.retryDelay * Math.pow(2, originalRequest.__retryCount - 1);
+        console.warn(`[API Retry] GET ${originalRequest.url} failed. Retrying in ${delay}ms (${originalRequest.__retryCount}/${originalRequest.retry})...`);
+        
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return API(originalRequest);
+      }
+    }
+
     return Promise.reject(error);
   }
 );
@@ -108,27 +124,36 @@ export const authAPI = {
   updateFcmToken: (fcmToken) => API.put('/auth/fcm-token', { fcmToken }),
   getCaptcha: () => API.get('/auth/captcha'),
   logout: () => API.post('/auth/logout'),
+  setup2FA: (data) => API.post('/auth/2fa/setup', data),
+  verify2FASetup: (data) => API.post('/auth/2fa/verify-setup', data),
+  disable2FA: (data) => API.post('/auth/2fa/disable', data),
+  login2FA: (data) => API.post('/auth/2fa/login', data),
+  regenerateRecoveryCodes: (data) => API.post('/auth/2fa/recovery-codes', data),
 };
 
-let categoriesCache = null;
-let trendingCache = null;
+let categoriesPromise = null;
+let trendingPromise = null;
 
 export const productAPI = {
   getAll: (params) => API.get('/products', { params }),
   getById: (id) => API.get(`/products/${id}`),
-  getCategories: async () => {
-    if (categoriesCache) return categoriesCache;
-    const res = await API.get('/products/categories');
-    categoriesCache = res;
-    return res;
+  getCategories: () => {
+    if (categoriesPromise) return categoriesPromise;
+    categoriesPromise = API.get('/products/categories').catch((err) => {
+      categoriesPromise = null;
+      throw err;
+    });
+    return categoriesPromise;
   },
   submitReview: (productId, reviewData) => API.post(`/products/${productId}/reviews`, reviewData),
   getSuggestions: (q) => API.get('/products/search/suggest', { params: { q } }),
-  getTrending: async () => {
-    if (trendingCache) return trendingCache;
-    const res = await API.get('/products/search/trending');
-    trendingCache = res;
-    return res;
+  getTrending: () => {
+    if (trendingPromise) return trendingPromise;
+    trendingPromise = API.get('/products/search/trending').catch((err) => {
+      trendingPromise = null;
+      throw err;
+    });
+    return trendingPromise;
   },
 };
 
@@ -211,8 +236,9 @@ export const notificationAPI = {
 };
 
 export const paymentAPI = {
-  createOrder: (amount) => API.post('/create-order', { amount }),
-  verifyPayment: (payload) => API.post('/verify-payment', payload),
+  createOrder: (amount, currency, orderId) => API.post('/payments/create-order', { amount, currency, orderId }),
+  verifyPayment: (payload) => API.post('/payments/verify-payment', payload),
+  verifyById: (orderId) => API.post(`/payments/verify/${orderId}`),
   refund: (orderId, refundReason) => API.post('/payments/refund', { orderId, refundReason }),
 };
 
@@ -229,26 +255,29 @@ export const walletAPI = {
   getDetails: () => API.get('/wallet'),
 };
 
-let recommendationCache = null;
+let recommendationPromise = null;
 let recommendationCacheTime = 0;
 let recommendationCacheToken = null;
 
 export const recommendationAPI = {
-  get: async () => {
+  get: () => {
     const token = localStorage.getItem('token');
     const now = Date.now();
     if (
-      recommendationCache &&
+      recommendationPromise &&
       recommendationCacheToken === token &&
       (now - recommendationCacheTime < 60 * 1000)
     ) {
-      return recommendationCache;
+      return recommendationPromise;
     }
-    const res = await API.get('/recommendations');
-    recommendationCache = res;
-    recommendationCacheTime = now;
     recommendationCacheToken = token;
-    return res;
+    recommendationCacheTime = now;
+    recommendationPromise = API.get('/recommendations').catch((err) => {
+      recommendationPromise = null;
+      recommendationCacheTime = 0;
+      throw err;
+    });
+    return recommendationPromise;
   },
 };
 

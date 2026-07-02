@@ -28,7 +28,7 @@ const AdminProducts = () => {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [stock, setStock] = useState('');
-  const [deliveryTime, setDeliveryTime] = useState('30 mins');
+  const [deliveryTime, setDeliveryTime] = useState('Scheduled Delivery');
   const [isAvailable, setIsAvailable] = useState(true);
   const [image, setImage] = useState('');
 
@@ -103,7 +103,7 @@ const AdminProducts = () => {
     setDescription('');
     setCategory(categories[0]?.name || 'Fruits');
     setStock('');
-    setDeliveryTime('30 mins');
+    setDeliveryTime('Scheduled Delivery');
     setIsAvailable(true);
     setImage('/uploads/default-product.png');
     setUploadError('');
@@ -119,7 +119,7 @@ const AdminProducts = () => {
     setDescription(p.description);
     setCategory(p.category);
     setStock(p.stock);
-    setDeliveryTime(p.deliveryTime || '30 mins');
+    setDeliveryTime(p.deliveryTime || 'Scheduled Delivery');
     setIsAvailable(p.isAvailable);
     setImage(p.image);
     setUploadError('');
@@ -764,7 +764,7 @@ const AdminProducts = () => {
                 <label className="text-xs font-semibold text-slate-600 block mb-1">Delivery Time Frame</label>
                 <input
                   type="text"
-                  placeholder="e.g. 15-30 mins"
+                  placeholder="e.g. Scheduled Delivery"
                   className="input-field text-sm"
                   value={deliveryTime}
                   onChange={(e) => setDeliveryTime(e.target.value)}

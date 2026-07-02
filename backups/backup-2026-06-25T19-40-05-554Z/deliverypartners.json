@@ -1,0 +1,12 @@
+[
+  {
+    "_id": "6a3a360f61b171bd43bd236d",
+    "user": "6a3a360f61b171bd43bd2361",
+    "vehicleNumber": "KA-03-EM-8822",
+    "status": "Active",
+    "currentOrders": [],
+    "createdAt": "2026-06-23T07:30:23.814Z",
+    "updatedAt": "2026-06-23T07:30:23.814Z",
+    "__v": 0
+  }
+]

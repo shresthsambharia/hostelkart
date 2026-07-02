@@ -160,7 +160,7 @@ const Cart = () => {
           <div className="bg-emerald-50/60 border border-emerald-100/60 rounded-xl p-3 flex items-center space-x-3 text-xs text-emerald-800">
             <span className="text-xl">⚡</span>
             <div>
-              <p className="font-black">Delivered to your room in 30 mins!</p>
+              <p className="font-black">Delivered at your preferred time!</p>
               <p className="text-emerald-650 font-bold mt-0.5">Rider will contact you on arrival</p>
             </div>
           </div>

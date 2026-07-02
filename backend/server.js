@@ -8,9 +8,14 @@ import rateLimit from 'express-rate-limit';
 import connectDB from './config/db.js';
 import { seedIfEmpty } from './seed/seedDataInline.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
+import helmet from 'helmet';
+import { nosqlSanitize, xssSanitize } from './middleware/securityMiddleware.js';
 
 // Route imports
 import authRoutes from './routes/authRoutes.js';
+import healthRoutes from './routes/healthRoutes.js';
+import { initSentry } from './utils/sentry.js';
+import { requestTimeout } from './middleware/timeoutMiddleware.js';
 import productRoutes from './routes/productRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
 import wishlistRoutes from './routes/wishlistRoutes.js';
@@ -29,6 +34,16 @@ import recommendationRoutes from './routes/recommendationRoutes.js';
 // Load environmental variables
 dotenv.config();
 
+// Initialize Sentry Monitoring
+initSentry();
+
+// Validate Cloudinary credentials on startup
+if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+  console.error('\x1b[31m%s\x1b[0m', '[Startup Error] Cloudinary configuration is missing! Image uploads will fail.');
+} else {
+  console.log('\x1b[32m%s\x1b[0m', '[Startup] Cloudinary configuration validated successfully.');
+}
+
 // Connect to MongoDB and Auto-Seed if empty
 const initializeDatabase = async () => {
   await connectDB();
@@ -37,6 +52,22 @@ const initializeDatabase = async () => {
 initializeDatabase();
 
 const app = express();
+
+// Hardened HTTP security headers
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://sdk.cashfree.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https://images.unsplash.com", "https://*.cashfree.com", "https://*.cashfreepayments.com"],
+      connectSrc: ["'self'", "https://*.cashfree.com", "https://*.cashfreepayments.com"],
+      upgradeInsecureRequests: [],
+    },
+  },
+}));
 
 // Middlewares
 const allowedOrigins = [
@@ -60,8 +91,16 @@ app.use(cors({
   credentials: true,
 }));
 app.use(compression());
-app.use(express.json());
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString();
+  }
+}));
 app.use(express.urlencoded({ extended: true }));
+
+// Input Sanitization to prevent XSS and NoSQL Injections
+app.use(nosqlSanitize);
+app.use(xssSanitize);
 
 // Ensure upload directory exists
 const __dirname = path.resolve();
@@ -87,7 +126,11 @@ const apiLimiter = rateLimit({
 });
 app.use('/api', apiLimiter);
 
+// Global Request Timeout Middleware (15s)
+app.use('/api', requestTimeout(15000));
+
 // Routes mount
+app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);

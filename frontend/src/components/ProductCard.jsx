@@ -161,7 +161,7 @@ const ProductCard = ({ product, priority = false }) => {
           {/* Delivery & Stock indicators */}
           <div className="flex justify-between items-center mt-2.5 mb-2.5 gap-1.5">
             <span className="inline-flex items-center text-[9px] font-black text-amber-800 bg-amber-50/85 px-1.5 py-0.5 rounded border border-amber-150 shrink-0 uppercase tracking-wide">
-              ⏱️ {product.deliveryTime || '30 Min'}
+              ⏱️ {product.deliveryTime || 'Scheduled Slot'}
             </span>
             {product.stock > 0 && product.stock <= 5 ? (
               <span className="text-rose-600 font-extrabold bg-rose-50 px-1.5 py-0.5 rounded text-[9px] border border-rose-100 shrink-0">Only {product.stock} left</span>

@@ -12,7 +12,7 @@ const Footer = () => {
               Hostel<span className="text-primary-400">Kart</span>
             </span>
             <p className="text-sm text-slate-400 max-w-sm">
-              Daily hostel essentials delivered to your room. Get fresh fruits, personal care, stationery, instant food, and more delivered in under 30 minutes!
+              Daily hostel essentials delivered to your room. Get fresh fruits, personal care, stationery, instant food, and more delivered in your selected time slot!
             </p>
             <div className="pt-2 text-xs text-slate-500">
               <p>HostelKart Delivery Service &copy; {new Date().getFullYear()}</p>

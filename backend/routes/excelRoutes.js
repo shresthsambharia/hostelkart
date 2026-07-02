@@ -16,7 +16,11 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // Limit file size to 10MB
   fileFilter: (req, file, cb) => {
-    const ext = file.originalname.split('.').pop().toLowerCase();
+    const parts = file.originalname.split('.');
+    if (parts.length > 2) {
+      return cb(new Error('Excel files only - multiple file extensions not allowed!'));
+    }
+    const ext = parts.pop().toLowerCase();
     if (ext === 'xlsx' || ext === 'xls') {
       cb(null, true);
     } else {

@@ -57,7 +57,7 @@ const updateDeliveryStatus = asyncHandler(async (req, res) => {
         order.paymentStatus = 'Paid';
       }
     } else if (status === 'Cancelled' || status === 'Delivery Failed') {
-      order.paymentStatus = (status === 'Delivery Failed' && ['ONLINE', 'RAZORPAY'].includes(order.paymentMethod) && ['Paid', 'PAID'].includes(order.paymentStatus)) ? 'Paid' : 'Failed';
+      order.paymentStatus = (status === 'Delivery Failed' && ['ONLINE', 'CASHFREE'].includes(order.paymentMethod) && ['Paid', 'PAID'].includes(order.paymentStatus)) ? 'Paid' : 'Failed';
       order.cancelledAt = Date.now();
       order.cancellationReason = note || 'Delivery failed';
 
@@ -69,7 +69,7 @@ const updateDeliveryStatus = asyncHandler(async (req, res) => {
       }
 
       // Auto-refund for online paid orders on delivery failure
-      if (status === 'Delivery Failed' && ['ONLINE', 'RAZORPAY'].includes(order.paymentMethod) && ['Paid', 'PAID'].includes(order.paymentStatus)) {
+      if (status === 'Delivery Failed' && ['ONLINE', 'CASHFREE'].includes(order.paymentMethod) && ['Paid', 'PAID'].includes(order.paymentStatus)) {
         await refundOrderHelper(order, `Delivery Failed: ${order.cancellationReason}`);
       }
     }

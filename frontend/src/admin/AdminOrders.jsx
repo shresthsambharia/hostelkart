@@ -342,11 +342,11 @@ const AdminOrders = () => {
 
                     {/* Payment & Refund Details */}
                     <td className="p-4 max-w-xs">
-                      {['ONLINE', 'RAZORPAY'].includes(ord.paymentMethod) ? (
+                      {['ONLINE', 'CASHFREE'].includes(ord.paymentMethod) ? (
                         <div className="space-y-1.5 text-[11px]">
-                          {ord.razorpayPaymentId && (
+                          {ord.transaction_id && (
                             <p className="font-semibold text-slate-700">
-                              Payment ID: <span className="font-mono text-slate-500 font-bold block">{ord.razorpayPaymentId}</span>
+                              Payment ID: <span className="font-mono text-slate-500 font-bold block">{ord.transaction_id}</span>
                             </p>
                           )}
                           

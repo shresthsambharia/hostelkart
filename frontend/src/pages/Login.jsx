@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Lock, Mail, AlertCircle } from 'lucide-react';
+import { Lock, Mail, AlertCircle, Shield, KeyRound, ArrowLeft } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login, user } = useAuth();
+  const [twoFactorRequired, setTwoFactorRequired] = useState(false);
+  const [twoFactorToken, setTwoFactorToken] = useState('');
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [isRecovery, setIsRecovery] = useState(false);
+  
+  const { login, login2FA, user } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already logged in
@@ -23,15 +28,43 @@ const Login = () => {
     e.preventDefault();
     setError('');
 
+    if (twoFactorRequired) {
+      if (!twoFactorCode) {
+        setError(isRecovery ? 'Please enter your recovery code' : 'Please enter your 6-digit verification code');
+        return;
+      }
+      
+      const res = await login2FA(twoFactorCode, twoFactorToken, isRecovery);
+      if (!res.success) {
+        setError(res.message);
+      }
+      return;
+    }
+
     if (!email || !password) {
       setError('Please fill in all fields');
       return;
     }
 
     const res = await login(email, password);
-    if (!res.success) {
+    if (res.success) {
+      if (res.twoFactorRequired) {
+        setTwoFactorRequired(true);
+        setTwoFactorToken(res.twoFactorToken);
+        setTwoFactorCode('');
+        setIsRecovery(false);
+      }
+    } else {
       setError(res.message);
     }
+  };
+
+  const handleCancel2FA = () => {
+    setTwoFactorRequired(false);
+    setTwoFactorToken('');
+    setTwoFactorCode('');
+    setIsRecovery(false);
+    setError('');
   };
 
   return (
@@ -40,10 +73,16 @@ const Login = () => {
         {/* Title */}
         <div className="text-center">
           <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">
-            Welcome to <span className="text-primary-600">HostelKart</span>
+            {twoFactorRequired ? (
+              <span>2-Step <span className="text-primary-600">Verification</span></span>
+            ) : (
+              <span>Welcome to <span className="text-primary-600">HostelKart</span></span>
+            )}
           </h2>
           <p className="mt-2 text-sm text-slate-500">
-            Daily hostel essentials delivered to your room
+            {twoFactorRequired 
+              ? 'Provide verification details to access your admin account'
+              : 'Daily hostel essentials delivered to your room'}
           </p>
         </div>
 
@@ -57,64 +96,129 @@ const Login = () => {
 
         {/* Form */}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4 rounded-md shadow-sm">
-            <div>
-              <label htmlFor="email-address" className="text-xs font-semibold text-slate-600 block mb-1">
-                Email Address
-              </label>
-              <div className="relative">
-                <input
-                  id="email-address"
-                  name="email"
-                  type="email"
-                  required
-                  className="input-field pl-10"
-                  placeholder="name@university.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                <Mail className="w-5 h-5 text-slate-400 absolute left-3 top-2.5" />
+          {twoFactorRequired ? (
+            /* 2FA Form Inputs */
+            <div className="space-y-4 rounded-md shadow-sm">
+              <div>
+                <label htmlFor="2fa-code" className="text-xs font-semibold text-slate-600 block mb-1">
+                  {isRecovery ? 'Recovery Code' : 'Verification Code'}
+                </label>
+                <div className="relative">
+                  <input
+                    id="2fa-code"
+                    name="twoFactorCode"
+                    type="text"
+                    required
+                    maxLength={isRecovery ? 12 : 6}
+                    autoComplete="one-time-code"
+                    autoFocus
+                    className="input-field pl-10 tracking-widest font-mono text-center text-lg"
+                    placeholder={isRecovery ? 'XXXX-XXXX' : '000000'}
+                    value={twoFactorCode}
+                    onChange={(e) => setTwoFactorCode(e.target.value)}
+                  />
+                  {isRecovery ? (
+                    <KeyRound className="w-5 h-5 text-slate-400 absolute left-3 top-2.5" />
+                  ) : (
+                    <Shield className="w-5 h-5 text-slate-400 absolute left-3 top-2.5" />
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-2 text-center">
+                  {isRecovery
+                    ? 'Enter one of your unused 8-character recovery codes generated during setup.'
+                    : 'Open your authenticator app (Google Authenticator, Authy, etc.) to view your code.'}
+                </p>
               </div>
             </div>
+          ) : (
+            /* Standard Login Form Inputs */
+            <div className="space-y-4 rounded-md shadow-sm">
+              <div>
+                <label htmlFor="email-address" className="text-xs font-semibold text-slate-600 block mb-1">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <input
+                    id="email-address"
+                    name="email"
+                    type="email"
+                    required
+                    className="input-field pl-10"
+                    placeholder="name@university.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                  <Mail className="w-5 h-5 text-slate-400 absolute left-3 top-2.5" />
+                </div>
+              </div>
 
-            <div>
-              <label htmlFor="password" className="text-xs font-semibold text-slate-600 block mb-1">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  className="input-field pl-10"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <Lock className="w-5 h-5 text-slate-400 absolute left-3 top-2.5" />
+              <div>
+                <label htmlFor="password" className="text-xs font-semibold text-slate-600 block mb-1">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    className="input-field pl-10"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <Lock className="w-5 h-5 text-slate-400 absolute left-3 top-2.5" />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          <div>
+          <div className="space-y-3">
             <button type="submit" className="w-full btn-primary text-sm">
-              Sign In
+              {twoFactorRequired ? 'Verify & Sign In' : 'Sign In'}
             </button>
+
+            {twoFactorRequired && (
+              <div className="flex flex-col gap-2 pt-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsRecovery(!isRecovery);
+                    setTwoFactorCode('');
+                    setError('');
+                  }}
+                  className="text-xs text-primary-600 hover:text-primary-700 font-bold"
+                >
+                  {isRecovery ? 'Use authenticator app code' : 'Lost device? Use a backup recovery code'}
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={handleCancel2FA}
+                  className="text-xs text-slate-500 hover:text-slate-700 flex items-center justify-center gap-1 mt-1"
+                >
+                  <ArrowLeft size={12} />
+                  <span>Back to password login</span>
+                </button>
+              </div>
+            )}
           </div>
         </form>
 
-        <div className="text-center pt-2">
-          <p className="text-xs text-slate-500">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-primary-600 hover:text-primary-700 font-bold">
-              Register as Student
-            </Link>
-          </p>
-        </div>
+        {!twoFactorRequired && (
+          <div className="text-center pt-2">
+            <p className="text-xs text-slate-500">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-primary-600 hover:text-primary-700 font-bold">
+                Register as Student
+              </Link>
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 export default Login;
+

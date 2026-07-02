@@ -1,11 +1,15 @@
 import mongoose from 'mongoose';
 
-const razorpayOrderSchema = new mongoose.Schema(
+const cashfreeOrderSchema = new mongoose.Schema(
   {
-    razorpayOrderId: {
+    cfOrderId: {
       type: String,
       required: true,
       unique: true,
+    },
+    paymentSessionId: {
+      type: String,
+      required: true,
     },
     amount: {
       type: Number,
@@ -18,7 +22,7 @@ const razorpayOrderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      default: 'created',
+      default: 'created', // created, paid, failed
     },
   },
   {
@@ -26,5 +30,5 @@ const razorpayOrderSchema = new mongoose.Schema(
   }
 );
 
-const RazorpayOrder = mongoose.model('RazorpayOrder', razorpayOrderSchema);
-export default RazorpayOrder;
+const CashfreeOrder = mongoose.model('CashfreeOrder', cashfreeOrderSchema);
+export default CashfreeOrder;

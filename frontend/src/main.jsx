@@ -3,6 +3,17 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import './index.css';
+import * as Sentry from '@sentry/react';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
+
+// Initialize frontend Sentry telemetry if DSN is configured
+if (import.meta.env.VITE_SENTRY_DSN) {
+  Sentry.init({
+    dsn: import.meta.env.VITE_SENTRY_DSN,
+    environment: import.meta.env.MODE || 'development',
+    tracesSampleRate: 1.0,
+  });
+}
 
 // Pre-warm the backend as early as possible to wake up Render free-tier instance
 const apiURL = import.meta.env.VITE_API_URL || 'https://hostelkart-backend.onrender.com';
@@ -10,9 +21,11 @@ fetch(apiURL).catch(() => {});
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </ErrorBoundary>
   </React.StrictMode>
 );
 

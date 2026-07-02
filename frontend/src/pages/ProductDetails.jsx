@@ -201,7 +201,7 @@ const ProductDetails = () => {
               <div className="flex flex-wrap gap-3 text-[10px] font-bold text-slate-500">
                 <div className="flex items-center space-x-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
                   <Clock size={14} className="text-primary-650" />
-                  <span>Delivery time: {product.deliveryTime || '30 Min'}</span>
+                  <span>Delivery: {product.deliveryTime || 'Scheduled Delivery'}</span>
                 </div>
                 <div className="flex items-center space-x-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
                   <ShieldCheck size={14} className="text-primary-650" />

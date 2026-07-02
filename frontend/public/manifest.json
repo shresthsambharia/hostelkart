@@ -1,7 +1,7 @@
 {
   "short_name": "HostelKart",
   "name": "HostelKart - Student Essentials Delivery",
-  "description": "Daily hostel essentials, snacks, stationery, and fruits delivered directly to your room in 30 minutes.",
+  "description": "Daily hostel essentials, snacks, stationery, and fruits delivered directly to your room in your selected time slot.",
   "icons": [
     {
       "src": "/logo192.png",
