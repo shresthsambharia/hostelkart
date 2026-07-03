@@ -568,7 +568,7 @@ const OrderTracking = () => {
                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
                   order.paymentStatus === 'Paid'
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                    : order.paymentStatus === 'Verification Pending'
+                    : ['Verification Pending', 'Pending Verification', 'Payment Pending Verification'].includes(order.paymentStatus)
                     ? 'bg-blue-50 text-blue-700 border-blue-100'
                     : order.paymentStatus === 'Pending'
                     ? 'bg-amber-50 text-amber-700 border-amber-100'
@@ -577,6 +577,32 @@ const OrderTracking = () => {
                   {order.paymentStatus}
                 </span>
               </div>
+              {order.paymentMethod === 'UPI' && order.paymentStatus !== 'Paid' && (
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-4 text-center mt-3 animate-pulse">
+                  <h4 className="font-extrabold text-slate-800 text-xs">UPI Payment Instructions</h4>
+                  <img 
+                    src="/upi-qr.png" 
+                    alt="UPI QR Code" 
+                    className="w-40 h-40 mx-auto rounded-lg border border-slate-200 bg-white object-contain p-2 shadow-sm"
+                  />
+                  <div className="space-y-1.5 text-left text-[11px] leading-relaxed">
+                    <p className="text-slate-655 font-semibold">
+                      <strong>UPI ID:</strong> <code className="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-700 font-bold select-all">rawlanineev@okhdfcbank</code>
+                    </p>
+                    <p className="text-slate-655 font-semibold">
+                      <strong>Merchant:</strong> Neev Rawlani
+                    </p>
+                    {order.utrNumber && (
+                      <p className="text-slate-655 font-semibold">
+                        <strong>Submitted UTR:</strong> <code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-indigo-700 font-black">{order.utrNumber}</code>
+                      </p>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-slate-400 text-left leading-normal">
+                    Scan the QR code to pay ₹{order.totalAmount}. The status will change to "Paid" once our admin verifies the transfer.
+                  </p>
+                </div>
+              )}
               <div className="border-t border-slate-100 pt-2 space-y-1 text-[11px]">
                 <div className="flex justify-between text-slate-500">
                   <span>Platform Fee:</span>

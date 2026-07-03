@@ -26,7 +26,6 @@ import deliveryRoutes from './routes/deliveryRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import excelRoutes from './routes/excelRoutes.js';
-import paymentRoutes from './routes/paymentRoutes.js';
 import couponRoutes from './routes/couponRoutes.js';
 import walletRoutes from './routes/walletRoutes.js';
 import recommendationRoutes from './routes/recommendationRoutes.js';
@@ -59,11 +58,11 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://sdk.cashfree.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https://images.unsplash.com", "https://*.cashfree.com", "https://*.cashfreepayments.com"],
-      connectSrc: ["'self'", "https://*.cashfree.com", "https://*.cashfreepayments.com"],
+      imgSrc: ["'self'", "data:", "https://images.unsplash.com"],
+      connectSrc: ["'self'"],
       upgradeInsecureRequests: [],
     },
   },
@@ -142,11 +141,9 @@ app.use('/api/admin/excel', excelRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/payments', paymentRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/recommendations', recommendationRoutes);
-app.use('/api', paymentRoutes);
 
 // Root route
 app.get('/', (req, res) => {

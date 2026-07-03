@@ -6,7 +6,6 @@ import CustomRequest from '../models/CustomRequest.js';
 import DeliveryPartner from '../models/DeliveryPartner.js';
 import Settings from '../models/Settings.js';
 import { createAlert } from './notificationController.js';
-import { refundOrderHelper } from './paymentController.js';
 import { deleteFromCloudinary, getPublicIdFromUrl } from '../config/cloudinary.js';
 
 // @desc    Get Admin Dashboard Analytics
@@ -337,9 +336,12 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
         });
       }
 
-      // If prepaid online order, auto-trigger refund
-      if (['ONLINE', 'CASHFREE'].includes(order.paymentMethod) && ['Paid', 'PAID'].includes(order.paymentStatus)) {
-        await refundOrderHelper(order, note || 'Cancelled by Admin');
+      // If prepaid online order, record refund
+      if (['ONLINE', 'CASHFREE', 'UPI'].includes(order.paymentMethod) && ['Paid', 'PAID'].includes(order.paymentStatus)) {
+        order.refundStatus = 'REFUNDED';
+        order.refundAmount = order.totalAmount;
+        order.refundedAt = Date.now();
+        order.refundReason = note || 'Cancelled by Admin';
       }
     }
 
@@ -710,19 +712,66 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
   const order = await Order.findById(req.params.id);
 
   if (order) {
+    const oldPaymentStatus = order.paymentStatus;
     order.paymentStatus = paymentStatus;
+    
     order.timeline.push({
       status: order.orderStatus,
       note: `Payment status updated to ${paymentStatus} by Admin`,
     });
 
-    // If payment is rejected, automatically cancel the order
-    if (paymentStatus === 'Failed') {
+    if (paymentStatus === 'Paid' && oldPaymentStatus !== 'Paid') {
+      order.orderStatus = 'Confirmed';
+      order.timeline.push({
+        status: 'Confirmed',
+        note: 'Payment verified and approved by Admin. Order confirmed.',
+      });
+
+      // Send Order Confirmation Email to student
+      try {
+        const UserObj = (await import('../models/User.js')).default;
+        const userObj = await UserObj.findById(order.user);
+        if (userObj) {
+          const sendEmailObj = (await import('../utils/sendEmail.js')).default;
+          const studentSubject = `HostelKart Order Confirmed - #${order._id.toString().substring(12).toUpperCase()}`;
+          const studentText = `Hello ${userObj.name},\n\nYour payment has been verified. Your order is confirmed and will be delivered shortly!\n\nOrder ID: #${order._id.toString().substring(12).toUpperCase()}\nAmount: ₹${order.totalAmount}\nOTP: ${order.deliveryOtp}`;
+          await sendEmailObj({ to: userObj.email, subject: studentSubject, text: studentText });
+        }
+      } catch (err) {
+        console.error('[Verify Email Error]:', err.message);
+      }
+
+      // Send push notification
+      try {
+        const { sendPushNotification } = await import('../utils/fcm.js');
+        await sendPushNotification(order.user, 'Order Confirmed', `Your payment was verified! Order #${order._id.toString().substring(12).toUpperCase()} is confirmed.`, 'StatusUpdate');
+      } catch (err) {
+        console.error('[Verify Push Error]:', err.message);
+      }
+    } else if (['Failed', 'Rejected'].includes(paymentStatus) && !['Failed', 'Rejected'].includes(oldPaymentStatus)) {
+      order.paymentStatus = 'Failed';
       order.orderStatus = 'Cancelled';
+      order.cancelledAt = Date.now();
+      order.cancellationReason = 'Payment verification rejected by admin';
       order.timeline.push({
         status: 'Cancelled',
-        note: 'Order cancelled due to payment rejection',
+        note: 'Order cancelled due to payment rejection.',
       });
+
+      // Restock products on rejection
+      for (const item of order.items) {
+        await Product.findByIdAndUpdate(item.product, {
+          $inc: { stock: item.quantity },
+        });
+      }
+
+      // Send rejection notification
+      try {
+        const { sendPushNotification } = await import('../utils/fcm.js');
+        await sendPushNotification(order.user, 'Payment Rejected', `Your payment verification failed for Order #${order._id.toString().substring(12).toUpperCase()}.`, 'StatusUpdate');
+      } catch (err) {
+        console.error('[Reject Push Error]:', err.message);
+      }
     }
 
     const updatedOrder = await order.save();

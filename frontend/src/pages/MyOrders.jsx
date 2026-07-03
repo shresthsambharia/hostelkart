@@ -76,9 +76,14 @@ const MyOrders = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'Pending':
+      case 'Pending Payment':
         return 'bg-slate-100 text-slate-600 border-slate-200';
-      case 'Confirmed':
+      case 'Payment Pending Verification':
+      case 'Pending Verification':
         return 'bg-blue-50 text-blue-700 border-blue-100';
+      case 'Confirmed':
+      case 'Paid':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-100';
       case 'Packed':
         return 'bg-purple-50 text-purple-700 border-purple-100';
       case 'Out for Delivery':
@@ -86,6 +91,7 @@ const MyOrders = () => {
       case 'Delivered':
         return 'bg-emerald-50 text-emerald-700 border-emerald-100';
       case 'Cancelled':
+      case 'Rejected':
         return 'bg-red-50 text-red-700 border-red-100';
       case 'Delivery Failed':
         return 'bg-rose-50 text-rose-700 border-rose-100';
@@ -99,10 +105,14 @@ const MyOrders = () => {
       case 'Paid':
         return 'bg-emerald-50 text-emerald-700 border-emerald-100';
       case 'Verification Pending':
+      case 'Pending Verification':
+      case 'Payment Pending Verification':
         return 'bg-blue-50 text-blue-700 border-blue-100';
       case 'Pending':
+      case 'Pending Payment':
         return 'bg-amber-50 text-amber-700 border-amber-100';
       case 'Failed':
+      case 'Rejected':
         return 'bg-red-50 text-red-700 border-red-100';
       case 'Refunded':
         return 'bg-blue-50 text-blue-700 border-blue-100';

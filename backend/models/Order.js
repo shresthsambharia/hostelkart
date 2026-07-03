@@ -52,12 +52,12 @@ const orderSchema = new mongoose.Schema(
     },
     paymentStatus: {
       type: String,
-      enum: ['Pending', 'Paid', 'Failed', 'Verification Pending', 'Refunded', 'PAID', 'FAILED'],
+      enum: ['Pending', 'Paid', 'Failed', 'Verification Pending', 'Pending Verification', 'Payment Pending Verification', 'Pending Payment', 'Rejected', 'Refunded', 'PAID', 'FAILED'],
       default: 'Pending',
     },
     orderStatus: {
       type: String,
-      enum: ['Pending', 'Confirmed', 'Packed', 'Out for Delivery', 'Delivered', 'Cancelled', 'Delivery Failed'],
+      enum: ['Pending', 'Confirmed', 'Packed', 'Out for Delivery', 'Delivered', 'Cancelled', 'Delivery Failed', 'Pending Payment', 'Payment Pending Verification', 'Paid', 'Rejected'],
       default: 'Pending',
     },
     platformFee: {

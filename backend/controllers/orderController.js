@@ -5,18 +5,16 @@ import Cart from '../models/Cart.js';
 import User from '../models/User.js';
 import Settings from '../models/Settings.js';
 import { createAlert } from './notificationController.js';
-import { refundOrderHelper } from './paymentController.js';
 import sendEmail from '../utils/sendEmail.js';
 
 // @desc    Create new order
 // @route   POST /api/orders
 // @access  Private/Student
 const createOrder = asyncHandler(async (req, res) => {
-  const cf_order_id = req.body.cf_order_id;
-  if (cf_order_id) {
-    const existingOrder = await Order.findOne({ cf_order_id });
+  if (req.body.utrNumber) {
+    const existingOrder = await Order.findOne({ utrNumber: req.body.utrNumber });
     if (existingOrder) {
-      console.log('[DEBUG-ORDER] Order already exists for Cashfree Order ID:', cf_order_id);
+      console.log('[DEBUG-ORDER] Order already exists for UTR:', req.body.utrNumber);
       return res.status(200).json(existingOrder);
     }
   }
@@ -177,10 +175,7 @@ const createOrder = asyncHandler(async (req, res) => {
     discountAmount: discountAmount,
     walletPaidAmount: actualWalletPaid,
     utrNumber: utrNumber || '',
-    paymentProvider: paymentMethod === 'ONLINE' ? 'Cashfree' : 'COD',
-    cf_order_id: req.body.cf_order_id || '',
-    payment_session_id: req.body.payment_session_id || '',
-    transaction_id: req.body.transaction_id || '',
+    paymentProvider: paymentMethod === 'UPI' ? 'UPI' : 'COD',
     deliveryOtp,
     timeline: [
       {
@@ -192,7 +187,7 @@ const createOrder = asyncHandler(async (req, res) => {
 
   const createdOrder = await order.save();
 
-  if (paymentMethod !== 'ONLINE') {
+  if (paymentMethod === 'COD' || paymentMethod === 'UPI') {
     // 1. Send Order Confirmation Email to the Student
     try {
       const studentSubject = `HostelKart Order Confirmation - #${createdOrder._id.toString().substring(12).toUpperCase()}`;
@@ -303,7 +298,7 @@ const createOrder = asyncHandler(async (req, res) => {
     }
   });
 
-  if (paymentMethod !== 'ONLINE') {
+  if (paymentMethod === 'COD' || paymentMethod === 'UPI') {
     // Deduct product stocks
     for (const item of orderItems) {
       await Product.findByIdAndUpdate(item.product, {
@@ -420,12 +415,13 @@ const cancelOrder = asyncHandler(async (req, res) => {
 
   let updatedOrder = await order.save();
 
-  // Trigger auto-refund for prepaid online order
-  if (['ONLINE', 'CASHFREE'].includes(updatedOrder.paymentMethod) && ['Paid', 'PAID'].includes(updatedOrder.paymentStatus)) {
-    const refundResult = await refundOrderHelper(updatedOrder, cancellationReason || 'Cancelled by student');
-    if (refundResult.success) {
-      updatedOrder = await Order.findById(updatedOrder._id);
-    }
+  // Trigger manual refund record for prepaid online order
+  if (['ONLINE', 'CASHFREE', 'UPI'].includes(updatedOrder.paymentMethod) && ['Paid', 'PAID'].includes(updatedOrder.paymentStatus)) {
+    updatedOrder.refundStatus = 'REFUNDED';
+    updatedOrder.refundAmount = updatedOrder.totalAmount;
+    updatedOrder.refundedAt = Date.now();
+    updatedOrder.refundReason = cancellationReason || 'Cancelled by student';
+    updatedOrder = await updatedOrder.save();
   }
 
   // Notify Admins about the cancellation

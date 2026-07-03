@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { adminAPI, paymentAPI } from '../api';
+import { adminAPI } from '../api';
 import { Truck, CheckCircle2, AlertCircle, ShoppingCart, Calendar, Search } from 'lucide-react';
 
 const AdminOrders = () => {
@@ -111,18 +111,18 @@ const AdminOrders = () => {
   };
 
   const handleTriggerRefund = async (orderId) => {
-    const reason = window.prompt("Enter reason for manual refund:", "Refund processed by Admin");
+    const reason = window.prompt("Enter reason for manual cancel & refund:", "Cancelled by Admin");
     if (reason === null) return;
 
     setAlert({ type: '', message: '' });
     try {
-      await paymentAPI.refund(orderId, reason || 'Admin manual refund');
-      setAlert({ type: 'success', message: 'Refund successfully completed!' });
+      await adminAPI.updateOrderStatus(orderId, 'Cancelled', reason || 'Admin manual refund');
+      setAlert({ type: 'success', message: 'Order successfully cancelled and marked for refund!' });
       fetchOrdersAndRiders();
     } catch (error) {
       setAlert({
         type: 'error',
-        message: error.response?.data?.message || 'Failed to request refund'
+        message: error.response?.data?.message || 'Failed to cancel order'
       });
     }
   };
@@ -143,7 +143,10 @@ const AdminOrders = () => {
   const getPaymentStatusColor = (status) => {
     switch (status) {
       case 'Paid': return 'bg-emerald-50 text-emerald-700 border border-emerald-100';
-      case 'Verification Pending': return 'bg-blue-50 text-blue-700 border border-blue-100';
+      case 'Verification Pending':
+      case 'Pending Verification':
+      case 'Payment Pending Verification':
+        return 'bg-blue-50 text-blue-700 border border-blue-100';
       case 'Pending': return 'bg-amber-50 text-amber-700 border border-amber-100';
       case 'Failed': return 'bg-red-50 text-red-700 border border-red-100';
       case 'Refunded': return 'bg-blue-50 text-blue-700 border border-blue-100';
@@ -320,7 +323,7 @@ const AdminOrders = () => {
                           UTR: {ord.utrNumber}
                         </span>
                       )}
-                      {ord.paymentStatus === 'Verification Pending' && (
+                      {['Verification Pending', 'Pending Verification', 'Payment Pending Verification'].includes(ord.paymentStatus) && (
                         <div className="flex flex-col gap-1 mt-2">
                           <button
                             type="button"
@@ -342,7 +345,7 @@ const AdminOrders = () => {
 
                     {/* Payment & Refund Details */}
                     <td className="p-4 max-w-xs">
-                      {['ONLINE', 'CASHFREE'].includes(ord.paymentMethod) ? (
+                      {['ONLINE', 'CASHFREE', 'UPI'].includes(ord.paymentMethod) ? (
                         <div className="space-y-1.5 text-[11px]">
                           {ord.transaction_id && (
                             <p className="font-semibold text-slate-700">

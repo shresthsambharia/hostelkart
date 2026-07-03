@@ -2,22 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { orderAPI, paymentAPI, couponAPI, walletAPI } from '../api';
-import { Check, ClipboardList, MapPin, CreditCard, ChevronRight, AlertCircle } from 'lucide-react';
-
-const loadCashfreeScript = () => {
-  return new Promise((resolve) => {
-    if (window.Cashfree) {
-      resolve(true);
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-};
+import { orderAPI, couponAPI, walletAPI } from '../api';
+import { Check, ClipboardList, MapPin, CreditCard, ChevronRight, AlertCircle, Copy } from 'lucide-react';
 
 const Checkout = () => {
   const { cart, total, itemsCount, clearCart } = useCart();
@@ -41,7 +27,8 @@ const Checkout = () => {
   
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [showSimulatedModal, setShowSimulatedModal] = useState(false);
+  const [showUPIScreen, setShowUPIScreen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Coupon states
   const [couponCode, setCouponCode] = useState('');
@@ -223,57 +210,6 @@ const Checkout = () => {
     }
   };
 
-  const handleSimulatedPayment = async () => {
-    setSimulatedError('');
-    setSimulatedLoading(true);
-
-    // Validate inputs
-    if (simulatedTab === 'card') {
-      const cleanCard = simulatedCard.replace(/\s+/g, '');
-      if (cleanCard !== '4111111111111111' || simulatedCvv !== '123' || simulatedExpiry !== '12/26') {
-        setSimulatedError('Invalid card details. Use Card: 4111111111111111, CVV: 123, Expiry: 12/26');
-        setSimulatedLoading(false);
-        return;
-      }
-    } else if (simulatedTab === 'upi') {
-      if (simulatedUpi.trim() !== 'test@cashfree') {
-        setSimulatedError('Invalid UPI ID. Use UPI ID: test@cashfree');
-        setSimulatedLoading(false);
-        return;
-      }
-    }
-
-    // Process successful payment simulation
-    console.log('[DEBUG-PAYMENT] Simulated Payment SUCCESS:', { tab: simulatedTab });
-    const order_id = simulatedOrderData.cfOrderId;
-
-    try {
-      console.log('[DEBUG-PAYMENT] Simulated calling verifyPayment API for order:', order_id);
-      await paymentAPI.verifyById(order_id);
-
-      console.log('[DEBUG-PAYMENT] Simulated verifyPayment SUCCESS, completing order placement...');
-      
-      // Close modal first
-      setShowSimulatedModal(false);
-      setSimulatedLoading(false);
-
-      await clearCart();
-      navigate(`/order-success?id=${order_id}`);
-    } catch (err) {
-      const errMsg = err.response?.data?.message || 'Payment verification failed';
-      console.error('[DEBUG-PAYMENT] Simulated verification failed:', err);
-      setSimulatedError(errMsg);
-      setSimulatedLoading(false);
-    }
-  };
-
-  const handleCancelSimulatedPayment = async () => {
-    console.log('[DEBUG-PAYMENT] Simulated Payment CANCELLED');
-    setShowSimulatedModal(false);
-    setErrorMsg('Payment cancelled by user (Simulation)');
-    setLoading(false);
-  };
-
   const handlePlaceOrder = async (e) => {
     if (e) e.preventDefault();
     setErrorMsg('');
@@ -289,80 +225,8 @@ const Checkout = () => {
     }
 
     if (paymentMethod === 'ONLINE') {
-      setLoading(true);
-      
-      try {
-        // 1. Create the pending order first in the database
-        console.log('[DEBUG-PAYMENT] Frontend creating pending order first...');
-        const orderItems = cart.items.map(item => ({
-          product: item.product._id,
-          name: item.product.name,
-          quantity: item.quantity,
-          price: item.product.price,
-          discount: item.product.discount || 0
-        }));
-
-        const { data: pendingOrder } = await orderAPI.create({
-          orderItems,
-          deliveryDetails: {
-            hostelName,
-            block,
-            floor,
-            roomNumber,
-            phone,
-            alternatePhone,
-            landmark,
-            deliveryInstructions
-          },
-          deliverySlot: deliverySlot === 'Custom Time Slot' ? customSlot : deliverySlot,
-          paymentMethod: 'ONLINE',
-          paymentStatus: 'Pending',
-          platformFee,
-          deliveryCharge,
-          totalAmount: finalPayable,
-          couponCode: couponApplied ? couponCode : '',
-          walletPaidAmount: walletDeduction
-        });
-        
-        console.log('[DEBUG-PAYMENT] Pending order created:', pendingOrder);
-
-        // 2. Create Cashfree Session
-        console.log('[DEBUG-PAYMENT] Frontend initiating createOrder session for amount:', finalPayable, 'Order ID:', pendingOrder._id);
-        const { data: cfSession } = await paymentAPI.createOrder(finalPayable, 'INR', pendingOrder._id);
-        console.log('[DEBUG-PAYMENT] Frontend Cashfree session response:', cfSession);
-
-        if (cfSession.isMock) {
-          console.log('[DEBUG-PAYMENT] Mock Cashfree session detected, opening simulated payment modal...');
-          setSimulatedOrderData(cfSession);
-          setShowSimulatedModal(true);
-          return;
-        }
-
-        // 3. Load Cashfree SDK
-        const scriptLoaded = await loadCashfreeScript();
-        if (!scriptLoaded) {
-          setErrorMsg('Cashfree SDK failed to load. Are you offline?');
-          setLoading(false);
-          return;
-        }
-
-        // 4. Open Cashfree Checkout
-        const isProd = import.meta.env.VITE_CASHFREE_ENV === 'PRODUCTION';
-        console.log('[DEBUG-PAYMENT] Initializing Cashfree SDK with mode:', isProd ? 'production' : 'sandbox');
-        const cashfree = window.Cashfree({
-          mode: isProd ? 'production' : 'sandbox'
-        });
-
-        console.log('[DEBUG-PAYMENT] Redirecting to Cashfree checkout with session ID:', cfSession.paymentSessionId);
-        cashfree.checkout({
-          paymentSessionId: cfSession.paymentSessionId,
-          redirectTarget: "_self"
-        });
-      } catch (error) {
-        console.error('[DEBUG-PAYMENT] Frontend order creation or session checkout ERROR:', error);
-        setErrorMsg(error.response?.data?.message || 'Failed to initialize payment. Try again.');
-        setLoading(false);
-      }
+      setShowUPIScreen(true);
+      setErrorMsg('');
     } else {
       // Cash on Delivery
       setLoading(true);
@@ -378,8 +242,193 @@ const Checkout = () => {
 
   const paymentMethods = [
     { value: 'COD', label: 'Cash on Delivery', desc: 'Pay at your door' },
-    { value: 'ONLINE', label: 'Online Payment - UPI / QR / Card', desc: 'Pay securely using UPI app, QR code, Cards, or NetBanking' }
+    { value: 'ONLINE', label: 'Pay Online (UPI / QR Code)', desc: 'Scan code or pay using any UPI App (GPay, PhonePe, Paytm)' }
   ];
+
+  const handleCopyUPI = () => {
+    navigator.clipboard.writeText('rawlanineev@okhdfcbank');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  };
+
+  const handleConfirmUPIPayment = async (e) => {
+    if (e) e.preventDefault();
+    if (!utrNumber.trim()) {
+      setErrorMsg('Please enter the UTR/Transaction Number to verify payment');
+      return;
+    }
+    if (utrNumber.length < 6) {
+      setErrorMsg('Please enter a valid Transaction ID / UTR Number');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg('');
+
+    try {
+      const orderItems = cart.items.map(item => ({
+        product: item.product._id,
+        name: item.product.name,
+        quantity: item.quantity,
+        price: item.product.price,
+        discount: item.product.discount || 0
+      }));
+
+      console.log('[DEBUG-PAYMENT] Submitting UPI order to backend with UTR:', utrNumber);
+      const { data } = await orderAPI.create({
+        orderItems,
+        deliveryDetails: {
+          hostelName,
+          block,
+          floor,
+          roomNumber,
+          phone,
+          alternatePhone,
+          landmark,
+          deliveryInstructions
+        },
+        deliverySlot: deliverySlot === 'Custom Time Slot' ? customSlot : deliverySlot,
+        paymentMethod: 'UPI',
+        paymentStatus: 'Payment Pending Verification',
+        platformFee,
+        deliveryCharge,
+        totalAmount: finalPayable,
+        couponCode: couponApplied ? couponCode : '',
+        walletPaidAmount: walletDeduction,
+        utrNumber
+      });
+
+      console.log('[DEBUG-PAYMENT] UPI Order created:', data);
+      clearCart();
+      navigate(`/order-success?id=${data._id}`);
+    } catch (err) {
+      console.error('[DEBUG-PAYMENT] Failed to create UPI order:', err);
+      setErrorMsg(err.response?.data?.message || 'Failed to place order. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  if (showUPIScreen) {
+    const upiLink = `upi://pay?pa=rawlanineev@okhdfcbank&pn=HostelKart&am=${finalPayable}&cu=INR&tn=HostelKart%20Order%20Payment`;
+
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-100 shadow-premium space-y-6">
+          <div className="text-center space-y-2 pb-4 border-b border-slate-100">
+            <h2 className="text-2xl font-black text-slate-800 font-display">Complete Your UPI Payment</h2>
+            <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+              Scan the QR code below or use a UPI app to pay. Once completed, enter your UTR/Transaction Number.
+            </p>
+          </div>
+
+          {errorMsg && (
+            <div className="bg-red-50 border border-red-100 text-red-700 text-sm p-4 rounded-xl flex items-start space-x-2">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            {/* Left Column: QR Code */}
+            <div className="flex flex-col items-center justify-center space-y-3 bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-100/50">
+              <img 
+                src="/upi-qr.png" 
+                alt="UPI Payment QR Code" 
+                className="w-56 h-56 sm:w-64 sm:h-64 object-contain rounded-xl shadow-sm border border-slate-200"
+              />
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                Scan using any UPI App
+              </span>
+            </div>
+
+            {/* Right Column: Details & Deep links */}
+            <div className="space-y-6">
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Payable Amount</span>
+                <span className="text-3xl font-black text-slate-800 block">₹{finalPayable}</span>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Merchant UPI ID</span>
+                <div className="flex items-center space-x-2 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <span className="text-sm font-mono font-bold text-slate-700 flex-1 select-all truncate">
+                    rawlanineev@okhdfcbank
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCopyUPI}
+                    className="btn-secondary py-1.5 px-3 text-xs shrink-0 font-bold flex items-center gap-1"
+                  >
+                    <Copy size={12} />
+                    <span>{copied ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+                {copied && (
+                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">
+                    ✓ UPI ID Copied Successfully
+                  </p>
+                )}
+              </div>
+
+              {/* UPI Intent Deep Link Button (shows primarily on mobile) */}
+              <div className="space-y-2 pt-2">
+                <a
+                  href={upiLink}
+                  className="w-full btn-primary py-3 flex items-center justify-center space-x-2 text-sm font-black shadow-md hover:shadow-lg transition-all"
+                >
+                  <span>Open in UPI App (GPay / PhonePe / Paytm)</span>
+                </a>
+                <p className="text-[10px] text-slate-400 text-center leading-normal">
+                  If on mobile, click to pay directly with Google Pay, PhonePe, Paytm, or BHIM.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Form: UTR Submission */}
+          <form onSubmit={handleConfirmUPIPayment} className="border-t border-slate-100 pt-6 space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700 block">
+                Transaction ID / UTR Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                maxLength={20}
+                placeholder="Enter 12-digit UTR or Transaction Ref"
+                className="input-field text-sm font-mono font-bold placeholder:font-sans placeholder:font-normal"
+                value={utrNumber}
+                onChange={(e) => setUtrNumber(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+              />
+              <p className="text-[10px] text-slate-400 leading-normal">
+                Please enter the reference number from your payment confirmation screen to help us verify your transfer.
+              </p>
+            </div>
+
+            <div className="flex gap-4 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUPIScreen(false);
+                  setErrorMsg('');
+                }}
+                className="btn-secondary py-3 px-6 text-sm font-bold"
+              >
+                Back to Details
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 btn-primary py-3 text-sm font-black shadow-md hover:shadow-lg disabled:opacity-50"
+              >
+                {loading ? 'Processing...' : 'I have completed the payment'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -801,184 +850,6 @@ const Checkout = () => {
           })()}
         </div>
       </form>
-
-      {showSimulatedModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-md w-full overflow-hidden animate-fadeIn">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4 text-white flex justify-between items-center">
-              <div>
-                <h3 className="font-extrabold text-lg">Cashfree Checkout</h3>
-                <p className="text-xs text-indigo-100/80">HostelKart Room Order Payment (Simulation)</p>
-              </div>
-              <button 
-                type="button" 
-                onClick={handleCancelSimulatedPayment}
-                className="text-white hover:text-indigo-200 text-sm font-bold bg-white/10 px-2.5 py-1 rounded-lg transition-all"
-              >
-                Cancel
-              </button>
-            </div>
-
-            {/* Error Message */}
-            {simulatedError && (
-              <div className="bg-red-50 border-b border-red-100 px-6 py-3 text-red-700 text-xs font-semibold">
-                ⚠️ {simulatedError}
-              </div>
-            )}
-
-            {/* Tabs */}
-            <div className="flex border-b border-slate-100">
-              <button
-                type="button"
-                onClick={() => setSimulatedTab('card')}
-                className={`flex-1 py-3 text-sm font-bold border-b-2 transition-all ${
-                  simulatedTab === 'card'
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                💳 Card
-              </button>
-              <button
-                type="button"
-                onClick={() => setSimulatedTab('upi')}
-                className={`flex-1 py-3 text-sm font-bold border-b-2 transition-all ${
-                  simulatedTab === 'upi'
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                📱 UPI ID
-              </button>
-              <button
-                type="button"
-                onClick={() => setSimulatedTab('qr')}
-                className={`flex-1 py-3 text-sm font-bold border-b-2 transition-all ${
-                  simulatedTab === 'qr'
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                📸 QR Code
-              </button>
-            </div>
-
-            {/* Content Body */}
-            <div className="p-6 space-y-4">
-              {simulatedTab === 'card' && (
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Card Number</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 4111 1111 1111 1111"
-                      className="input-field text-sm mt-1"
-                      value={simulatedCard}
-                      onChange={(e) => setSimulatedCard(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-500 uppercase">Expiry Date</label>
-                      <input
-                        type="text"
-                        placeholder="MM/YY (e.g. 12/26)"
-                        className="input-field text-sm mt-1"
-                        value={simulatedExpiry}
-                        onChange={(e) => setSimulatedExpiry(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-500 uppercase">CVV</label>
-                      <input
-                        type="password"
-                        placeholder="123"
-                        maxLength={3}
-                        className="input-field text-sm mt-1"
-                        value={simulatedCvv}
-                        onChange={(e) => setSimulatedCvv(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="bg-slate-50 p-2.5 rounded-lg text-[10px] text-slate-400 leading-relaxed border border-slate-100">
-                    💡 <strong>Test card details:</strong> Use Card <code>4111 1111 1111 1111</code>, CVV <code>123</code>, Expiry <code>12/26</code> to pass the simulation.
-                  </div>
-                </div>
-              )}
-
-              {simulatedTab === 'upi' && (
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">UPI ID / VPA</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. test@cashfree"
-                      className="input-field text-sm mt-1"
-                      value={simulatedUpi}
-                      onChange={(e) => setSimulatedUpi(e.target.value)}
-                    />
-                  </div>
-                  <div className="bg-slate-50 p-2.5 rounded-lg text-[10px] text-slate-400 leading-relaxed border border-slate-100">
-                    💡 <strong>Test UPI details:</strong> Use UPI ID <code>test@cashfree</code> to pass the simulation.
-                  </div>
-                </div>
-              )}
-
-              {simulatedTab === 'qr' && (
-                <div className="flex flex-col items-center justify-center space-y-3 p-4">
-                  <div className="w-40 h-40 bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-center text-slate-400 font-extrabold text-xs shadow-inner">
-                    <div className="grid grid-cols-5 gap-1.5 p-3 w-full h-full opacity-60">
-                      {[...Array(25)].map((_, i) => (
-                        <div 
-                          key={i} 
-                          className={`rounded-sm ${(i * 7 + 3) % 2 === 0 || i < 5 || i % 5 === 0 || i > 20 ? 'bg-indigo-900' : 'bg-transparent'}`}
-                        ></div>
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-slate-500 font-bold text-center">
-                    📸 Scan this simulated QR code with any UPI app to complete payment.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Footer buttons */}
-            <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-sm font-black text-slate-800">
-                Amount: ₹{finalPayable.toFixed(2)}
-              </span>
-              <div className="flex space-x-2">
-                <button
-                  type="button"
-                  onClick={handleCancelSimulatedPayment}
-                  disabled={simulatedLoading}
-                  className="px-4 py-3 min-h-[48px] text-sm font-bold text-slate-500 hover:text-slate-700 bg-white border border-slate-200 rounded-xl transition-all flex items-center justify-center"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSimulatedPayment}
-                  disabled={simulatedLoading}
-                  className="px-5 py-3 min-h-[48px] text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition-all flex items-center justify-center space-x-1.5"
-                >
-                  {simulatedLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-white"></div>
-                      <span>Verifying...</span>
-                    </>
-                  ) : (
-                    <span>Pay Now</span>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 };

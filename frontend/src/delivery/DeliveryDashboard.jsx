@@ -269,7 +269,7 @@ const DeliveryDashboard = () => {
                           </span>
                         </>
                       )}
-                      {ord.paymentStatus === 'Verification Pending' && (
+                      {['Verification Pending', 'Pending Verification', 'Payment Pending Verification'].includes(ord.paymentStatus) && (
                         <>
                           <span className="line-through text-slate-405">₹{ord.totalAmount}</span>
                           <span className="text-emerald-700 font-black">₹0</span>
@@ -302,7 +302,7 @@ const DeliveryDashboard = () => {
                       🛡️ ONLINE PREPAID. DO NOT COLLECT CASH!
                     </div>
                   )}
-                  {ord.paymentStatus === 'Verification Pending' && (
+                  {['Verification Pending', 'Pending Verification', 'Payment Pending Verification'].includes(ord.paymentStatus) && (
                     <div className="mt-2 text-[9px] font-black text-center bg-blue-50 border border-blue-100 text-blue-700 py-2 rounded-lg leading-none tracking-wide">
                       🛡️ ONLINE PREPAID (Verify pending). DO NOT COLLECT CASH! {ord.utrNumber ? `(UTR: ${ord.utrNumber})` : ''}
                     </div>

@@ -4,7 +4,6 @@ import DeliveryPartner from '../models/DeliveryPartner.js';
 import Product from '../models/Product.js';
 import User from '../models/User.js';
 import { createAlert } from './notificationController.js';
-import { refundOrderHelper } from './paymentController.js';
 
 // @desc    Get assigned orders for delivery partner
 // @route   GET /api/delivery/orders
@@ -68,9 +67,12 @@ const updateDeliveryStatus = asyncHandler(async (req, res) => {
         });
       }
 
-      // Auto-refund for online paid orders on delivery failure
-      if (status === 'Delivery Failed' && ['ONLINE', 'CASHFREE'].includes(order.paymentMethod) && ['Paid', 'PAID'].includes(order.paymentStatus)) {
-        await refundOrderHelper(order, `Delivery Failed: ${order.cancellationReason}`);
+      // Record refund for online paid orders on delivery failure
+      if (status === 'Delivery Failed' && ['ONLINE', 'CASHFREE', 'UPI'].includes(order.paymentMethod) && ['Paid', 'PAID'].includes(order.paymentStatus)) {
+        order.refundStatus = 'REFUNDED';
+        order.refundAmount = order.totalAmount;
+        order.refundedAt = Date.now();
+        order.refundReason = `Delivery Failed: ${order.cancellationReason}`;
       }
     }
     await order.save();

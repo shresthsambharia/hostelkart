@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const apiURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://hostelkart-backend.onrender.com');
-const baseURL = apiURL.endsWith('/api') ? apiURL : `${apiURL}/api`;
+const cleanApiURL = apiURL.replace(/\/$/, '');
+const baseURL = cleanApiURL.endsWith('/api') ? `${cleanApiURL}/` : `${cleanApiURL}/api/`;
 
 const API = axios.create({
   baseURL,
@@ -70,7 +71,7 @@ API.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const { data } = await axios.post(`${baseURL}/auth/refresh`, {}, { withCredentials: true });
+        const { data } = await axios.post(`${baseURL}auth/refresh`, {}, { withCredentials: true });
         const newToken = data.token;
 
         localStorage.setItem('token', newToken);
@@ -235,12 +236,7 @@ export const notificationAPI = {
   markAllRead: () => API.put('/notifications/read-all'),
 };
 
-export const paymentAPI = {
-  createOrder: (amount, currency, orderId) => API.post('/payments/create-order', { amount, currency, orderId }),
-  verifyPayment: (payload) => API.post('/payments/verify-payment', payload),
-  verifyById: (orderId) => API.post(`/payments/verify/${orderId}`),
-  refund: (orderId, refundReason) => API.post('/payments/refund', { orderId, refundReason }),
-};
+export const paymentAPI = {};
 
 export const couponAPI = {
   validate: (code, orderAmount) => API.post('/coupons/validate', { code, orderAmount }),
