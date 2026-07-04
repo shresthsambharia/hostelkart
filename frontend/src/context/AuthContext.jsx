@@ -157,7 +157,6 @@ export const AuthProvider = ({ children }) => {
   }, [navigate]);
 
   const updateProfile = useCallback(async (profileData) => {
-    setLoading(true);
     try {
       const { data } = await authAPI.updateProfile(profileData);
       
@@ -172,10 +171,8 @@ export const AuthProvider = ({ children }) => {
       }));
 
       setUser(data);
-      setLoading(false);
       return { success: true };
     } catch (error) {
-      setLoading(false);
       const message = error.response?.data?.message || 'Failed to update profile.';
       return { success: false, message };
     }
