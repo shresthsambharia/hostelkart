@@ -177,6 +177,10 @@ export const orderAPI = {
   getMyOrders: () => API.get('/orders/myorders'),
   getPaymentSettings: () => API.get('/orders/payment-settings'),
   cancel: (id, cancellationReason) => API.put(`/orders/${id}/cancel`, { cancellationReason }),
+  uploadScreenshot: (formData) => API.post('/upload/payment-screenshot', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  submitPayment: (id, paymentData) => API.put(`/orders/${id}/submit-payment`, paymentData),
 };
 
 export const customRequestAPI = {

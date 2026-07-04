@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { orderAPI, couponAPI, walletAPI } from '../api';
@@ -408,14 +407,12 @@ const Checkout = () => {
       const formData = new FormData();
       formData.append('image', screenshotFile);
       
-      const { data: uploadData } = await axios.post('/api/upload/payment-screenshot', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const { data: uploadData } = await orderAPI.uploadScreenshot(formData);
       console.log('[DEBUG-PAYMENT] Screenshot uploaded successfully:', uploadData);
 
       // 2. Submit payment info
       console.log('[DEBUG-PAYMENT] Submitting payment details for order:', createdOrder._id);
-      const { data: updatedOrder } = await axios.put(`/api/orders/${createdOrder._id}/submit-payment`, {
+      const { data: updatedOrder } = await orderAPI.submitPayment(createdOrder._id, {
         utrNumber: cleanedUtr,
         paymentScreenshot: uploadData.url,
         paymentScreenshotHash: uploadData.hash
