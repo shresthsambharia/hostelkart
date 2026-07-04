@@ -2,6 +2,9 @@ import path from 'path';
 import fs from 'fs';
 import express from 'express';
 import dotenv from 'dotenv';
+// Load environmental variables immediately
+dotenv.config();
+
 import Order from './models/Order.js';
 import Product from './models/Product.js';
 import cors from 'cors';
@@ -32,8 +35,7 @@ import couponRoutes from './routes/couponRoutes.js';
 import walletRoutes from './routes/walletRoutes.js';
 import recommendationRoutes from './routes/recommendationRoutes.js';
 
-// Load environmental variables
-dotenv.config();
+
 
 // Initialize Sentry Monitoring
 initSentry();
