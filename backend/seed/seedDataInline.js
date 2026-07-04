@@ -98,6 +98,13 @@ const usersData = [
 
 export const seedIfEmpty = async () => {
   try {
+    // One-time safety reset of admin 2FA status to prevent lockout from bad/expired secrets
+    await User.updateOne(
+      { email: 'admin@hostelkart.com' },
+      { $set: { twoFactorEnabled: false, twoFactorSecret: '', twoFactorTempSecret: '', twoFactorRecoveryCodes: [] } }
+    );
+    console.log('- Admin 2FA status reset to disabled for safety login recovery');
+
     // 1. Seed Categories if empty
     const categoryCount = await Category.countDocuments({});
     if (categoryCount === 0) {
