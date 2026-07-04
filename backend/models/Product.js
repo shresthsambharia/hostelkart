@@ -63,7 +63,15 @@ const productSchema = new mongoose.Schema(
     deliveryTime: {
       type: String,
       required: true,
-      default: '30 mins',
+      default: 'Scheduled Delivery',
+    },
+    brand: {
+      type: String,
+      default: '',
+    },
+    mrp: {
+      type: Number,
+      default: 0,
     },
     isAvailable: {
       type: Boolean,

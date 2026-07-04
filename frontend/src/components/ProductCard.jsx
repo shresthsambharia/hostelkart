@@ -10,6 +10,7 @@ const ProductCard = ({ product, priority = false }) => {
   const { toggleWishlist, isInWishlist } = useWishlist();
   const [adding, setAdding] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const isFavorited = isInWishlist(product._id);
 
@@ -74,22 +75,34 @@ const ProductCard = ({ product, priority = false }) => {
       {/* Product Image Link */}
       <Link to={`/products/${product._id}`} className="block overflow-hidden bg-slate-50/50 relative pt-[100%] border-b border-slate-50/60">
         {product.image ? (
-          <img
-            src={getOptimizedImage(product, 'medium')}
-            srcSet={getResponsiveSrcSet(product)}
-            sizes="(max-width: 640px) 40vw, (max-width: 1024px) 25vw, 220px"
-            alt={product.name}
-            loading={priority ? undefined : "lazy"}
-            fetchPriority={priority ? "high" : "low"}
-            decoding="async"
-            width={300}
-            height={300}
-            className="absolute inset-0 w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = getOptimizedImageUrl(null, 300);
-            }}
-          />
+          <>
+            {/* Skeleton loader placeholder */}
+            {!imageLoaded && (
+              <div className="absolute inset-0 bg-slate-100 animate-pulse flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-slate-400 animate-spin"></div>
+              </div>
+            )}
+            <img
+              src={getOptimizedImage(product, 'medium')}
+              srcSet={getResponsiveSrcSet(product)}
+              sizes="(max-width: 640px) 40vw, (max-width: 1024px) 25vw, 220px"
+              alt={product.name}
+              loading={priority ? undefined : "lazy"}
+              fetchPriority={priority ? "high" : "low"}
+              decoding="async"
+              width={300}
+              height={300}
+              onLoad={() => setImageLoaded(true)}
+              className={`absolute inset-0 w-full h-full object-contain p-4 group-hover:scale-105 transition-all duration-300 ${
+                imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+              }`}
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = getOptimizedImageUrl(null, 300);
+                setImageLoaded(true);
+              }}
+            />
+          </>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-slate-300 font-bold">
             No Image

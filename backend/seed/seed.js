@@ -214,7 +214,7 @@ const seedData = async () => {
         phone: studentUser.phone,
         deliveryInstructions: 'Deliver by knocking the door twice.'
       },
-      deliverySlot: 'Immediate',
+      deliverySlot: 'Morning Slot (8:00 AM – 1:00 PM)',
       paymentMethod: 'COD',
       paymentStatus: 'Pending',
       orderStatus: 'Pending',

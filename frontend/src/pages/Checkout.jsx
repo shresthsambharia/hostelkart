@@ -21,8 +21,15 @@ const Checkout = () => {
   const [landmark, setLandmark] = useState('');
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
 
-  const [deliverySlot, setDeliverySlot] = useState('Immediate');
-  const [customSlot, setCustomSlot] = useState('');
+  const getDefaultSlot = () => {
+    const d = new Date();
+    const min = d.getHours() * 60 + d.getMinutes();
+    if (min < 480) return 'Morning Slot (8:00 AM – 1:00 PM)';
+    if (min < 990) return 'Evening Slot (1:30 PM – 4:30 PM)';
+    return 'Morning Slot (Next Day, 8:00 AM – 1:00 PM)';
+  };
+
+  const [deliverySlot, setDeliverySlot] = useState(getDefaultSlot());
   const [paymentMethod, setPaymentMethod] = useState('COD');
   const [utrNumber, setUtrNumber] = useState('');
   
@@ -199,13 +206,11 @@ const Checkout = () => {
         deliveryInstructions
       };
 
-      const finalDeliverySlot = deliverySlot === 'Custom Time Slot' ? customSlot : deliverySlot;
-
       // 1. Create order
       const { data } = await orderAPI.create({
         orderItems,
         deliveryDetails,
-        deliverySlot: finalDeliverySlot,
+        deliverySlot,
         paymentMethod,
         paymentStatus,
         platformFee,
@@ -266,11 +271,6 @@ const Checkout = () => {
       return;
     }
 
-    if (deliverySlot === 'Custom Time Slot' && !customSlot.trim()) {
-      setErrorMsg('Please enter your custom time slot details');
-      return;
-    }
-
     setLoading(true);
 
     if (paymentMethod === 'ONLINE') {
@@ -294,14 +294,12 @@ const Checkout = () => {
           deliveryInstructions
         };
 
-        const finalDeliverySlot = deliverySlot === 'Custom Time Slot' ? customSlot : deliverySlot;
-
         // Immediately place order in Pending Payment state
         console.log('[DEBUG-PAYMENT] Creating Pending Payment UPI order...');
         const { data } = await orderAPI.create({
           orderItems,
           deliveryDetails,
-          deliverySlot: finalDeliverySlot,
+          deliverySlot,
           paymentMethod: 'UPI',
           paymentStatus: 'Pending Payment',
           platformFee,
@@ -338,10 +336,32 @@ const Checkout = () => {
     }
   };
 
-  const deliverySlots = [
-    { label: 'Scheduled Delivery (⚡ at your preferred time)', value: 'Immediate' },
-    { label: 'Evening slot (6 PM - 9 PM)', value: 'Evening slot' },
-    { label: 'Custom Time Slot', value: 'Custom Time Slot' }
+  // Dynamic Delivery Slot Calculation based on order placement time
+  const now = new Date();
+  const timeInMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const isMorningAllowed = timeInMinutes < 480 || timeInMinutes >= 990;
+  const isEveningAllowed = timeInMinutes < 990;
+
+  const morningLabel = timeInMinutes >= 990 
+    ? '☀ Morning Slot (Next Day, 8:00 AM – 1:00 PM)' 
+    : '☀ Morning Slot (8:00 AM – 1:00 PM)';
+
+  const slots = [
+    {
+      id: 'morning',
+      label: morningLabel,
+      value: timeInMinutes >= 990 ? 'Morning Slot (Next Day, 8:00 AM – 1:00 PM)' : 'Morning Slot (8:00 AM – 1:00 PM)',
+      enabled: isMorningAllowed,
+      subtext: timeInMinutes >= 990 ? 'Scheduled for tomorrow morning' : 'Delivered by 1:00 PM'
+    },
+    {
+      id: 'evening',
+      label: '🌇 Evening Slot (1:30 PM – 4:30 PM)',
+      value: 'Evening Slot (1:30 PM – 4:30 PM)',
+      enabled: isEveningAllowed,
+      subtext: 'Delivered by 4:30 PM'
+    }
   ];
 
   const paymentMethods = [
@@ -745,42 +765,46 @@ const Checkout = () => {
               <h3 className="font-extrabold text-slate-800 text-base">Select Delivery Slot</h3>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {deliverySlots.map((slot) => (
-                <button
-                  key={slot.value}
-                  type="button"
-                  onClick={() => setDeliverySlot(slot.value)}
-                  className={`p-3 rounded-xl border text-left flex justify-between items-center transition-all ${
-                    deliverySlot === slot.value
-                      ? 'border-primary-500 bg-primary-50 text-primary-800 font-bold'
-                      : 'border-slate-200 hover:bg-slate-50 text-slate-600 font-medium'
-                  }`}
-                >
-                  <span className="text-sm">{slot.label}</span>
-                  {deliverySlot === slot.value && (
-                    <div className="w-5 h-5 rounded-full bg-primary-600 text-white flex items-center justify-center shrink-0 ml-1">
-                      <Check size={12} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {slots.map((slot) => {
+                const isSelected = deliverySlot === slot.value;
+                return (
+                  <button
+                    key={slot.id}
+                    type="button"
+                    disabled={!slot.enabled}
+                    onClick={() => setDeliverySlot(slot.value)}
+                    className={`p-4 rounded-2xl border text-left flex flex-col justify-between transition-all relative ${
+                      !slot.enabled
+                        ? 'border-slate-100 bg-slate-50/50 opacity-40 cursor-not-allowed text-slate-400'
+                        : isSelected
+                        ? 'border-primary-500 bg-primary-50/60 text-primary-900 shadow-sm ring-1 ring-primary-500/25 font-bold'
+                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between w-full">
+                      <span className="font-extrabold text-sm sm:text-base leading-snug">{slot.label}</span>
+                      {isSelected && slot.enabled && (
+                        <div className="w-5 h-5 rounded-full bg-primary-600 text-white flex items-center justify-center shrink-0 ml-2">
+                          <Check size={12} />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </button>
-              ))}
+                    <span className={`text-[11px] mt-2 block font-medium ${isSelected ? 'text-primary-750' : 'text-slate-400'}`}>
+                      {slot.enabled ? slot.subtext : 'Slot not available for this ordering time'}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-
-            {deliverySlot === 'Custom Time Slot' && (
-              <div className="mt-4 pt-2 border-t border-dashed border-slate-100 animate-fadeIn">
-                <label htmlFor="customSlot" className="text-xs font-semibold text-slate-600 block mb-1">Custom Delivery Slot Details</label>
-                <input
-                  id="customSlot"
-                  type="text"
-                  placeholder="e.g. 10:30 PM after my lab class"
-                  className="input-field text-sm"
-                  value={customSlot}
-                  onChange={(e) => setCustomSlot(e.target.value)}
-                  required
-                />
-              </div>
-            )}
+            
+            {/* Slot note alert */}
+            <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl text-slate-500 text-[11px] leading-relaxed flex items-start gap-2">
+              <span className="shrink-0 text-slate-400">🕒</span>
+              <span>
+                <strong>Scheduling Rules:</strong> Morning slot is open for orders placed before 8 AM (or after 4:30 PM for next day). Evening slot is open for orders placed before 4:30 PM.
+              </span>
+            </div>
           </div>
 
           {/* 3. Payment Method */}

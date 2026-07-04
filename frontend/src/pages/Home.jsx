@@ -8,7 +8,8 @@ import {
   Sparkles, 
   Clock, 
   Home as HomeIcon, 
-  ShieldCheck 
+  ShieldCheck,
+  ShoppingBag
 } from 'lucide-react';
 
 const staticCategories = [
@@ -105,35 +106,43 @@ const Home = () => {
     <div className="space-y-6 sm:space-y-10 pb-16">
       
       {/* Compact Hero Banner Card */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-emerald-950 via-primary-900 to-slate-900 text-white rounded-xl sm:rounded-2xl mx-4 sm:mx-8 mt-4 px-5 py-6 sm:py-8 shadow-lg flex items-center justify-between gap-4">
-        <div className="absolute top-0 right-0 w-48 h-48 rounded-full bg-emerald-500/10 blur-2xl pointer-events-none"></div>
-        <div className="max-w-xl relative z-10 space-y-2.5 animate-slide-up">
+      <section className="relative overflow-hidden bg-gradient-to-r from-emerald-950 via-primary-900 to-slate-900 text-white rounded-xl sm:rounded-2xl mx-4 sm:mx-8 mt-4 px-6 py-8 sm:py-10 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none"></div>
+        <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-primary-500/10 blur-2xl pointer-events-none"></div>
+        <div className="max-w-xl relative z-10 space-y-3.5 animate-slide-up">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center px-2 py-0.5 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-[9px] sm:text-xs font-black tracking-wide text-emerald-300">
+            <span className="inline-flex items-center px-2.5 py-0.5 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-[10px] sm:text-xs font-black tracking-wide text-emerald-300">
               ⚡ Scheduled Delivery
             </span>
-            <span className="inline-flex items-center px-2 py-0.5 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-[9px] sm:text-xs font-black tracking-wide text-emerald-300">
+            <span className="inline-flex items-center px-2.5 py-0.5 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-[10px] sm:text-xs font-black tracking-wide text-emerald-300">
               🏢 Direct to Room Floor
             </span>
           </div>
-          <h1 className="text-base sm:text-2xl md:text-3.5xl font-black tracking-tight leading-tight">
-            Daily Hostel Essentials <br className="hidden sm:inline" />
-            <span className="bg-gradient-to-r from-emerald-300 via-primary-300 to-white bg-clip-text text-transparent">Delivered Instantly.</span>
-          </h1>
-          <p className="text-[10px] sm:text-xs text-slate-100 font-bold opacity-90 max-w-lg">
-            Snacks, fresh fruits, veggies, stationery, and personal care.
+          <div className="space-y-2">
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight flex items-center gap-2.5 flex-wrap">
+              <span className="p-1.5 bg-emerald-500/20 text-emerald-300 rounded-xl backdrop-blur-sm shrink-0 border border-emerald-500/25">
+                <ShoppingBag className="w-5 h-5 sm:w-7 sm:h-7" />
+              </span>
+              <span>HostelKart Essentials</span>
+            </h1>
+            <p className="text-sm sm:text-base bg-gradient-to-r from-emerald-300 via-primary-300 to-white bg-clip-text text-transparent font-extrabold">
+              Delivered straight to your hostel floor.
+            </p>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-300 font-semibold opacity-90 max-w-lg">
+            Fresh fruits, snacks, soft drinks, study stationery, and room care products available when you need them.
           </p>
         </div>
-        <div className="relative z-10 shrink-0">
-          <img
-            src="https://images.unsplash.com/photo-1607344645866-009c320b5ab8?w=300&q=60&fm=webp&fit=crop"
-            alt="Hostel Essentials"
-            fetchPriority="high"
-            decoding="async"
-            width={128}
-            height={128}
-            className="w-24 h-24 sm:w-36 sm:h-36 object-contain drop-shadow-md rounded-xl"
-          />
+        <div className="relative z-10 shrink-0 self-center sm:self-auto flex items-center justify-center">
+          <div className="bg-white/5 backdrop-blur-md p-4 sm:p-6 rounded-3xl border border-white/15 shadow-xl flex items-center justify-center w-28 h-28 sm:w-40 sm:h-40 hover:scale-102 transition-transform duration-300">
+            <img
+              src="/logo512.png"
+              alt="HostelKart Logo"
+              fetchPriority="high"
+              decoding="async"
+              className="max-w-full max-h-full object-contain filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.15)]"
+            />
+          </div>
         </div>
       </section>
 

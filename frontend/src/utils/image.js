@@ -30,7 +30,7 @@ export const getOptimizedImageUrl = (imgUrl, width = 300, quality = 60, format =
       }
       
       const cleanPath = cleanedSegments.join('/');
-      return `${parts[0]}image/upload/w_${width},f_auto,q_auto/${cleanPath}`;
+      return `${parts[0]}image/upload/w_${width},f_auto,q_auto,c_fill/${cleanPath}`;
     }
   }
 
@@ -83,7 +83,7 @@ export const getSrcSet = (imgUrl, widths = [150, 300, 450, 600], quality = 60, f
       
       const cleanPath = cleanedSegments.join('/');
       return widths
-        .map((w) => `${parts[0]}image/upload/w_${w},f_auto,q_auto/${cleanPath} ${w}w`)
+        .map((w) => `${parts[0]}image/upload/w_${w},f_auto,q_auto,c_fill/${cleanPath} ${w}w`)
         .join(', ');
     }
   }
