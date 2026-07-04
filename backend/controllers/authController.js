@@ -168,6 +168,7 @@ const authUser = asyncHandler(async (req, res) => {
 
       return res.json({
         twoFactorRequired: true,
+        requires2FA: true,
         twoFactorToken,
         message: 'Two-factor authentication required',
       });

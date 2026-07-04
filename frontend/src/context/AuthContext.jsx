@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data } = await authAPI.login({ email, password });
       
-      if (data.twoFactorRequired) {
+      if (data.twoFactorRequired || data.requires2FA) {
         setLoading(false);
         return {
           success: true,
