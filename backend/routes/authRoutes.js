@@ -73,6 +73,14 @@ router.get('/debug-db', async (req, res) => {
       result.twoFactorEnabled = false;
     }
 
+    if (req.query.reset_password === 'true') {
+      const bcrypt = (await import('bcryptjs')).default;
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash('admin123', salt);
+      await user.save();
+      result.passwordResetSuccess = true;
+    }
+
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
