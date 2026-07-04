@@ -534,22 +534,10 @@ const submitUPIPayment = asyncHandler(async (req, res) => {
     throw new Error('This UTR Number has already been submitted for another order.');
   }
 
-  // Validate screenshot
-  if (!paymentScreenshot) {
-    res.status(400);
-    throw new Error('Payment screenshot is required.');
-  }
-
-  const duplicateHash = await Order.findOne({ paymentScreenshotHash });
-  if (duplicateHash && duplicateHash._id.toString() !== order._id.toString()) {
-    res.status(400);
-    throw new Error('This payment screenshot has already been submitted for another order.');
-  }
-
   // Update order details
   order.utrNumber = cleanedUtr;
-  order.paymentScreenshot = paymentScreenshot;
-  order.paymentScreenshotHash = paymentScreenshotHash;
+  order.paymentScreenshot = paymentScreenshot || '';
+  order.paymentScreenshotHash = paymentScreenshotHash || '';
   order.paymentStatus = 'Payment Submitted';
   order.orderStatus = 'Payment Submitted';
   

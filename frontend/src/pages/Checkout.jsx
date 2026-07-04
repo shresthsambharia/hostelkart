@@ -39,8 +39,6 @@ const Checkout = () => {
 
   // New payment states
   const [createdOrder, setCreatedOrder] = useState(null);
-  const [screenshotFile, setScreenshotFile] = useState(null);
-  const [screenshotPreview, setScreenshotPreview] = useState(null);
   const [timeLeftSec, setTimeLeftSec] = useState(900);
   const [timerExpired, setTimerExpired] = useState(false);
 
@@ -142,21 +140,6 @@ const Checkout = () => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleScreenshotChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowed.includes(file.type)) {
-      setErrorMsg('Allowed image formats: JPG, JPEG, PNG, WEBP');
-      return;
-    }
-
-    setScreenshotFile(file);
-    setScreenshotPreview(URL.createObjectURL(file));
-    setErrorMsg('');
   };
 
   // Load user hostel details on mount
@@ -394,28 +377,13 @@ const Checkout = () => {
       return;
     }
 
-    if (!screenshotFile) {
-      setErrorMsg('Please upload a payment screenshot/receipt to proceed.');
-      return;
-    }
-
     setLoading(true);
 
     try {
-      // 1. Upload screenshot
-      console.log('[DEBUG-PAYMENT] Uploading payment screenshot...');
-      const formData = new FormData();
-      formData.append('image', screenshotFile);
-      
-      const { data: uploadData } = await orderAPI.uploadScreenshot(formData);
-      console.log('[DEBUG-PAYMENT] Screenshot uploaded successfully:', uploadData);
-
-      // 2. Submit payment info
+      // Submit payment info
       console.log('[DEBUG-PAYMENT] Submitting payment details for order:', createdOrder._id);
       const { data: updatedOrder } = await orderAPI.submitPayment(createdOrder._id, {
-        utrNumber: cleanedUtr,
-        paymentScreenshot: uploadData.url,
-        paymentScreenshotHash: uploadData.hash
+        utrNumber: cleanedUtr
       });
 
       console.log('[DEBUG-PAYMENT] Payment submission success:', updatedOrder);
@@ -429,7 +397,8 @@ const Checkout = () => {
   };
 
   if (showUPIScreen) {
-    const upiLink = `upi://pay?pa=rawlanineev@okhdfcbank&pn=${encodeURIComponent('Neev Rawlani')}&am=${finalPayable}&cu=INR&tr=${createdOrder?._id}&tn=${encodeURIComponent('Order #' + (createdOrder?._id?.substring(12).toUpperCase() || ''))}`;
+    const upiAmount = createdOrder?.totalAmount ? createdOrder.totalAmount.toFixed(2) : finalPayable;
+    const upiLink = `upi://pay?pa=rawlanineev@okhdfcbank&pn=${encodeURIComponent('Neev Rawlani')}&am=${upiAmount}&cu=INR&tr=${createdOrder?._id}&tn=${encodeURIComponent('Order #' + (createdOrder?._id?.substring(12).toUpperCase() || ''))}`;
     const apiURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://hostelkart-backend.onrender.com');
     const cleanApiURL = apiURL.replace(/\/$/, '');
     const cleanBaseURL = cleanApiURL.endsWith('/api') ? cleanApiURL : `${cleanApiURL}/api`;
@@ -441,7 +410,7 @@ const Checkout = () => {
           <div className="text-center space-y-2 pb-4 border-b border-slate-100">
             <h2 className="text-2xl font-display font-black text-slate-800">Complete Your UPI Payment</h2>
             <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-              Scan the dynamic QR code containing your exact order details, or use the direct UPI app link. Upload your receipt and submit the UTR to complete verification.
+              Scan the dynamic QR code containing your exact order details, or use the direct UPI app link. Submit the UTR to complete verification.
             </p>
             {/* Live countdown timer */}
             <div className="pt-2">
@@ -483,7 +452,7 @@ const Checkout = () => {
             <div className="space-y-6">
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1">Payable Amount</span>
-                <span className="text-3xl font-black text-slate-800 block">₹{finalPayable}</span>
+                <span className="text-3xl font-black text-slate-800 block">₹{createdOrder?.totalAmount ? createdOrder.totalAmount.toFixed(2) : finalPayable}</span>
               </div>
 
               <div className="space-y-2">
@@ -535,60 +504,25 @@ const Checkout = () => {
             </div>
           </div>
 
-          {/* Form: UTR & Screenshot Submission */}
+          {/* Form: UTR Submission */}
           <form onSubmit={handleConfirmUPIPayment} className="border-t border-slate-100 pt-6 space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 block">
-                  Transaction ID / UTR Number <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  disabled={timerExpired}
-                  maxLength={22}
-                  placeholder="Enter 6-22 digit UTR Number"
-                  className="input-field text-sm font-mono font-bold placeholder:font-sans placeholder:font-normal disabled:bg-slate-50 disabled:cursor-not-allowed"
-                  value={utrNumber}
-                  onChange={(e) => setUtrNumber(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
-                />
-                <p className="text-[10px] text-slate-400 leading-normal">
-                  Reference number from your bank app payment receipt screen.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 block">
-                  Upload Payment Screenshot <span className="text-red-500">*</span>
-                </label>
-                <div className="flex items-center space-x-3">
-                  <label className={`cursor-pointer flex items-center space-x-2 btn-secondary py-2.5 px-4 text-xs font-bold shadow-sm ${timerExpired ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <Upload size={14} />
-                    <span>Choose File</span>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleScreenshotChange} 
-                      disabled={timerExpired}
-                      className="hidden" 
-                    />
-                  </label>
-                  {screenshotFile && (
-                    <span className="text-xs text-slate-500 font-medium truncate max-w-[150px]">
-                      {screenshotFile.name}
-                    </span>
-                  )}
-                </div>
-                {screenshotPreview && (
-                  <div className="mt-3 relative w-32 h-32 border border-slate-100 rounded-xl overflow-hidden bg-slate-50">
-                    <img 
-                      src={screenshotPreview} 
-                      alt="Receipt Preview" 
-                      className="w-full h-full object-cover" 
-                    />
-                  </div>
-                )}
-              </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700 block">
+                Transaction ID / UTR Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                disabled={timerExpired}
+                maxLength={22}
+                placeholder="Enter 6-22 digit UTR Number"
+                className="input-field text-sm font-mono font-bold placeholder:font-sans placeholder:font-normal disabled:bg-slate-50 disabled:cursor-not-allowed max-w-md"
+                value={utrNumber}
+                onChange={(e) => setUtrNumber(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+              />
+              <p className="text-[10px] text-slate-400 leading-normal">
+                Reference number from your bank app payment receipt screen.
+              </p>
             </div>
 
             <div className="flex gap-4 pt-2">
