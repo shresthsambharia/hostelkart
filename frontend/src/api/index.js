@@ -47,11 +47,11 @@ API.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Prevent infinite refresh loop on auth endpoints
       if (
         originalRequest.url.includes('/auth/login') ||
         originalRequest.url.includes('/auth/register') ||
-        originalRequest.url.includes('/auth/refresh')
+        originalRequest.url.includes('/auth/refresh') ||
+        originalRequest.url.includes('/auth/2fa/login')
       ) {
         return Promise.reject(error);
       }

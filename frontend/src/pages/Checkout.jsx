@@ -430,7 +430,10 @@ const Checkout = () => {
 
   if (showUPIScreen) {
     const upiLink = `upi://pay?pa=rawlanineev@okhdfcbank&pn=${encodeURIComponent('Neev Rawlani')}&am=${finalPayable}&cu=INR&tr=${createdOrder?._id}&tn=${encodeURIComponent('Order #' + (createdOrder?._id?.substring(12).toUpperCase() || ''))}`;
-    const qrUrl = createdOrder ? `/api/orders/${createdOrder._id}/qr-code` : '';
+    const apiURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://hostelkart-backend.onrender.com');
+    const cleanApiURL = apiURL.replace(/\/$/, '');
+    const cleanBaseURL = cleanApiURL.endsWith('/api') ? cleanApiURL : `${cleanApiURL}/api`;
+    const qrUrl = createdOrder ? `${cleanBaseURL}/orders/${createdOrder._id}/qr-code` : '';
 
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
