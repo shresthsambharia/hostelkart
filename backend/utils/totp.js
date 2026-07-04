@@ -84,7 +84,7 @@ export function generateHOTP(secretBuffer, counter) {
  * @param {number} timeStepSeconds - Step interval in seconds (default: 30)
  * @returns {boolean} True if token matches, false otherwise
  */
-export function verifyTOTP(token, secretBase32, window = 1, timeStepSeconds = 30) {
+export function verifyTOTP(token, secretBase32, window = 2, timeStepSeconds = 30) {
   if (!token || !secretBase32) return false;
   try {
     const secretBuffer = base32Decode(secretBase32);
