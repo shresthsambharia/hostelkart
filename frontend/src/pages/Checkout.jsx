@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { orderAPI, couponAPI, walletAPI } from '../api';
-import { Check, ClipboardList, MapPin, CreditCard, ChevronRight, AlertCircle, Copy } from 'lucide-react';
+import { Check, ClipboardList, MapPin, CreditCard, ChevronRight, AlertCircle, Copy, Upload, Image } from 'lucide-react';
 
 const Checkout = () => {
   const { cart, total, itemsCount, clearCart } = useCart();
@@ -29,6 +30,13 @@ const Checkout = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [showUPIScreen, setShowUPIScreen] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // New payment states
+  const [createdOrder, setCreatedOrder] = useState(null);
+  const [screenshotFile, setScreenshotFile] = useState(null);
+  const [screenshotPreview, setScreenshotPreview] = useState(null);
+  const [timeLeftSec, setTimeLeftSec] = useState(900);
+  const [timerExpired, setTimerExpired] = useState(false);
 
   // Coupon states
   const [couponCode, setCouponCode] = useState('');
@@ -105,6 +113,45 @@ const Checkout = () => {
   const finalPayable = Math.max(0, intermediateTotal - walletDeduction);
   const finalTotal = subtotalWithFees;
 
+
+  useEffect(() => {
+    if (!showUPIScreen || !createdOrder?.paymentExpiresAt) return;
+    
+    const calculateTimeLeft = () => {
+      const difference = new Date(createdOrder.paymentExpiresAt) - new Date();
+      if (difference <= 0) {
+        setTimeLeftSec(0);
+        setTimerExpired(true);
+        return;
+      }
+      setTimeLeftSec(Math.floor(difference / 1000));
+    };
+
+    calculateTimeLeft();
+    const interval = setInterval(calculateTimeLeft, 1000);
+    return () => clearInterval(interval);
+  }, [showUPIScreen, createdOrder]);
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleScreenshotChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      setErrorMsg('Allowed image formats: JPG, JPEG, PNG, WEBP');
+      return;
+    }
+
+    setScreenshotFile(file);
+    setScreenshotPreview(URL.createObjectURL(file));
+    setErrorMsg('');
+  };
 
   // Load user hostel details on mount
   useEffect(() => {
@@ -214,7 +261,7 @@ const Checkout = () => {
     if (e) e.preventDefault();
     setErrorMsg('');
 
-    if (!name || !phone || !hostelName || !block || !floor || !roomNumber) {
+    if (!name || !phone || !hostelName || block === '' || floor === '' || !roomNumber) {
       setErrorMsg('Please fill in all address and contact details');
       return;
     }
@@ -224,12 +271,69 @@ const Checkout = () => {
       return;
     }
 
+    setLoading(true);
+
     if (paymentMethod === 'ONLINE') {
-      setShowUPIScreen(true);
-      setErrorMsg('');
+      try {
+        const orderItems = cart.items.map(item => ({
+          product: item.product._id,
+          name: item.product.name,
+          quantity: item.quantity,
+          price: item.product.price,
+          discount: item.product.discount || 0
+        }));
+
+        const deliveryDetails = {
+          hostelName,
+          block,
+          floor,
+          roomNumber,
+          phone,
+          alternatePhone,
+          landmark,
+          deliveryInstructions
+        };
+
+        const finalDeliverySlot = deliverySlot === 'Custom Time Slot' ? customSlot : deliverySlot;
+
+        // Immediately place order in Pending Payment state
+        console.log('[DEBUG-PAYMENT] Creating Pending Payment UPI order...');
+        const { data } = await orderAPI.create({
+          orderItems,
+          deliveryDetails,
+          deliverySlot: finalDeliverySlot,
+          paymentMethod: 'UPI',
+          paymentStatus: 'Pending Payment',
+          platformFee,
+          deliveryCharge,
+          totalAmount: finalPayable,
+          couponCode: couponApplied ? couponCode : '',
+          walletPaidAmount: walletDeduction
+        });
+
+        console.log('[DEBUG-PAYMENT] UPI order created:', data);
+
+        // Save hostel details in profile
+        try {
+          await updateProfile({
+            name,
+            phone,
+            hostelDetails: deliveryDetails
+          });
+        } catch (profileErr) {
+          console.warn('Failed to update profile hostel details', profileErr);
+        }
+
+        setCreatedOrder(data);
+        setShowUPIScreen(true);
+        setLoading(false);
+      } catch (err) {
+        console.error('[DEBUG-PAYMENT] Failed to create pending order:', err);
+        setErrorMsg(err.response?.data?.message || 'Failed to place order. Try again.');
+        setLoading(false);
+      }
     } else {
       // Cash on Delivery
-      setLoading(true);
       await completeOrderPlacement('Pending');
     }
   };
@@ -253,72 +357,84 @@ const Checkout = () => {
 
   const handleConfirmUPIPayment = async (e) => {
     if (e) e.preventDefault();
+    setErrorMsg('');
+
+    if (timerExpired) {
+      setErrorMsg('This payment session has expired. Please return to products to place a new order.');
+      return;
+    }
+
     if (!utrNumber.trim()) {
       setErrorMsg('Please enter the UTR/Transaction Number to verify payment');
       return;
     }
-    if (utrNumber.length < 6) {
-      setErrorMsg('Please enter a valid Transaction ID / UTR Number');
+    const cleanedUtr = utrNumber.trim();
+    const utrRegex = /^[a-zA-Z0-9]{6,22}$/;
+    if (!utrRegex.test(cleanedUtr)) {
+      setErrorMsg('UTR/Transaction ID must be alphanumeric and between 6 and 22 characters.');
+      return;
+    }
+
+    if (!screenshotFile) {
+      setErrorMsg('Please upload a payment screenshot/receipt to proceed.');
       return;
     }
 
     setLoading(true);
-    setErrorMsg('');
 
     try {
-      const orderItems = cart.items.map(item => ({
-        product: item.product._id,
-        name: item.product.name,
-        quantity: item.quantity,
-        price: item.product.price,
-        discount: item.product.discount || 0
-      }));
+      // 1. Upload screenshot
+      console.log('[DEBUG-PAYMENT] Uploading payment screenshot...');
+      const formData = new FormData();
+      formData.append('image', screenshotFile);
+      
+      const { data: uploadData } = await axios.post('/api/upload/payment-screenshot', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      console.log('[DEBUG-PAYMENT] Screenshot uploaded successfully:', uploadData);
 
-      console.log('[DEBUG-PAYMENT] Submitting UPI order to backend with UTR:', utrNumber);
-      const { data } = await orderAPI.create({
-        orderItems,
-        deliveryDetails: {
-          hostelName,
-          block,
-          floor,
-          roomNumber,
-          phone,
-          alternatePhone,
-          landmark,
-          deliveryInstructions
-        },
-        deliverySlot: deliverySlot === 'Custom Time Slot' ? customSlot : deliverySlot,
-        paymentMethod: 'UPI',
-        paymentStatus: 'Payment Pending Verification',
-        platformFee,
-        deliveryCharge,
-        totalAmount: finalPayable,
-        couponCode: couponApplied ? couponCode : '',
-        walletPaidAmount: walletDeduction,
-        utrNumber
+      // 2. Submit payment info
+      console.log('[DEBUG-PAYMENT] Submitting payment details for order:', createdOrder._id);
+      const { data: updatedOrder } = await axios.put(`/api/orders/${createdOrder._id}/submit-payment`, {
+        utrNumber: cleanedUtr,
+        paymentScreenshot: uploadData.url,
+        paymentScreenshotHash: uploadData.hash
       });
 
-      console.log('[DEBUG-PAYMENT] UPI Order created:', data);
-      clearCart();
-      navigate(`/order-success?id=${data._id}`);
+      console.log('[DEBUG-PAYMENT] Payment submission success:', updatedOrder);
+      await clearCart();
+      navigate(`/order-success?id=${updatedOrder._id}`);
     } catch (err) {
-      console.error('[DEBUG-PAYMENT] Failed to create UPI order:', err);
-      setErrorMsg(err.response?.data?.message || 'Failed to place order. Please try again.');
+      console.error('[DEBUG-PAYMENT] Failed to submit payment details:', err);
+      setErrorMsg(err.response?.data?.message || 'Failed to submit payment. Please verify your UTR and screenshot.');
       setLoading(false);
     }
   };
 
   if (showUPIScreen) {
-    const upiLink = `upi://pay?pa=rawlanineev@okhdfcbank&pn=HostelKart&am=${finalPayable}&cu=INR&tn=HostelKart%20Order%20Payment`;
+    const upiLink = `upi://pay?pa=rawlanineev@okhdfcbank&pn=${encodeURIComponent('Neev Rawlani')}&am=${finalPayable}&cu=INR&tr=${createdOrder?._id}&tn=${encodeURIComponent('Order #' + (createdOrder?._id?.substring(12).toUpperCase() || ''))}`;
+    const qrUrl = createdOrder ? `/api/orders/${createdOrder._id}/qr-code` : '';
 
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-100 shadow-premium space-y-6">
           <div className="text-center space-y-2 pb-4 border-b border-slate-100">
-            <h2 className="text-2xl font-black text-slate-800 font-display">Complete Your UPI Payment</h2>
+            <h2 className="text-2xl font-display font-black text-slate-800">Complete Your UPI Payment</h2>
             <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-              Scan the QR code below or use a UPI app to pay. Once completed, enter your UTR/Transaction Number.
+              Scan the dynamic QR code containing your exact order details, or use the direct UPI app link. Upload your receipt and submit the UTR to complete verification.
             </p>
+            {/* Live countdown timer */}
+            <div className="pt-2">
+              {timerExpired ? (
+                <div className="bg-red-50 border border-red-100 text-red-700 text-xs font-bold py-2 px-4 rounded-xl inline-block">
+                  🚨 Payment Time Expired. Stock has been released.
+                </div>
+              ) : (
+                <div className="bg-amber-50 border border-amber-100 text-amber-800 text-xs font-bold py-2 px-4 rounded-xl inline-block animate-pulse">
+                  ⏱️ Payment session expires in: <span className="font-mono text-sm">{formatTime(timeLeftSec)}</span>
+                </div>
+              )}
+            </div>
           </div>
 
           {errorMsg && (
@@ -331,13 +447,15 @@ const Checkout = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             {/* Left Column: QR Code */}
             <div className="flex flex-col items-center justify-center space-y-3 bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-100/50">
-              <img 
-                src="/upi-qr.png" 
-                alt="UPI Payment QR Code" 
-                className="w-56 h-56 sm:w-64 sm:h-64 object-contain rounded-xl shadow-sm border border-slate-200"
-              />
+              {qrUrl && (
+                <img 
+                  src={qrUrl} 
+                  alt="Dynamic UPI Payment QR Code" 
+                  className="w-56 h-56 sm:w-64 sm:h-64 object-contain rounded-xl shadow-sm border border-slate-200 bg-white"
+                />
+              )}
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                Scan using any UPI App
+                Scan using Google Pay, PhonePe, Paytm, BHIM
               </span>
             </div>
 
@@ -349,19 +467,25 @@ const Checkout = () => {
               </div>
 
               <div className="space-y-2">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Merchant UPI ID</span>
-                <div className="flex items-center space-x-2 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                  <span className="text-sm font-mono font-bold text-slate-700 flex-1 select-all truncate">
-                    rawlanineev@okhdfcbank
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleCopyUPI}
-                    className="btn-secondary py-1.5 px-3 text-xs shrink-0 font-bold flex items-center gap-1"
-                  >
-                    <Copy size={12} />
-                    <span>{copied ? 'Copied' : 'Copy'}</span>
-                  </button>
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Merchant Details</span>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1.5 text-xs text-slate-600">
+                  <div>
+                    <strong>Name:</strong> Neev Rawlani
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <strong className="shrink-0">UPI ID:</strong>
+                    <span className="font-mono font-bold text-slate-700 select-all truncate">
+                      rawlanineev@okhdfcbank
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopyUPI}
+                      className="btn-secondary py-1 px-2 text-[10px] shrink-0 font-bold flex items-center gap-1"
+                    >
+                      <Copy size={10} />
+                      <span>{copied ? 'Copied' : 'Copy'}</span>
+                    </button>
+                  </div>
                 </div>
                 {copied && (
                   <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">
@@ -370,39 +494,81 @@ const Checkout = () => {
                 )}
               </div>
 
-              {/* UPI Intent Deep Link Button (shows primarily on mobile) */}
+              {/* UPI Intent Deep Link Button */}
               <div className="space-y-2 pt-2">
                 <a
-                  href={upiLink}
-                  className="w-full btn-primary py-3 flex items-center justify-center space-x-2 text-sm font-black shadow-md hover:shadow-lg transition-all"
+                  href={timerExpired ? '#' : upiLink}
+                  onClick={(e) => {
+                    if (timerExpired) {
+                      e.preventDefault();
+                      alert('Payment session has expired.');
+                    }
+                  }}
+                  className={`w-full btn-primary py-3 flex items-center justify-center space-x-2 text-sm font-black shadow-md hover:shadow-lg transition-all text-white ${timerExpired ? 'opacity-50 pointer-events-none' : ''}`}
                 >
-                  <span>Open in UPI App (GPay / PhonePe / Paytm)</span>
+                  <span>Open in UPI App</span>
                 </a>
                 <p className="text-[10px] text-slate-400 text-center leading-normal">
-                  If on mobile, click to pay directly with Google Pay, PhonePe, Paytm, or BHIM.
+                  Click to open payment directly in your installed UPI app (GPay / PhonePe / Paytm).
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Form: UTR Submission */}
-          <form onSubmit={handleConfirmUPIPayment} className="border-t border-slate-100 pt-6 space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-700 block">
-                Transaction ID / UTR Number <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                maxLength={20}
-                placeholder="Enter 12-digit UTR or Transaction Ref"
-                className="input-field text-sm font-mono font-bold placeholder:font-sans placeholder:font-normal"
-                value={utrNumber}
-                onChange={(e) => setUtrNumber(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
-              />
-              <p className="text-[10px] text-slate-400 leading-normal">
-                Please enter the reference number from your payment confirmation screen to help us verify your transfer.
-              </p>
+          {/* Form: UTR & Screenshot Submission */}
+          <form onSubmit={handleConfirmUPIPayment} className="border-t border-slate-100 pt-6 space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Transaction ID / UTR Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  disabled={timerExpired}
+                  maxLength={22}
+                  placeholder="Enter 6-22 digit UTR Number"
+                  className="input-field text-sm font-mono font-bold placeholder:font-sans placeholder:font-normal disabled:bg-slate-50 disabled:cursor-not-allowed"
+                  value={utrNumber}
+                  onChange={(e) => setUtrNumber(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                />
+                <p className="text-[10px] text-slate-400 leading-normal">
+                  Reference number from your bank app payment receipt screen.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Upload Payment Screenshot <span className="text-red-500">*</span>
+                </label>
+                <div className="flex items-center space-x-3">
+                  <label className={`cursor-pointer flex items-center space-x-2 btn-secondary py-2.5 px-4 text-xs font-bold shadow-sm ${timerExpired ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <Upload size={14} />
+                    <span>Choose File</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleScreenshotChange} 
+                      disabled={timerExpired}
+                      className="hidden" 
+                    />
+                  </label>
+                  {screenshotFile && (
+                    <span className="text-xs text-slate-500 font-medium truncate max-w-[150px]">
+                      {screenshotFile.name}
+                    </span>
+                  )}
+                </div>
+                {screenshotPreview && (
+                  <div className="mt-3 relative w-32 h-32 border border-slate-100 rounded-xl overflow-hidden bg-slate-50">
+                    <img 
+                      src={screenshotPreview} 
+                      alt="Receipt Preview" 
+                      className="w-full h-full object-cover" 
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-4 pt-2">
@@ -418,10 +584,10 @@ const Checkout = () => {
               </button>
               <button
                 type="submit"
-                disabled={loading}
-                className="flex-1 btn-primary py-3 text-sm font-black shadow-md hover:shadow-lg disabled:opacity-50"
+                disabled={loading || timerExpired}
+                className="flex-1 btn-primary py-3 text-sm font-black shadow-md hover:shadow-lg disabled:opacity-50 text-white"
               >
-                {loading ? 'Processing...' : 'I have completed the payment'}
+                {loading ? 'Submitting Details...' : 'Submit Payment Verification Details'}
               </button>
             </div>
           </form>

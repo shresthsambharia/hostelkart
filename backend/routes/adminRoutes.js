@@ -18,6 +18,7 @@ import {
   updatePaymentSettings,
   updateOrderPaymentStatus,
   getAdminLogs,
+  createOrderRefund,
 } from '../controllers/adminController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 import { logAdminActivity } from '../middleware/adminLogMiddleware.js';
@@ -39,6 +40,7 @@ router.get('/orders', getAllOrders);
 router.put('/orders/:id/status', updateOrderStatus);
 router.put('/orders/:id/assign', assignDeliveryPartner);
 router.put('/orders/:id/payment', updateOrderPaymentStatus);
+router.post('/orders/:id/refund', createOrderRefund);
 
 router.get('/users', getAllUsers);
 router.route('/delivery-partners')

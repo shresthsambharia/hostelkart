@@ -19,8 +19,15 @@ const logAdminActivity = asyncHandler(async (req, res, next) => {
           // Redact passwords if any
           if (details.body.password) details.body.password = '***REDACTED***';
 
+          let orderNumber = req.orderNumber || '';
+          if (!orderNumber && req.params.id) {
+            orderNumber = req.params.id;
+          }
+
           await AdminLog.create({
             admin: req.user._id,
+            adminName: req.user.name,
+            orderNumber,
             action,
             method: req.method,
             url: req.originalUrl,

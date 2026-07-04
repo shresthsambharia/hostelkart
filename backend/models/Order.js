@@ -21,8 +21,20 @@ const timelineSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-  note: { type: String, default: '' },
 });
+
+const refundSchema = new mongoose.Schema({
+  amount: { type: Number, required: true },
+  reason: { type: String, default: '' },
+  internalNotes: { type: String, default: '' },
+  status: {
+    type: String,
+    enum: ['Pending', 'Processing', 'Refunded', 'Rejected'],
+    default: 'Pending',
+  },
+  refundDate: { type: Date, default: Date.now },
+  refundedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+}, { timestamps: true });
 
 const orderSchema = new mongoose.Schema(
   {
@@ -52,12 +64,21 @@ const orderSchema = new mongoose.Schema(
     },
     paymentStatus: {
       type: String,
-      enum: ['Pending', 'Paid', 'Failed', 'Verification Pending', 'Pending Verification', 'Payment Pending Verification', 'Pending Payment', 'Rejected', 'Refunded', 'PAID', 'FAILED'],
+      enum: [
+        'Pending', 'Paid', 'Failed', 'Verification Pending', 'Pending Verification', 
+        'Payment Pending Verification', 'Pending Payment', 'Rejected', 'Refunded', 
+        'PAID', 'FAILED', 'Payment Submitted', 'Refund Pending', 'Payment Expired'
+      ],
       default: 'Pending',
     },
     orderStatus: {
       type: String,
-      enum: ['Pending', 'Confirmed', 'Packed', 'Out for Delivery', 'Delivered', 'Cancelled', 'Delivery Failed', 'Pending Payment', 'Payment Pending Verification', 'Paid', 'Rejected'],
+      enum: [
+        'Pending', 'Confirmed', 'Packed', 'Out for Delivery', 'Delivered', 
+        'Cancelled', 'Delivery Failed', 'Pending Payment', 'Payment Pending Verification', 
+        'Paid', 'Rejected', 'Payment Submitted', 'Pending Verification', 
+        'Refund Pending', 'Refunded', 'Payment Expired'
+      ],
       default: 'Pending',
     },
     platformFee: {
@@ -100,6 +121,17 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    paymentExpiresAt: {
+      type: Date,
+    },
+    paymentScreenshot: {
+      type: String,
+      default: '',
+    },
+    paymentScreenshotHash: {
+      type: String,
+      default: '',
+    },
     paymentProvider: {
       type: String,
       default: 'COD',
@@ -125,7 +157,7 @@ const orderSchema = new mongoose.Schema(
     },
     refundStatus: {
       type: String,
-      enum: ['NOT_REQUESTED', 'PROCESSING', 'REFUNDED', 'FAILED'],
+      enum: ['NOT_REQUESTED', 'PROCESSING', 'REFUNDED', 'FAILED', 'PARTIAL_REFUNDED'],
       default: 'NOT_REQUESTED',
     },
     refundId: {
@@ -173,6 +205,7 @@ const orderSchema = new mongoose.Schema(
       default: '',
     },
     timeline: [timelineSchema],
+    refunds: [refundSchema],
   },
   {
     timestamps: true,

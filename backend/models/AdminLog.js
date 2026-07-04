@@ -6,6 +6,14 @@ const adminLogSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  adminName: {
+    type: String,
+    default: '',
+  },
+  orderNumber: {
+    type: String,
+    default: '',
+  },
   action: {
     type: String,
     required: true,

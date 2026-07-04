@@ -2,6 +2,8 @@ import path from 'path';
 import fs from 'fs';
 import express from 'express';
 import dotenv from 'dotenv';
+import Order from './models/Order.js';
+import Product from './models/Product.js';
 import cors from 'cors';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
@@ -192,8 +194,54 @@ io.on('connection', (socket) => {
   });
 });
 
+// Background Payment Expiration Monitor (runs every 30 seconds)
+const startPaymentExpirationMonitor = (ioInstance) => {
+  setInterval(async () => {
+    try {
+      const now = new Date();
+      const expiredOrders = await Order.find({
+        paymentMethod: 'UPI',
+        paymentStatus: 'Pending Payment',
+        paymentExpiresAt: { $lt: now }
+      });
+
+      for (const order of expiredOrders) {
+        order.paymentStatus = 'Failed';
+        order.orderStatus = 'Payment Expired';
+        order.cancellationReason = 'Payment session expired';
+        order.timeline.push({
+          status: 'Payment Expired',
+          note: 'Payment session expired. Reserved stock released.',
+        });
+
+        // Restore stocks
+        for (const item of order.items) {
+          await Product.findByIdAndUpdate(item.product, {
+            $inc: { stock: item.quantity },
+          });
+        }
+
+        await order.save();
+        console.log(`[Expiration Monitor] Expired payment session for order #${order._id.toString().substring(12).toUpperCase()}`);
+        
+        // Broadcast socket status update
+        if (ioInstance) {
+          ioInstance.to(`order_${order._id}`).emit('status_updated', {
+            orderId: order._id,
+            orderStatus: order.orderStatus,
+            paymentStatus: order.paymentStatus
+          });
+        }
+      }
+    } catch (err) {
+      console.error('[Expiration Monitor Error]:', err);
+    }
+  }, 30000);
+};
+
 // Set io globally on Express app so controllers can access it
 app.set('io', io);
+startPaymentExpirationMonitor(io);
 
 const PORT = process.env.PORT || 5000;
 

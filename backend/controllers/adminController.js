@@ -1,4 +1,5 @@
 import asyncHandler from 'express-async-handler';
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
@@ -7,20 +8,25 @@ import DeliveryPartner from '../models/DeliveryPartner.js';
 import Settings from '../models/Settings.js';
 import { createAlert } from './notificationController.js';
 import { deleteFromCloudinary, getPublicIdFromUrl } from '../config/cloudinary.js';
+import AdminLog from '../models/AdminLog.js';
 
 // @desc    Get Admin Dashboard Analytics
 // @route   GET /api/admin/analytics
 // @access  Private/Admin
 const getDashboardAnalytics = asyncHandler(async (req, res) => {
+  // Today's boundaries
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+
   // 1. Total revenue (Delivered or Paid orders)
   const paidOrDeliveredOrders = await Order.find({
     $or: [{ orderStatus: 'Delivered' }, { paymentStatus: 'Paid' }]
   });
   const totalRevenue = paidOrDeliveredOrders.reduce((acc, order) => acc + order.totalAmount, 0);
-
-  // Today's boundaries (local or standard server day)
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
 
   // Today's revenue
   const todayPaidOrDelivered = await Order.find({
@@ -29,12 +35,57 @@ const getDashboardAnalytics = asyncHandler(async (req, res) => {
   });
   const todayRevenue = todayPaidOrDelivered.reduce((acc, order) => acc + order.totalAmount, 0);
 
+  // Today's Verified Payments
+  const todayVerifiedOrders = await Order.find({
+    createdAt: { $gte: todayStart },
+    paymentStatus: 'Paid'
+  });
+  const todayVerifiedRevenue = todayVerifiedOrders.reduce((acc, o) => acc + o.totalAmount, 0);
+
+  // Today's Pending Payments
+  const todayPendingOrders = await Order.find({
+    createdAt: { $gte: todayStart },
+    paymentStatus: { $in: ['Pending Payment', 'Payment Submitted', 'Pending Verification', 'Payment Pending Verification'] }
+  });
+  const todayPendingAmount = todayPendingOrders.reduce((acc, o) => acc + o.totalAmount, 0);
+  const todayPendingCount = todayPendingOrders.length;
+
+  // Today's Refunds
+  const todayRefundedOrders = await Order.find({
+    'refunds.refundDate': { $gte: todayStart }
+  });
+  let todayRefundsAmount = 0;
+  for (const o of todayRefundedOrders) {
+    for (const r of o.refunds) {
+      if (new Date(r.refundDate) >= todayStart && r.status === 'Refunded') {
+        todayRefundsAmount += r.amount;
+      }
+    }
+  }
+
+  // Monthly Revenue
+  const monthlyOrders = await Order.find({
+    createdAt: { $gte: monthStart },
+    $or: [{ orderStatus: 'Delivered' }, { paymentStatus: 'Paid' }]
+  });
+  const monthlyRevenue = monthlyOrders.reduce((acc, o) => acc + o.totalAmount, 0);
+
+  // Average Order Value
+  const averageOrderValue = paidOrDeliveredOrders.length > 0 
+    ? totalRevenue / paidOrDeliveredOrders.length
+    : 0;
+
+  // Pending Verification Count (All time)
+  const pendingVerificationCount = await Order.countDocuments({
+    paymentStatus: { $in: ['Payment Submitted', 'Pending Verification', 'Payment Pending Verification'] }
+  });
+
   // 2. Orders summary
   const totalOrders = await Order.countDocuments({});
   const todayOrders = await Order.countDocuments({ createdAt: { $gte: todayStart } });
   const pendingOrders = await Order.countDocuments({ orderStatus: 'Pending' });
   const deliveredOrders = await Order.countDocuments({ orderStatus: 'Delivered' });
-  const cancelledOrders = await Order.countDocuments({ orderStatus: { $in: ['Cancelled', 'Delivery Failed'] } });
+  const cancelledOrders = await Order.countDocuments({ orderStatus: { $in: ['Cancelled', 'Delivery Failed', 'Payment Expired'] } });
 
   // 3. Users and Products summary
   const totalUsers = await User.countDocuments({ role: 'student' });
@@ -187,6 +238,13 @@ const getDashboardAnalytics = asyncHandler(async (req, res) => {
   res.json({
     totalRevenue,
     todayRevenue,
+    todayVerifiedRevenue,
+    todayPendingAmount,
+    todayPendingCount,
+    todayRefundsAmount,
+    monthlyRevenue,
+    averageOrderValue,
+    pendingVerificationCount,
     totalOrders,
     todayOrders,
     pendingOrders,
@@ -306,11 +364,55 @@ const deleteProduct = asyncHandler(async (req, res) => {
 // @desc    Get all orders list
 // @route   GET /api/admin/orders
 // @access  Private/Admin
+// @desc    Get all orders list with advanced search & filters
+// @route   GET /api/admin/orders
+// @access  Private/Admin
 const getAllOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find({})
+  const { search, status, hostel, date } = req.query;
+  let query = {};
+
+  if (status) {
+    query.orderStatus = status;
+  }
+  if (hostel) {
+    query['deliveryDetails.hostelName'] = { $regex: hostel, $options: 'i' };
+  }
+  if (date) {
+    const startDate = new Date(date);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999);
+    query.createdAt = { $gte: startDate, $lte: endDate };
+  }
+
+  if (search) {
+    const users = await User.find({
+      $or: [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ]
+    });
+    const userIds = users.map(u => u._id);
+
+    const conditions = [
+      { user: { $in: userIds } },
+      { utrNumber: { $regex: search, $options: 'i' } },
+      { 'deliveryDetails.phone': { $regex: search, $options: 'i' } },
+      { 'deliveryDetails.hostelName': { $regex: search, $options: 'i' } }
+    ];
+
+    if (mongoose.Types.ObjectId.isValid(search)) {
+      conditions.push({ _id: search });
+    }
+
+    query.$or = conditions;
+  }
+
+  const orders = await Order.find(query)
     .populate('user', 'name email')
     .populate('deliveryPartner', 'name email phone')
     .sort({ createdAt: -1 });
+
   res.json(orders);
 });
 
@@ -704,24 +806,31 @@ const updatePaymentSettings = asyncHandler(async (req, res) => {
   res.json(settings.value);
 });
 
-// @desc    Update order payment status (verify or reject)
+// @desc    Update order payment status (verify or reject or request info)
 // @route   PUT /api/admin/orders/:id/payment
 // @access  Private/Admin
 const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
-  const { paymentStatus } = req.body;
+  const { paymentStatus, note } = req.body;
   const order = await Order.findById(req.params.id);
 
   if (order) {
     const oldPaymentStatus = order.paymentStatus;
+    
+    // Set orderNumber on request so the logging middleware logs it
+    req.orderNumber = order._id.toString().substring(12).toUpperCase();
+
     order.paymentStatus = paymentStatus;
     
     order.timeline.push({
       status: order.orderStatus,
-      note: `Payment status updated to ${paymentStatus} by Admin`,
+      note: `Payment status updated to ${paymentStatus} by Admin. Note: ${note || 'None'}`,
     });
 
-    if (paymentStatus === 'Paid' && oldPaymentStatus !== 'Paid') {
+    if ((paymentStatus === 'Paid' || paymentStatus === 'Verified') && oldPaymentStatus !== 'Paid') {
+      order.paymentStatus = 'Paid';
       order.orderStatus = 'Confirmed';
+      order.paidAt = Date.now();
+      
       order.timeline.push({
         status: 'Confirmed',
         note: 'Payment verified and approved by Admin. Order confirmed.',
@@ -748,14 +857,24 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
       } catch (err) {
         console.error('[Verify Push Error]:', err.message);
       }
+      
+      // Notify customer in DB
+      await createAlert(
+        order.user,
+        'Payment Approved',
+        `Your payment for Order #${order._id.toString().substring(12).toUpperCase()} has been approved and verified!`,
+        'StatusUpdate'
+      );
+
     } else if (['Failed', 'Rejected'].includes(paymentStatus) && !['Failed', 'Rejected'].includes(oldPaymentStatus)) {
       order.paymentStatus = 'Failed';
       order.orderStatus = 'Cancelled';
       order.cancelledAt = Date.now();
-      order.cancellationReason = 'Payment verification rejected by admin';
+      order.cancellationReason = note || 'Payment verification rejected by admin';
+      
       order.timeline.push({
         status: 'Cancelled',
-        note: 'Order cancelled due to payment rejection.',
+        note: `Order cancelled. Reason: ${note || 'Payment verification rejected by admin'}`,
       });
 
       // Restock products on rejection
@@ -772,9 +891,42 @@ const updateOrderPaymentStatus = asyncHandler(async (req, res) => {
       } catch (err) {
         console.error('[Reject Push Error]:', err.message);
       }
+
+      // Notify customer in DB
+      await createAlert(
+        order.user,
+        'Payment Rejected',
+        `Your payment verification failed for Order #${order._id.toString().substring(12).toUpperCase()}. Reason: ${note || 'Verification failed'}`,
+        'StatusUpdate'
+      );
+    } else if (['Information Requested', 'Request Info', 'Request More Information'].includes(paymentStatus)) {
+      order.paymentStatus = 'Verification Pending'; // Keep it pending
+      order.timeline.push({
+        status: order.orderStatus,
+        note: `Admin requested more payment information. Message: ${note || 'Please check your transaction details.'}`,
+      });
+
+      // Notify customer in DB
+      await createAlert(
+        order.user,
+        'Payment Information Requested',
+        `Admin requested more payment information for Order #${order._id.toString().substring(12).toUpperCase()}: "${note || 'Please check your UTR number or screenshot.'}"`,
+        'StatusUpdate'
+      );
     }
 
     const updatedOrder = await order.save();
+
+    // Broadcast status update
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`order_${order._id}`).emit('status_updated', {
+        orderId: order._id,
+        orderStatus: order.orderStatus,
+        paymentStatus: order.paymentStatus
+      });
+    }
+
     res.json(updatedOrder);
   } else {
     res.status(404);
@@ -792,6 +944,105 @@ const getAdminLogs = asyncHandler(async (req, res) => {
     .sort({ timestamp: -1 })
     .limit(200);
   res.json(logs);
+});
+
+// @desc    Issue a refund for an order
+// @route   POST /api/admin/orders/:id/refund
+// @access  Private/Admin
+const createOrderRefund = asyncHandler(async (req, res) => {
+  const { amount, reason, internalNotes, status, refundDate } = req.body;
+  const order = await Order.findById(req.params.id);
+
+  if (!order) {
+    res.status(404);
+    throw new Error('Order not found');
+  }
+
+  // Set orderNumber on request so the logging middleware logs it
+  req.orderNumber = order._id.toString().substring(12).toUpperCase();
+
+  const refundAmt = Number(amount);
+  if (isNaN(refundAmt) || refundAmt <= 0) {
+    res.status(400);
+    throw new Error('Refund amount must be a positive number');
+  }
+
+  // Calculate previously refunded amount
+  const totalRefunded = order.refunds.reduce((acc, r) => {
+    if (r.status === 'Refunded') return acc + r.amount;
+    return acc;
+  }, 0);
+
+  const maxRefundable = order.totalAmount - totalRefunded;
+  if (refundAmt > maxRefundable + 0.01) {
+    res.status(400);
+    throw new Error(`Refund amount exceeds the maximum refundable amount of ₹${maxRefundable.toFixed(2)}`);
+  }
+
+  // Push new refund record
+  const refundRecord = {
+    amount: refundAmt,
+    reason: reason || 'Merchant refund',
+    internalNotes: internalNotes || '',
+    status: status || 'Pending',
+    refundDate: refundDate ? new Date(refundDate) : new Date(),
+    refundedBy: req.user._id,
+  };
+
+  order.refunds.push(refundRecord);
+
+  // Update order status if refund is completed (Refunded)
+  if (status === 'Refunded') {
+    const isFullRefund = Math.abs(refundAmt - maxRefundable) < 0.05;
+    order.paymentStatus = isFullRefund ? 'Refunded' : 'Paid';
+    order.orderStatus = isFullRefund ? 'Refunded' : order.orderStatus;
+    order.refundStatus = isFullRefund ? 'REFUNDED' : 'PARTIAL_REFUNDED';
+    order.refundAmount = (order.refundAmount || 0) + refundAmt;
+    order.refundedAt = new Date();
+    order.refundReason = reason || 'Refund processed';
+
+    order.timeline.push({
+      status: isFullRefund ? 'Refunded' : order.orderStatus,
+      note: `Refund of ₹${refundAmt} processed successfully by Admin. Reason: ${reason || 'None'}`,
+    });
+
+    // Notify customer in DB
+    await createAlert(
+      order.user,
+      'Refund Completed',
+      `Your refund of ₹${refundAmt} for Order #${order._id.toString().substring(12).toUpperCase()} has been completed!`,
+      'StatusUpdate'
+    );
+  } else {
+    // If pending or processing
+    order.paymentStatus = 'Refund Pending';
+    order.timeline.push({
+      status: order.orderStatus,
+      note: `Refund of ₹${refundAmt} is in status: ${status}. Reason: ${reason || 'None'}`,
+    });
+
+    // Notify customer in DB
+    await createAlert(
+      order.user,
+      'Refund Approved',
+      `Your refund request of ₹${refundAmt} for Order #${order._id.toString().substring(12).toUpperCase()} has been approved and is being processed.`,
+      'StatusUpdate'
+    );
+  }
+
+  const updatedOrder = await order.save();
+
+  // Broadcast status update
+  const io = req.app.get('io');
+  if (io) {
+    io.to(`order_${order._id}`).emit('status_updated', {
+      orderId: order._id,
+      orderStatus: order.orderStatus,
+      paymentStatus: order.paymentStatus
+    });
+  }
+
+  res.json(updatedOrder);
 });
 
 export {
@@ -813,4 +1064,5 @@ export {
   updatePaymentSettings,
   updateOrderPaymentStatus,
   getAdminLogs,
+  createOrderRefund,
 };

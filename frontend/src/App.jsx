@@ -38,6 +38,7 @@ const PaymentDebug = React.lazy(() => import('./pages/PaymentDebug'));
 const PaymentTest = React.lazy(() => import('./pages/PaymentTest'));
 const Wallet = React.lazy(() => import('./pages/Wallet'));
 const ReferralDashboard = React.lazy(() => import('./pages/ReferralDashboard'));
+const PaymentHistory = React.lazy(() => import('./pages/PaymentHistory'));
 
 // Static info pages
 const About = React.lazy(() => import('./pages/About'));
@@ -54,6 +55,7 @@ const AdminUsers = React.lazy(() => import('./admin/AdminUsers'));
 const AdminCustomRequests = React.lazy(() => import('./admin/AdminCustomRequests'));
 const AdminSettings = React.lazy(() => import('./admin/AdminSettings'));
 const AdminCoupons = React.lazy(() => import('./admin/AdminCoupons'));
+const PaymentDashboard = React.lazy(() => import('./admin/PaymentDashboard'));
 
 // Delivery Dashboard pages
 const DeliveryDashboard = React.lazy(() => import('./delivery/DeliveryDashboard'));
@@ -268,6 +270,15 @@ const AppContent = () => {
             }
           />
           
+          <Route
+            path="/payment-history"
+            element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <PaymentHistory />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Profile Shared Protected Route (Available to student, admin, delivery) */}
           <Route
             path="/profile"
@@ -300,6 +311,14 @@ const AppContent = () => {
             element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AdminOrders />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/payments"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <PaymentDashboard />
               </ProtectedRoute>
             }
           />

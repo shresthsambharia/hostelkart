@@ -6,16 +6,17 @@ import User from '../models/User.js';
 import Settings from '../models/Settings.js';
 import { createAlert } from './notificationController.js';
 import sendEmail from '../utils/sendEmail.js';
+import QRCode from 'qrcode';
 
 // @desc    Create new order
 // @route   POST /api/orders
 // @access  Private/Student
 const createOrder = asyncHandler(async (req, res) => {
   if (req.body.utrNumber) {
-    const existingOrder = await Order.findOne({ utrNumber: req.body.utrNumber });
+    const existingOrder = await Order.findOne({ utrNumber: req.body.utrNumber.trim() });
     if (existingOrder) {
-      console.log('[DEBUG-ORDER] Order already exists for UTR:', req.body.utrNumber);
-      return res.status(200).json(existingOrder);
+      res.status(400);
+      throw new Error('This UTR number has already been used for another order');
     }
   }
 
@@ -153,6 +154,11 @@ const createOrder = asyncHandler(async (req, res) => {
   const deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
 
   // Create order
+  const isUpi = paymentMethod === 'UPI';
+  const initialPaymentStatus = isUpi ? 'Pending Payment' : (paymentStatus || 'Pending');
+  const initialOrderStatus = isUpi ? 'Pending Payment' : 'Pending';
+  const expiresAt = isUpi ? new Date(Date.now() + 15 * 60 * 1000) : null;
+
   const order = new Order({
     user: req.user._id,
     items: orderItems.map((x) => ({
@@ -165,7 +171,9 @@ const createOrder = asyncHandler(async (req, res) => {
     deliveryDetails,
     deliverySlot,
     paymentMethod,
-    paymentStatus: paymentStatus || 'Pending',
+    paymentStatus: initialPaymentStatus,
+    orderStatus: initialOrderStatus,
+    paymentExpiresAt: expiresAt,
     paidAt: (paymentStatus === 'Paid' || paymentStatus === 'PAID') ? Date.now() : null,
     paymentFailureReason: req.body.paymentFailureReason || '',
     platformFee: feeVal,
@@ -175,19 +183,19 @@ const createOrder = asyncHandler(async (req, res) => {
     discountAmount: discountAmount,
     walletPaidAmount: actualWalletPaid,
     utrNumber: utrNumber || '',
-    paymentProvider: paymentMethod === 'UPI' ? 'UPI' : 'COD',
+    paymentProvider: isUpi ? 'UPI' : 'COD',
     deliveryOtp,
     timeline: [
       {
-        status: 'Pending',
-        note: 'Order placed successfully',
+        status: initialOrderStatus,
+        note: isUpi ? 'Order created. UPI Payment session started (15m).' : 'Order placed successfully',
       },
     ],
   });
 
   const createdOrder = await order.save();
 
-  if (paymentMethod === 'COD' || paymentMethod === 'UPI') {
+  if (paymentMethod === 'COD') {
     // 1. Send Order Confirmation Email to the Student
     try {
       const studentSubject = `HostelKart Order Confirmation - #${createdOrder._id.toString().substring(12).toUpperCase()}`;
@@ -347,6 +355,41 @@ const getOrderById = asyncHandler(async (req, res) => {
     throw new Error('Not authorized to view this order');
   }
 
+  // Expire order if timer passed
+  if (
+    order.paymentMethod === 'UPI' &&
+    order.paymentStatus === 'Pending Payment' &&
+    order.paymentExpiresAt &&
+    new Date() > new Date(order.paymentExpiresAt)
+  ) {
+    order.paymentStatus = 'Failed';
+    order.orderStatus = 'Payment Expired';
+    order.cancellationReason = 'Payment session expired';
+    order.timeline.push({
+      status: 'Payment Expired',
+      note: 'Payment session expired. Reserved stock released.',
+    });
+
+    // Release stock
+    for (const item of order.items) {
+      await Product.findByIdAndUpdate(item.product, {
+        $inc: { stock: item.quantity },
+      });
+    }
+
+    await order.save();
+    
+    // Broadcast status update
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`order_${order._id}`).emit('status_updated', {
+        orderId: order._id,
+        orderStatus: order.orderStatus,
+        paymentStatus: order.paymentStatus
+      });
+    }
+  }
+
   res.json(order);
 });
 
@@ -415,15 +458,6 @@ const cancelOrder = asyncHandler(async (req, res) => {
 
   let updatedOrder = await order.save();
 
-  // Trigger manual refund record for prepaid online order
-  if (['ONLINE', 'CASHFREE', 'UPI'].includes(updatedOrder.paymentMethod) && ['Paid', 'PAID'].includes(updatedOrder.paymentStatus)) {
-    updatedOrder.refundStatus = 'REFUNDED';
-    updatedOrder.refundAmount = updatedOrder.totalAmount;
-    updatedOrder.refundedAt = Date.now();
-    updatedOrder.refundReason = cancellationReason || 'Cancelled by student';
-    updatedOrder = await updatedOrder.save();
-  }
-
   // Notify Admins about the cancellation
   const admins = await User.find({ role: 'admin' });
   for (const admin of admins) {
@@ -438,4 +472,166 @@ const cancelOrder = asyncHandler(async (req, res) => {
   res.json(updatedOrder);
 });
 
-export { createOrder, getOrderById, getMyOrders, getPaymentSettingsForCheckout, cancelOrder };
+// @desc    Submit UPI payment details (UTR and screenshot)
+// @route   PUT /api/orders/:id/submit-payment
+// @access  Private/Student
+const submitUPIPayment = asyncHandler(async (req, res) => {
+  const { utrNumber, paymentScreenshot, paymentScreenshotHash } = req.body;
+  const order = await Order.findById(req.params.id);
+
+  if (!order) {
+    res.status(404);
+    throw new Error('Order not found');
+  }
+
+  // Auth check
+  if (order.user.toString() !== req.user._id.toString()) {
+    res.status(403);
+    throw new Error('Not authorized to update this order');
+  }
+
+  // Check expiration
+  if (order.paymentExpiresAt && new Date() > new Date(order.paymentExpiresAt)) {
+    if (order.orderStatus !== 'Payment Expired') {
+      order.paymentStatus = 'Failed';
+      order.orderStatus = 'Payment Expired';
+      order.cancellationReason = 'Payment session expired';
+      order.timeline.push({
+        status: 'Payment Expired',
+        note: 'Payment session expired. Reserved stock released.',
+      });
+      for (const item of order.items) {
+        await Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity } });
+      }
+      await order.save();
+    }
+    res.status(400);
+    throw new Error('Payment session has expired. Please place a new order.');
+  }
+
+  // Prevent duplicate payment submission or already paid orders
+  if (['Payment Submitted', 'Pending Verification', 'Paid', 'Verified'].includes(order.paymentStatus)) {
+    res.status(400);
+    throw new Error('Payment has already been submitted for this order.');
+  }
+
+  // Validate UTR format, min/max length, duplicate UTR
+  if (!utrNumber || !utrNumber.trim()) {
+    res.status(400);
+    throw new Error('UTR/Transaction ID is required');
+  }
+
+  const cleanedUtr = utrNumber.trim();
+  const utrRegex = /^[a-zA-Z0-9]{6,22}$/;
+  if (!utrRegex.test(cleanedUtr)) {
+    res.status(400);
+    throw new Error('UTR Number must be alphanumeric and between 6 and 22 characters.');
+  }
+
+  const duplicateUtr = await Order.findOne({ utrNumber: cleanedUtr });
+  if (duplicateUtr && duplicateUtr._id.toString() !== order._id.toString()) {
+    res.status(400);
+    throw new Error('This UTR Number has already been submitted for another order.');
+  }
+
+  // Validate screenshot
+  if (!paymentScreenshot) {
+    res.status(400);
+    throw new Error('Payment screenshot is required.');
+  }
+
+  const duplicateHash = await Order.findOne({ paymentScreenshotHash });
+  if (duplicateHash && duplicateHash._id.toString() !== order._id.toString()) {
+    res.status(400);
+    throw new Error('This payment screenshot has already been submitted for another order.');
+  }
+
+  // Update order details
+  order.utrNumber = cleanedUtr;
+  order.paymentScreenshot = paymentScreenshot;
+  order.paymentScreenshotHash = paymentScreenshotHash;
+  order.paymentStatus = 'Payment Submitted';
+  order.orderStatus = 'Payment Submitted';
+  
+  order.timeline.push({
+    status: 'Payment Submitted',
+    note: `Payment details submitted. UTR: ${cleanedUtr}. Awaiting verification.`,
+  });
+
+  const updatedOrder = await order.save();
+
+  // Notify admins
+  const admins = await User.find({ role: 'admin' });
+  for (const admin of admins) {
+    await createAlert(
+      admin._id,
+      'Payment Submitted',
+      `Payment submitted for Order #${order._id.toString().substring(12).toUpperCase()} by student ${req.user.name}.`,
+      'NewOrder'
+    );
+  }
+
+  // Broadcast socket update
+  const io = req.app.get('io');
+  if (io) {
+    io.to(`order_${order._id}`).emit('status_updated', {
+      orderId: order._id,
+      orderStatus: order.orderStatus,
+      paymentStatus: order.paymentStatus,
+    });
+  }
+
+  res.json(updatedOrder);
+});
+
+// @desc    Generate dynamic UPI QR Code PNG
+// @route   GET /api/orders/:id/qr-code
+// @access  Public
+const getOrderQRCode = asyncHandler(async (req, res) => {
+  const order = await Order.findById(req.params.id);
+  if (!order) {
+    res.status(404);
+    throw new Error('Order not found');
+  }
+
+  const upiId = 'rawlanineev@okhdfcbank';
+  const merchantName = 'Neev Rawlani';
+  const amount = order.totalAmount.toFixed(2);
+  const orderNum = order._id.toString().substring(12).toUpperCase();
+  const note = `Order #${orderNum}`;
+
+  const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${amount}&cu=INR&tr=${order._id.toString()}&tn=${encodeURIComponent(note)}`;
+
+  try {
+    res.setHeader('Content-Type', 'image/png');
+    QRCode.toFileStream(res, upiUrl);
+  } catch (error) {
+    console.error('Failed to generate QR code:', error);
+    res.status(500).json({ message: 'Failed to generate QR code' });
+  }
+});
+
+// @desc    Get current user online payment history
+// @route   GET /api/orders/payment-history
+// @access  Private/Student
+const getPaymentHistory = asyncHandler(async (req, res) => {
+  const orders = await Order.find({
+    user: req.user._id,
+    paymentMethod: 'UPI'
+  })
+    .sort({ createdAt: -1 })
+    .select('_id totalAmount paymentMethod utrNumber paymentStatus orderStatus refunds createdAt');
+  
+  res.json(orders);
+});
+
+export {
+  createOrder,
+  getOrderById,
+  getMyOrders,
+  getPaymentSettingsForCheckout,
+  cancelOrder,
+  submitUPIPayment,
+  getOrderQRCode,
+  getPaymentHistory,
+};

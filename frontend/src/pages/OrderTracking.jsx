@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { orderAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
-import { Truck, Check, MapPin, Phone, User, Calendar, ShieldCheck, ChevronLeft, ClipboardList, Package, CheckCircle } from 'lucide-react';
+import { Truck, Check, MapPin, Phone, User, Calendar, ShieldCheck, ChevronLeft, ClipboardList, Package, CheckCircle, Clock } from 'lucide-react';
 import { getThumbnail } from '../utils/image';
 import { downloadInvoice } from '../utils/invoice';
 
@@ -212,17 +212,31 @@ const OrderTracking = () => {
   }
 
   // Helper list of tracking steps
-  const steps = [
+  const steps = [];
+  if (order.paymentMethod === 'UPI') {
+    steps.push(
+      { name: 'Pending Payment', label: 'Pending Payment', desc: 'Awaiting student UPI transfer' },
+      { name: 'Payment Submitted', label: 'Payment Submitted', desc: 'UTR & Receipt submitted, verifying' }
+    );
+  }
+  steps.push(
     { name: 'Pending', label: 'Order Placed', desc: 'Awaiting shop confirmation' },
     { name: 'Confirmed', label: 'Confirmed', desc: 'Rider assigned to order' },
     { name: 'Packed', label: 'Packed', desc: 'Prepared at store counter' },
     { name: 'Out for Delivery', label: 'Out for Delivery', desc: 'Rider en-route to your room' },
     { name: 'Delivered', label: 'Delivered', desc: 'Order arrived safely' }
-  ];
+  );
 
   const getStepIndex = (status) => {
-    if (status === 'Cancelled') return -1;
-    return steps.findIndex(x => x.name === status);
+    if (status === 'Cancelled' || status === 'Payment Expired') return -1;
+    let mappedStatus = status;
+    if (['Verification Pending', 'Pending Verification', 'Payment Pending Verification'].includes(status)) {
+      mappedStatus = 'Payment Submitted';
+    }
+    if (status === 'Paid') {
+      mappedStatus = 'Pending';
+    }
+    return steps.findIndex(x => x.name === mappedStatus);
   };
 
   const currentStepIdx = getStepIndex(order.orderStatus);
@@ -231,6 +245,10 @@ const OrderTracking = () => {
     const size = 13;
     const color = isCompleted ? "text-white stroke-[2.5]" : "text-slate-400 stroke-[2]";
     switch (name) {
+      case 'Pending Payment':
+        return <Clock size={size} className={color} />;
+      case 'Payment Submitted':
+        return <Check size={size} className={color} />;
       case 'Pending':
         return <ClipboardList size={size} className={color} />;
       case 'Confirmed':
@@ -428,6 +446,48 @@ const OrderTracking = () => {
                         </div>
                       );
                     })()}
+                  </div>
+                </div>
+              )}
+
+              {/* UPI/General Refund History list */}
+              {order.refunds && order.refunds.length > 0 && (
+                <div className="bg-purple-50/30 p-5 rounded-2xl border border-purple-100/50 space-y-3 mt-4">
+                  <h4 className="font-extrabold text-purple-950 text-sm border-b border-purple-100 pb-2">
+                    Refund History Logs
+                  </h4>
+                  <div className="space-y-3">
+                    {order.refunds.map((refund, idx) => (
+                      <div key={idx} className="bg-white p-3 rounded-xl border border-purple-100/40 text-xs text-slate-700 flex justify-between items-start gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-bold text-slate-800">Refund #{idx+1}</span>
+                            <span className={`px-2 py-0.25 rounded-[4px] text-[9px] font-bold border uppercase ${
+                              refund.status === 'Refunded' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' :
+                              refund.status === 'Processing' ? 'bg-blue-50 border-blue-100 text-blue-700' :
+                              'bg-amber-50 border-amber-100 text-amber-700'
+                            }`}>
+                              {refund.status}
+                            </span>
+                          </div>
+                          <div>
+                            <strong>Reason:</strong> {refund.reason || 'None'}
+                          </div>
+                          {refund.internalNotes && loggedInUser?.role === 'admin' && (
+                            <div className="text-slate-400 italic">
+                              <strong>Private Notes:</strong> {refund.internalNotes}
+                            </div>
+                          )}
+                          <div className="text-[10px] text-slate-400">
+                            Processed: {new Date(refund.refundDate || refund.createdAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs text-slate-400 font-bold block">Amount</span>
+                          <span className="text-sm font-black text-purple-950">₹{refund.amount}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

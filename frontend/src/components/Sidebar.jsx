@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, ShoppingCart, Users, HelpCircle, LogOut, ChevronRight, Truck, User, Settings, X, Tag } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ShoppingCart, Users, HelpCircle, LogOut, ChevronRight, Truck, User, Settings, X, Tag, CreditCard } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -14,6 +14,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { name: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard size={20} /> },
     { name: 'Manage Products', path: '/admin/products', icon: <ShoppingBag size={20} /> },
     { name: 'Manage Orders', path: '/admin/orders', icon: <ShoppingCart size={20} /> },
+    { name: 'Verify Payments', path: '/admin/payments', icon: <CreditCard size={20} /> },
     { name: 'Manage Coupons', path: '/admin/coupons', icon: <Tag size={20} /> },
     { name: 'View Users', path: '/admin/users', icon: <Users size={20} /> },
     { name: 'Custom Requests', path: '/admin/custom-requests', icon: <HelpCircle size={20} /> },
