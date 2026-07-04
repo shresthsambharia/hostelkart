@@ -178,10 +178,10 @@ const Checkout = () => {
 
   // If no items, redirect back to cart
   useEffect(() => {
-    if (itemsCount === 0 && !loading) {
+    if (itemsCount === 0 && !loading && !showUPIScreen) {
       navigate('/cart');
     }
-  }, [itemsCount, navigate, loading]);
+  }, [itemsCount, navigate, loading, showUPIScreen]);
 
   const completeOrderPlacement = async (paymentStatus, utrNumber = '', cfOrderId = '', transactionId = '', failureReason = '') => {
     console.log('[DEBUG-PAYMENT] Frontend completeOrderPlacement INITIATED:', { paymentStatus, cfOrderId, transactionId, failureReason });
