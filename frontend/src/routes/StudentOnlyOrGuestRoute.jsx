@@ -3,9 +3,9 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const StudentOnlyOrGuestRoute = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, initializing } = useAuth();
 
-  if (loading) {
+  if (initializing) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center space-y-4">

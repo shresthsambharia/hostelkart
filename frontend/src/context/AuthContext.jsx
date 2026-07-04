@@ -6,7 +6,8 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const navigate = useNavigate();
 
   // Load user info on mount if token exists
@@ -27,7 +28,7 @@ export const AuthProvider = ({ children }) => {
           logout();
         }
       }
-      setLoading(false);
+      setInitializing(false);
     };
 
     checkLoggedIn();
@@ -190,9 +191,10 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const contextValue = useMemo(() => ({
+   const contextValue = useMemo(() => ({
     user,
     loading,
+    initializing,
     login,
     register,
     logout,
@@ -202,7 +204,7 @@ export const AuthProvider = ({ children }) => {
     isAdmin: user?.role === 'admin',
     isDelivery: user?.role === 'delivery',
     isStudent: user?.role === 'student',
-  }), [user, loading, login, register, logout, updateProfile, login2FA, refreshProfile]);
+  }), [user, loading, initializing, login, register, logout, updateProfile, login2FA, refreshProfile]);
 
   return (
     <AuthContext.Provider value={contextValue}>
