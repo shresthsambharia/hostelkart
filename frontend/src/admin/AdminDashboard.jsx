@@ -49,6 +49,18 @@ const AdminDashboard = () => {
     );
   }
 
+  if (!stats) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
+        <AlertTriangle size={48} className="text-red-500" />
+        <p className="text-slate-500 font-semibold text-sm">Failed to load dashboard analytics. The server may be waking up.</p>
+        <button onClick={fetchAnalytics} className="btn-primary py-2 px-5 text-xs font-bold shadow-md hover:shadow-lg transition-all">
+          Retry Loading
+        </button>
+      </div>
+    );
+  }
+
   const kpis = [
     { name: 'Total Revenue', value: `₹${stats.totalRevenue || 0}`, icon: <IndianRupee size={20} className="text-emerald-600" />, bg: 'bg-emerald-50' },
     { name: "Today's Revenue", value: `₹${stats.todayRevenue || 0}`, icon: <IndianRupee size={20} className="text-emerald-500" />, bg: 'bg-emerald-50/70' },

@@ -96,19 +96,22 @@ API.interceptors.response.use(
       }
     }
 
-    // Automatic retry with exponential backoff for GET requests
+    // Automatic retry with exponential backoff for GET requests on server/network errors
     if (originalRequest && originalRequest.method === 'get') {
-      originalRequest.retry = originalRequest.retry !== undefined ? originalRequest.retry : 3;
-      originalRequest.retryDelay = originalRequest.retryDelay !== undefined ? originalRequest.retryDelay : 1000;
-      originalRequest.__retryCount = originalRequest.__retryCount || 0;
+      const status = error.response?.status;
+      if (!status || (status >= 500 && status <= 599)) {
+        originalRequest.retry = originalRequest.retry !== undefined ? originalRequest.retry : 3;
+        originalRequest.retryDelay = originalRequest.retryDelay !== undefined ? originalRequest.retryDelay : 1000;
+        originalRequest.__retryCount = originalRequest.__retryCount || 0;
 
-      if (originalRequest.__retryCount < originalRequest.retry) {
-        originalRequest.__retryCount += 1;
-        const delay = originalRequest.retryDelay * Math.pow(2, originalRequest.__retryCount - 1);
-        console.warn(`[API Retry] GET ${originalRequest.url} failed. Retrying in ${delay}ms (${originalRequest.__retryCount}/${originalRequest.retry})...`);
-        
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        return API(originalRequest);
+        if (originalRequest.__retryCount < originalRequest.retry) {
+          originalRequest.__retryCount += 1;
+          const delay = originalRequest.retryDelay * Math.pow(2, originalRequest.__retryCount - 1);
+          console.warn(`[API Retry] GET ${originalRequest.url} failed. Retrying in ${delay}ms (${originalRequest.__retryCount}/${originalRequest.retry})...`);
+          
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          return API(originalRequest);
+        }
       }
     }
 
