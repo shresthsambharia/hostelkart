@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "short_name": "HostelKart",
   "name": "HostelKart - Student Essentials Delivery",
   "description": "Daily hostel essentials, snacks, stationery, and fruits delivered directly to your room in your selected time slot.",
@@ -19,5 +20,15 @@
   "background_color": "#059669",
   "theme_color": "#059669",
   "display": "standalone",
-  "orientation": "portrait"
+  "orientation": "portrait",
+  "categories": ["shopping", "food"],
+  "shortcuts": [
+    {
+      "name": "Browse Shop",
+      "short_name": "Shop",
+      "description": "Go directly to the product catalog",
+      "url": "/products",
+      "icons": [{ "src": "/logo192.png", "sizes": "192x192" }]
+    }
+  ]
 }

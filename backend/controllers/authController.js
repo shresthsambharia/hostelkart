@@ -141,16 +141,15 @@ const authUser = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email });
 
   if (user && (await user.matchPassword(password))) {
-    // Check if Cart and Wishlist exist (just in case they were seeded without them)
+    // Check if Cart and Wishlist exist (asynchronously in the background to prevent blocking login response)
     if (user.role === 'student') {
-      const cartExists = await Cart.findOne({ user: user._id });
-      if (!cartExists) {
-        await Cart.create({ user: user._id, items: [] });
-      }
-      const wishlistExists = await Wishlist.findOne({ user: user._id });
-      if (!wishlistExists) {
-        await Wishlist.create({ user: user._id, products: [] });
-      }
+      Cart.findOne({ user: user._id }).then(cart => {
+        if (!cart) Cart.create({ user: user._id, items: [] }).catch(err => console.error('Cart auto-create failed:', err));
+      }).catch(err => console.error('Cart check failed:', err));
+
+      Wishlist.findOne({ user: user._id }).then(wishlist => {
+        if (!wishlist) Wishlist.create({ user: user._id, products: [] }).catch(err => console.error('Wishlist auto-create failed:', err));
+      }).catch(err => console.error('Wishlist check failed:', err));
     }
 
     // Check if 2FA is enabled (applicable to all users)

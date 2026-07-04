@@ -44,8 +44,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip caching external domains unless they are crucial CDN scripts
-  if (url.origin !== self.location.origin && !url.hostname.includes('unpkg.com') && !url.hostname.includes('fonts.googleapis.com')) {
+  // Skip caching external domains unless they are crucial CDN scripts or product image CDNs (Unsplash, Cloudinary)
+  const isAllowedExternal = 
+    url.hostname.includes('unpkg.com') || 
+    url.hostname.includes('fonts.googleapis.com') || 
+    url.hostname.includes('res.cloudinary.com') || 
+    url.hostname.includes('images.unsplash.com');
+
+  if (url.origin !== self.location.origin && !isAllowedExternal) {
     return;
   }
 

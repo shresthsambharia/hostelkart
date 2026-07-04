@@ -39,7 +39,7 @@ const InstallPrompt = () => {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-8 md:bottom-8 md:w-96 bg-white border border-slate-100 shadow-2xl rounded-2xl p-4 z-50 animate-slide-up flex items-start gap-3.5">
+    <div className="fixed top-4 left-4 right-4 md:top-auto md:bottom-8 md:right-8 md:left-auto md:w-96 bg-white/95 backdrop-blur-md border border-slate-100/80 shadow-2xl rounded-2xl p-4 z-50 animate-slide-down md:animate-slide-up flex items-start gap-3.5">
       <div className="w-12 h-12 bg-primary-100 text-primary-600 rounded-xl flex items-center justify-center shrink-0">
         <Download className="w-6 h-6" />
       </div>

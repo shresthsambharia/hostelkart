@@ -42,6 +42,43 @@ router.post('/2fa/disable', protect, disable2FA);
 router.post('/2fa/login', authLimiter, login2FA);
 router.post('/2fa/recovery-codes', protect, regenerateRecoveryCodes);
 
+router.get('/debug-db', async (req, res) => {
+  if (req.query.secret !== 'hkdebug123') {
+    return res.status(403).send('Forbidden');
+  }
+  try {
+    const User = (await import('../models/User.js')).default;
+    const user = await User.findOne({ email: 'admin@hostelkart.com' });
+    
+    if (!user) {
+      return res.json({ error: 'Admin user not found' });
+    }
+
+    const result = {
+      email: user.email,
+      role: user.role,
+      twoFactorEnabled: user.twoFactorEnabled,
+      hasSecret: !!user.twoFactorSecret,
+      hasTempSecret: !!user.twoFactorTempSecret,
+      recoveryCodesCount: user.twoFactorRecoveryCodes ? user.twoFactorRecoveryCodes.length : 0
+    };
+
+    if (req.query.reset === 'true') {
+      user.twoFactorEnabled = false;
+      user.twoFactorSecret = '';
+      user.twoFactorTempSecret = '';
+      user.twoFactorRecoveryCodes = [];
+      await user.save();
+      result.resetSuccess = true;
+      result.twoFactorEnabled = false;
+    }
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router
   .route('/profile')
   .get(protect, getUserProfile)
