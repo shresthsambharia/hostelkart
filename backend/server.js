@@ -51,44 +51,6 @@ if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !pr
 const initializeDatabase = async () => {
   await connectDB();
   await seedIfEmpty();
-
-  // One-time database update for order refund wallet credit
-  try {
-    const orderId = '6a4a9814016562100620e755';
-    const order = await Order.findById(orderId);
-    if (order) {
-      const User = (await import('./models/User.js')).default;
-      const student = await User.findById(order.user);
-      if (student) {
-        const WalletTransaction = (await import('./models/WalletTransaction.js')).default;
-        const orderNum = order._id.toString().substring(12).toUpperCase();
-        const existingTx = await WalletTransaction.findOne({
-          user: order.user,
-          type: 'refund',
-          description: new RegExp(orderNum, 'i')
-        });
-
-        if (!existingTx) {
-          const refundAmt = 45;
-          student.walletBalance = (student.walletBalance || 0) + refundAmt;
-          await student.save();
-
-          const walletTx = new WalletTransaction({
-            user: order.user,
-            type: 'refund',
-            amount: refundAmt,
-            description: `Refund for Order #${orderNum} (Processed for out-of-stock)`
-          });
-          await walletTx.save();
-          console.log(`[Startup Task] Successfully credited ₹${refundAmt} refund to student ${student.email}`);
-        } else {
-          console.log(`[Startup Task] Refund already credited for Order #${orderNum}`);
-        }
-      }
-    }
-  } catch (err) {
-    console.error('[Startup Task Error] Failed to process startup refund task:', err);
-  }
 };
 initializeDatabase();
 
