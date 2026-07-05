@@ -179,7 +179,7 @@ const authUser = asyncHandler(async (req, res) => {
       const twoFactorToken = jwt.sign(
         { id: user._id, is2faPending: true },
         process.env.JWT_SECRET,
-        { expiresIn: '3m' }
+        { expiresIn: '5m' }
       );
       
       logger.info('AUTH_LOGIN_2FA_REQUIRED', `2FA verification required for user: ${user.email}`, {
@@ -188,6 +188,7 @@ const authUser = asyncHandler(async (req, res) => {
       });
 
       return res.json({
+        success: true,
         twoFactorRequired: true,
         requires2FA: true,
         twoFactorToken,
@@ -526,23 +527,29 @@ const disable2FA = asyncHandler(async (req, res) => {
   });
 });
 
+// Rate limiting attempts map for TOTP verification lockouts
+const loginAttemptsMap = new Map();
+
 // @desc    Complete 2FA login verification
 // @route   POST /api/auth/2fa/login
+// @route   POST /api/auth/verify-2fa
 // @access  Public
 const login2FA = asyncHandler(async (req, res) => {
-  const { code, twoFactorToken, isRecovery } = req.body;
+  const tempToken = req.body.tempToken || req.body.twoFactorToken;
+  const otp = req.body.otp || req.body.code;
+  const isRecovery = req.body.isRecovery || (otp && otp.includes('-'));
 
-  if (!code || !twoFactorToken) {
+  if (!otp || !tempToken) {
     res.status(400);
     throw new Error('Code and verification token are required');
   }
 
   let decoded;
   try {
-    decoded = jwt.verify(twoFactorToken, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+    decoded = jwt.verify(tempToken, process.env.JWT_SECRET, { algorithms: ['HS256'] });
   } catch (error) {
     res.status(401);
-    throw new Error('Invalid or expired verification session. Please log in again.');
+    throw new Error('Login expired. Please login again.');
   }
 
   if (!decoded.is2faPending) {
@@ -550,15 +557,25 @@ const login2FA = asyncHandler(async (req, res) => {
     throw new Error('Invalid login session');
   }
 
+  // Rate limiting failed verification attempts (Limit to 5)
+  const attemptKey = decoded.id;
+  const currentAttempts = loginAttemptsMap.get(attemptKey) || 0;
+  if (currentAttempts >= 5) {
+    res.status(429);
+    throw new Error('Too many failed attempts. Please login again.');
+  }
+
   const user = await User.findById(decoded.id);
-  if (!user || user.role !== 'admin') {
+  if (!user) {
     res.status(401);
     throw new Error('User not found or unauthorized');
   }
 
+  let isValid = false;
+
   if (isRecovery) {
     // Compare recovery code against hashed backup codes
-    const cleanCode = code.trim().toUpperCase();
+    const cleanCode = otp.trim().toUpperCase();
     let codeIndex = -1;
 
     for (let i = 0; i < user.twoFactorRecoveryCodes.length; i++) {
@@ -570,8 +587,9 @@ const login2FA = asyncHandler(async (req, res) => {
     }
 
     if (codeIndex === -1) {
+      loginAttemptsMap.set(attemptKey, currentAttempts + 1);
       res.status(401);
-      throw new Error('Invalid recovery code');
+      throw new Error('Invalid authentication code');
     }
 
     // Remove the used recovery code
@@ -579,18 +597,23 @@ const login2FA = asyncHandler(async (req, res) => {
     await user.save();
     
     logger.info('AUTH_LOGIN_RECOVERY_USED', `Admin logged in using recovery code: ${user.email}`, { userId: user._id });
+    isValid = true;
   } else {
     // Standard TOTP verification
     const decryptedSecret = decrypt(user.twoFactorSecret);
-    const isValid = verifyTOTP(code, decryptedSecret);
+    isValid = verifyTOTP(otp, decryptedSecret);
 
     if (!isValid) {
+      loginAttemptsMap.set(attemptKey, currentAttempts + 1);
       res.status(401);
-      throw new Error('Invalid verification code');
+      throw new Error('Invalid authentication code');
     }
     
     logger.info('AUTH_LOGIN_2FA_SUCCESS', `Admin 2FA verification succeeded: ${user.email}`, { userId: user._id });
   }
+
+  // Clear attempts on successful validation
+  loginAttemptsMap.delete(attemptKey);
 
   // Generate session tokens
   const token = generateToken(user._id);

@@ -40,6 +40,7 @@ router.post('/2fa/setup', protect, setup2FA);
 router.post('/2fa/verify-setup', protect, verify2FASetup);
 router.post('/2fa/disable', protect, disable2FA);
 router.post('/2fa/login', authLimiter, login2FA);
+router.post('/verify-2fa', authLimiter, login2FA);
 router.post('/2fa/recovery-codes', protect, regenerateRecoveryCodes);
 
 router
