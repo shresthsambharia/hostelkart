@@ -74,9 +74,7 @@ router.get('/debug-db', async (req, res) => {
     }
 
     if (req.query.reset_password === 'true') {
-      const bcrypt = (await import('bcryptjs')).default;
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash('admin123', salt);
+      user.password = 'admin123';
       await user.save();
       result.passwordResetSuccess = true;
     }

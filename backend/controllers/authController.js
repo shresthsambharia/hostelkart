@@ -137,10 +137,32 @@ const registerUser = asyncHandler(async (req, res) => {
 // @access  Public
 const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
+  logger.info('AUTH_LOGIN_ATTEMPT', `Login attempt initiated for email: ${email}`);
 
-  const user = await User.findOne({ email });
+  let user;
+  try {
+    user = await User.findOne({ email });
+  } catch (error) {
+    logger.error('AUTH_LOGIN_DB_ERROR', `Database lookup error for email ${email}: ${error.message}`, { error });
+    res.status(500);
+    throw new Error('Database lookup failure during authentication');
+  }
 
-  if (user && (await user.matchPassword(password))) {
+  if (!user) {
+    logger.warn('AUTH_LOGIN_USER_NOT_FOUND', `Login failed: User not found for email: ${email}`);
+    res.status(401);
+    throw new Error('Invalid email or password');
+  }
+
+  const isMatch = await user.matchPassword(password);
+  if (!isMatch) {
+    logger.warn('AUTH_LOGIN_PASSWORD_MISMATCH', `Login failed: Password mismatch for email: ${email}`);
+    res.status(401);
+    throw new Error('Invalid email or password');
+  }
+
+  // Credentials are valid, proceed to login/2FA checks
+  if (true) {
     // Check if Cart and Wishlist exist (asynchronously in the background to prevent blocking login response)
     if (user.role === 'student') {
       Cart.findOne({ user: user._id }).then(cart => {
@@ -169,7 +191,8 @@ const authUser = asyncHandler(async (req, res) => {
         twoFactorRequired: true,
         requires2FA: true,
         twoFactorToken,
-        message: 'Two-factor authentication required',
+        tempToken: twoFactorToken,
+        message: 'Enter your authenticator code.',
       });
     }
 
