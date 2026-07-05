@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import API from '../api';
 import { 
   CreditCard, Search, Calendar, AlertCircle, CheckCircle, XCircle, 
   RefreshCw, ZoomIn, ZoomOut, Download, AlertTriangle, Info, MapPin, Phone, User
@@ -35,11 +35,11 @@ const PaymentDashboard = () => {
     try {
       setLoading(true);
       // Fetch analytics
-      const { data: analyticsData } = await axios.get('/api/admin/analytics');
+      const { data: analyticsData } = await API.get('/admin/analytics');
       setAnalytics(analyticsData);
 
       // Fetch filtered orders
-      let url = '/api/admin/orders?';
+      let url = '/admin/orders?';
       const params = new URLSearchParams();
       if (search) params.append('search', search);
       if (status) params.append('status', status);
@@ -47,7 +47,7 @@ const PaymentDashboard = () => {
       if (date) params.append('date', date);
       url += params.toString();
 
-      const { data: ordersData } = await axios.get(url);
+      const { data: ordersData } = await API.get(url);
       
       // Filter out only UPI/Online orders
       const upiOrders = ordersData.filter(o => o.paymentMethod === 'UPI');
@@ -76,7 +76,7 @@ const PaymentDashboard = () => {
   const handleApprove = async (orderId) => {
     setAlert({ type: '', message: '' });
     try {
-      await axios.put(`/api/admin/orders/${orderId}/payment`, {
+      await API.put(`/admin/orders/${orderId}/payment`, {
         paymentStatus: 'Paid',
         note: 'Approved by admin'
       });
@@ -101,7 +101,7 @@ const PaymentDashboard = () => {
     setAlert({ type: '', message: '' });
     const targetStatus = actionType === 'Reject' ? 'Rejected' : 'Request Info';
     try {
-      await axios.put(`/api/admin/orders/${actionOrder._id}/payment`, {
+      await API.put(`/admin/orders/${actionOrder._id}/payment`, {
         paymentStatus: targetStatus,
         note: actionNote
       });
@@ -133,7 +133,7 @@ const PaymentDashboard = () => {
     }
     setAlert({ type: '', message: '' });
     try {
-      await axios.post(`/api/admin/orders/${refundOrder._id}/refund`, {
+      await API.post(`/admin/orders/${refundOrder._id}/refund`, {
         amount: amt,
         reason: refundReason,
         internalNotes: refundNotes,

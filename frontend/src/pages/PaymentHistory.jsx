@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import API from '../api';
 import { Link } from 'react-router-dom';
 import { CreditCard, Calendar, ArrowLeft, RefreshCw, CheckCircle, Clock, AlertCircle, HelpCircle } from 'lucide-react';
 
@@ -12,7 +12,7 @@ const PaymentHistory = () => {
     try {
       setLoading(true);
       setError('');
-      const { data } = await axios.get('/api/orders/payment-history');
+      const { data } = await API.get('/orders/payment-history');
       setHistory(data);
     } catch (err) {
       console.error('Error fetching student payment history:', err);
