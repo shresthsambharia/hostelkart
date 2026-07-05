@@ -1006,6 +1006,23 @@ const createOrderRefund = asyncHandler(async (req, res) => {
       note: `Refund of ₹${refundAmt} processed successfully by Admin. Reason: ${reason || 'None'}`,
     });
 
+    // Credit user's wallet balance
+    const studentUser = await User.findById(order.user);
+    if (studentUser) {
+      studentUser.walletBalance = (studentUser.walletBalance || 0) + refundAmt;
+      await studentUser.save();
+
+      // Create a WalletTransaction record
+      const WalletTransaction = (await import('../models/WalletTransaction.js')).default;
+      const walletTx = new WalletTransaction({
+        user: order.user,
+        type: 'refund',
+        amount: refundAmt,
+        description: `Refund for Order #${order._id.toString().substring(12).toUpperCase()}`
+      });
+      await walletTx.save();
+    }
+
     // Notify customer in DB
     await createAlert(
       order.user,

@@ -325,13 +325,15 @@ const MyOrders = () => {
                 >
                   Download Invoice
                 </button>
-                <Link
-                  to={`/orders/track/${order._id}`}
-                  className="btn-primary py-2.5 px-5 text-xs flex items-center justify-center space-x-1.5 font-bold shadow-sm"
-                >
-                  <Truck size={14} />
-                  <span>Track Live Delivery</span>
-                </Link>
+                {!['Delivered', 'Cancelled', 'Refunded', 'Delivery Failed', 'Payment Expired', 'Rejected'].includes(order.orderStatus) && (
+                  <Link
+                    to={`/orders/track/${order._id}`}
+                    className="btn-primary py-2.5 px-5 text-xs flex items-center justify-center space-x-1.5 font-bold shadow-sm"
+                  >
+                    <Truck size={14} />
+                    <span>Track Live Delivery</span>
+                  </Link>
+                )}
               </div>
             </div>
           </div>
