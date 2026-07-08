@@ -149,6 +149,24 @@ app.use('/api/coupons', couponRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/recommendations', recommendationRoutes);
 
+// Serve Asset Links for Android Trusted Web Activity verification
+app.get('/.well-known/assetlinks.json', (req, res) => {
+  res.json([
+    {
+      "relation": [
+        "delegate_permission/common.handle_all_urls"
+      ],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.hostelkart.app",
+        "sha256_cert_fingerprints": [
+          "D8:D6:94:27:38:C4:5C:52:18:DB:C5:0E:D1:17:5D:3F:6A:43:D0:03:C1:9F:31:F1:95:EB:E4:4C:E1:E7:EC:E6"
+        ]
+      }
+    }
+  ]);
+});
+
 // Root route
 app.get('/', (req, res) => {
   res.send('HostelKart API is running...');
