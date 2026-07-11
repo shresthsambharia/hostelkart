@@ -35,11 +35,20 @@ const adminLogSchema = new mongoose.Schema({
   details: {
     type: Object,
   },
+  oldValue: {
+    type: mongoose.Schema.Types.Mixed,
+  },
+  newValue: {
+    type: mongoose.Schema.Types.Mixed,
+  },
   timestamp: {
     type: Date,
     default: Date.now,
   },
 });
+
+adminLogSchema.index({ timestamp: -1 });
+adminLogSchema.index({ admin: 1 });
 
 const AdminLog = mongoose.model('AdminLog', adminLogSchema);
 

@@ -3,6 +3,7 @@ import Coupon from '../models/Coupon.js';
 import Order from '../models/Order.js';
 import { sendPushNotification } from '../utils/fcm.js';
 import User from '../models/User.js';
+import { invalidateCouponCache } from '../middleware/cacheMiddleware.js';
 
 // @desc    Validate a coupon code
 // @route   POST /api/coupons/validate
@@ -116,6 +117,45 @@ export const adminCreateCoupon = asyncHandler(async (req, res) => {
     allowWalletCombination,
   } = req.body;
 
+  if (!code || !code.trim() || !discountType) {
+    res.status(400);
+    throw new Error('Coupon code and discount type are required');
+  }
+
+  if (!['percentage', 'fixed', 'free_delivery'].includes(discountType)) {
+    res.status(400);
+    throw new Error('Invalid discount type');
+  }
+
+  const val = Number(discountValue || 0);
+  if (isNaN(val) || val < 0 || (discountType === 'percentage' && val > 100)) {
+    res.status(400);
+    throw new Error('Invalid discount value');
+  }
+
+  const minAmt = Number(minimumOrderAmount || 0);
+  if (isNaN(minAmt) || minAmt < 0) {
+    res.status(400);
+    throw new Error('Minimum order amount must be a non-negative number');
+  }
+
+  const maxDisc = Number(maximumDiscount || 0);
+  if (isNaN(maxDisc) || maxDisc < 0) {
+    res.status(400);
+    throw new Error('Maximum discount must be a non-negative number');
+  }
+
+  const limit = Number(usageLimit || 0);
+  if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) {
+    res.status(400);
+    throw new Error('Usage limit must be a positive integer');
+  }
+
+  if (!expiryDate || isNaN(Date.parse(expiryDate)) || new Date(expiryDate) < new Date()) {
+    res.status(400);
+    throw new Error('Expiry date must be a valid future date');
+  }
+
   const couponExists = await Coupon.findOne({ code: code.toUpperCase() });
 
   if (couponExists) {
@@ -136,6 +176,8 @@ export const adminCreateCoupon = asyncHandler(async (req, res) => {
     allowWalletCombination,
   });
 
+  req.newValue = coupon;
+
   // Notify all users about the new coupon promo
   const students = await User.find({ role: 'student' });
   for (const student of students) {
@@ -147,6 +189,7 @@ export const adminCreateCoupon = asyncHandler(async (req, res) => {
     );
   }
 
+  await invalidateCouponCache();
   res.status(201).json(coupon);
 });
 
@@ -161,19 +204,71 @@ export const adminUpdateCoupon = asyncHandler(async (req, res) => {
     throw new Error('Coupon not found');
   }
 
+  req.oldValue = {
+    code: coupon.code,
+    description: coupon.description,
+    discountType: coupon.discountType,
+    discountValue: coupon.discountValue,
+    minimumOrderAmount: coupon.minimumOrderAmount,
+    maximumDiscount: coupon.maximumDiscount,
+    expiryDate: coupon.expiryDate,
+    usageLimit: coupon.usageLimit,
+    firstOrderOnly: coupon.firstOrderOnly,
+    allowWalletCombination: coupon.allowWalletCombination,
+    active: coupon.active,
+  };
+
+  const type = req.body.discountType || coupon.discountType;
+  if (!['percentage', 'fixed', 'free_delivery'].includes(type)) {
+    res.status(400);
+    throw new Error('Invalid discount type');
+  }
+
+  const val = Number(req.body.discountValue !== undefined ? req.body.discountValue : coupon.discountValue);
+  if (isNaN(val) || val < 0 || (type === 'percentage' && val > 100)) {
+    res.status(400);
+    throw new Error('Invalid discount value');
+  }
+
+  const minAmt = Number(req.body.minimumOrderAmount !== undefined ? req.body.minimumOrderAmount : coupon.minimumOrderAmount);
+  if (isNaN(minAmt) || minAmt < 0) {
+    res.status(400);
+    throw new Error('Minimum order amount must be a non-negative number');
+  }
+
+  const maxDisc = Number(req.body.maximumDiscount !== undefined ? req.body.maximumDiscount : coupon.maximumDiscount);
+  if (isNaN(maxDisc) || maxDisc < 0) {
+    res.status(400);
+    throw new Error('Maximum discount must be a non-negative number');
+  }
+
+  const limit = Number(req.body.usageLimit !== undefined ? req.body.usageLimit : coupon.usageLimit);
+  if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) {
+    res.status(400);
+    throw new Error('Usage limit must be a positive integer');
+  }
+
+  const expDate = req.body.expiryDate || coupon.expiryDate;
+  if (!expDate || isNaN(Date.parse(expDate)) || new Date(expDate) < new Date()) {
+    res.status(400);
+    throw new Error('Expiry date must be a valid future date');
+  }
+
   coupon.code = req.body.code ? req.body.code.toUpperCase() : coupon.code;
   coupon.description = req.body.description || coupon.description;
-  coupon.discountType = req.body.discountType || coupon.discountType;
-  coupon.discountValue = req.body.discountValue !== undefined ? req.body.discountValue : coupon.discountValue;
-  coupon.minimumOrderAmount = req.body.minimumOrderAmount !== undefined ? req.body.minimumOrderAmount : coupon.minimumOrderAmount;
-  coupon.maximumDiscount = req.body.maximumDiscount !== undefined ? req.body.maximumDiscount : coupon.maximumDiscount;
-  coupon.expiryDate = req.body.expiryDate || coupon.expiryDate;
-  coupon.usageLimit = req.body.usageLimit !== undefined ? req.body.usageLimit : coupon.usageLimit;
+  coupon.discountType = type;
+  coupon.discountValue = val;
+  coupon.minimumOrderAmount = minAmt;
+  coupon.maximumDiscount = maxDisc;
+  coupon.expiryDate = expDate;
+  coupon.usageLimit = limit;
   coupon.firstOrderOnly = req.body.firstOrderOnly !== undefined ? req.body.firstOrderOnly : coupon.firstOrderOnly;
   coupon.allowWalletCombination = req.body.allowWalletCombination !== undefined ? req.body.allowWalletCombination : coupon.allowWalletCombination;
   coupon.active = req.body.active !== undefined ? req.body.active : coupon.active;
 
   const updatedCoupon = await coupon.save();
+  req.newValue = updatedCoupon;
+  await invalidateCouponCache();
   res.json(updatedCoupon);
 });
 
@@ -188,6 +283,8 @@ export const adminDeleteCoupon = asyncHandler(async (req, res) => {
     throw new Error('Coupon not found');
   }
 
+  req.oldValue = coupon;
   await coupon.deleteOne();
+  await invalidateCouponCache();
   res.json({ message: 'Coupon removed successfully' });
 });

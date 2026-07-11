@@ -39,6 +39,8 @@ const PaymentTest = React.lazy(() => import('./pages/PaymentTest'));
 const Wallet = React.lazy(() => import('./pages/Wallet'));
 const ReferralDashboard = React.lazy(() => import('./pages/ReferralDashboard'));
 const PaymentHistory = React.lazy(() => import('./pages/PaymentHistory'));
+const SupportTickets = React.lazy(() => import('./pages/SupportTickets'));
+const AdminSupport = React.lazy(() => import('./admin/AdminSupport'));
 
 // Static info pages
 const About = React.lazy(() => import('./pages/About'));
@@ -125,6 +127,9 @@ const LayoutContainer = ({ children }) => {
   if (showPortalLayout) {
     return (
       <div className="min-h-screen flex flex-col w-full max-w-[100vw] overflow-x-hidden pb-16 md:pb-0">
+        <a href="#main-portal-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-emerald-600 focus:text-white focus:rounded-xl focus:font-black">
+          Skip to portal content
+        </a>
         <Navbar />
         
         {/* Toggle button bar for mobile */}
@@ -151,7 +156,7 @@ const LayoutContainer = ({ children }) => {
             />
           )}
           <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-          <main className="flex-1 bg-slate-50 min-h-[calc(100vh-4rem)] w-full max-w-[100vw] overflow-x-hidden">
+          <main id="main-portal-content" tabIndex="-1" className="flex-1 bg-slate-50 min-h-[calc(100vh-4rem)] w-full max-w-[100vw] overflow-x-hidden">
             {children}
           </main>
         </div>
@@ -163,9 +168,12 @@ const LayoutContainer = ({ children }) => {
   // Standard student/public e-commerce layout
   return (
     <div className="min-h-screen flex flex-col justify-between pb-16 md:pb-0 relative">
+      <a href="#main-store-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-emerald-600 focus:text-white focus:rounded-xl focus:font-black">
+        Skip to main content
+      </a>
       <div className="flex-grow flex flex-col">
         <Navbar />
-        <main className="flex-grow bg-slate-50/50">
+        <main id="main-store-content" tabIndex="-1" className="flex-grow bg-slate-50/50">
           {children}
         </main>
       </div>
@@ -278,6 +286,14 @@ const AppContent = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/support"
+            element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <SupportTickets />
+              </ProtectedRoute>
+            }
+          />
           
           {/* Profile Shared Protected Route (Available to student, admin, delivery) */}
           <Route
@@ -351,6 +367,14 @@ const AppContent = () => {
             element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AdminCoupons />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/support"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminSupport />
               </ProtectedRoute>
             }
           />

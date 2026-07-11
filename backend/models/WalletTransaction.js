@@ -26,6 +26,8 @@ const walletTransactionSchema = new mongoose.Schema(
   }
 );
 
+walletTransactionSchema.index({ user: 1, createdAt: -1 });
+
 const WalletTransaction = mongoose.model('WalletTransaction', walletTransactionSchema);
 
 export default WalletTransaction;

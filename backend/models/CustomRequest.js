@@ -34,6 +34,9 @@ const customRequestSchema = new mongoose.Schema(
   }
 );
 
+customRequestSchema.index({ user: 1, createdAt: -1 });
+customRequestSchema.index({ status: 1 });
+
 const CustomRequest = mongoose.model('CustomRequest', customRequestSchema);
 
 export default CustomRequest;

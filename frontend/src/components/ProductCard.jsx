@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ShoppingCart, Heart, Star } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
-import { getOptimizedImage, getResponsiveSrcSet, getOptimizedImageUrl } from '../utils/image';
+import { getOptimizedImage, getResponsiveSrcSet, getOptimizedImageUrl, getBlurPlaceholderUrl } from '../utils/image';
 
 const ProductCard = ({ product, priority = false }) => {
   const { addToCart } = useCart();
@@ -64,6 +64,7 @@ const ProductCard = ({ product, priority = false }) => {
       {/* Wishlist toggle */}
       <button
         onClick={handleToggleWishlist}
+        aria-label={isFavorited ? "Remove from wishlist" : "Add to wishlist"}
         className="absolute top-3 right-3 p-1.5 rounded-full bg-white/95 shadow-sm border border-slate-100 hover:scale-105 active:scale-95 z-10 transition-transform text-slate-450 hover:text-red-500"
       >
         <Heart
@@ -76,12 +77,14 @@ const ProductCard = ({ product, priority = false }) => {
       <Link to={`/products/${product._id}`} className="block overflow-hidden bg-slate-50/50 relative pt-[100%] border-b border-slate-50/60">
         {product.image ? (
           <>
-            {/* Skeleton loader placeholder */}
-            {!imageLoaded && (
-              <div className="absolute inset-0 bg-slate-100 animate-pulse flex items-center justify-center">
-                <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-slate-400 animate-spin"></div>
-              </div>
-            )}
+            {/* Blurred placeholder for blur-up loading effect */}
+            <img
+              src={getBlurPlaceholderUrl(product.image)}
+              alt=""
+              className={`absolute inset-0 w-full h-full object-contain p-4 filter blur-md transition-opacity duration-500 pointer-events-none ${
+                imageLoaded ? 'opacity-0' : 'opacity-100'
+              }`}
+            />
             <img
               src={getOptimizedImage(product, 'medium')}
               srcSet={getResponsiveSrcSet(product)}
@@ -93,7 +96,7 @@ const ProductCard = ({ product, priority = false }) => {
               width={300}
               height={300}
               onLoad={() => setImageLoaded(true)}
-              className={`absolute inset-0 w-full h-full object-contain p-4 group-hover:scale-105 transition-all duration-300 ${
+              className={`absolute inset-0 w-full h-full object-contain p-4 group-hover:scale-105 transition-all duration-500 ${
                 imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
               }`}
               onError={(e) => {
@@ -196,6 +199,7 @@ const ProductCard = ({ product, priority = false }) => {
           <button
             onClick={handleAddToCart}
             disabled={!product.isAvailable || product.stock === 0 || adding}
+            aria-label={`Add ${product.name} to cart`}
             className={`w-full flex items-center justify-center space-x-1.5 py-2 px-3 rounded-lg font-black text-xs transition-all shadow-sm active:scale-95 border ${
               !product.isAvailable || product.stock === 0
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200 shadow-none'

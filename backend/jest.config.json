@@ -1,0 +1,8 @@
+{
+  "testEnvironment": "node",
+  "verbose": true,
+  "collectCoverage": true,
+  "coverageDirectory": "../coverage/backend",
+  "coverageReporters": ["json", "text", "lcov", "clover"],
+  "testMatch": ["**/tests/**/*.test.js"]
+}

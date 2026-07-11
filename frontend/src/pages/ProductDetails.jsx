@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import SEO from '../components/SEO';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { productAPI } from '../api';
 import { Star, ShoppingCart, Heart, ArrowLeft, Clock, ShieldCheck, RefreshCcw } from 'lucide-react';
-import { getOptimizedImage, getResponsiveSrcSet } from '../utils/image';
+import { getOptimizedImage, getResponsiveSrcSet, getBlurPlaceholderUrl } from '../utils/image';
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -18,6 +19,32 @@ const ProductDetails = () => {
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [zoomStyle, setZoomStyle] = useState({ display: 'none' });
+
+  const gallery = product ? [
+    product.image,
+    product.imageOriginal || product.image,
+    product.imageMedium || product.image
+  ].filter(Boolean) : [];
+
+  const handleMouseMove = (e) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.pageX - left - window.scrollX) / width) * 100;
+    const y = ((e.pageY - top - window.scrollY) / height) * 100;
+    setZoomStyle({
+      display: 'block',
+      transformOrigin: `${x}% ${y}%`,
+      backgroundImage: `url(${getOptimizedImageUrl(gallery[selectedImageIndex], 1600)})`
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setZoomStyle({ display: 'none' });
+  };
   
   // Review form states
   const [rating, setRating] = useState(5);
@@ -110,8 +137,36 @@ const ProductDetails = () => {
     }
   };
 
+  const productSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    'name': product.name,
+    'image': product.image,
+    'description': product.description,
+    'category': product.category,
+    'offers': {
+      '@type': 'Offer',
+      'priceCurrency': 'INR',
+      'price': discountedPrice,
+      'availability': product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      'url': window.location.href,
+    },
+    'aggregateRating': product.numReviews > 0 ? {
+      '@type': 'AggregateRating',
+      'ratingValue': product.rating,
+      'reviewCount': product.numReviews,
+    } : undefined,
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+      <SEO 
+        title={product.name}
+        description={product.description}
+        ogImage={product.image}
+        ogType="product"
+        schema={productSchema}
+      />
       {/* Back button */}
       <div>
         <Link to="/products" className="inline-flex items-center space-x-2 text-sm font-bold text-slate-600 hover:text-primary-600 transition-colors">
@@ -124,27 +179,78 @@ const ProductDetails = () => {
       <section className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden p-6 md:p-10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           
-          {/* Product Image Panel */}
-          <div className="bg-slate-55/60 rounded-3xl p-6 flex items-center justify-center min-h-[300px] md:min-h-[400px] relative border border-slate-100 shadow-sm overflow-hidden group">
-            <img
-              src={getOptimizedImage(product, 'original')}
-              srcSet={getResponsiveSrcSet(product)}
-              sizes="(max-width: 768px) 100vw, 50vw"
-              alt={product.name}
-              fetchPriority="high"
-              decoding="async"
-              width={600}
-              height={600}
-              className="w-full h-full max-h-[350px] object-contain rounded-lg group-hover:scale-105 transition-transform duration-300"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = getOptimizedImage(null, 'original');
-              }}
-            />
-            {product.discount > 0 && (
-              <span className="absolute top-4 left-4 bg-gradient-to-r from-rose-500 to-orange-500 text-white text-xs font-black px-3 py-1 rounded-full uppercase shadow-md">
-                {product.discount}% OFF
-              </span>
+          {/* Product Image Panel & Gallery */}
+          <div className="space-y-4">
+            <div 
+              className="bg-slate-55/60 rounded-3xl p-6 flex items-center justify-center min-h-[300px] md:min-h-[400px] relative border border-slate-100 shadow-sm overflow-hidden group cursor-zoom-in"
+              onClick={() => setLightboxOpen(true)}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+            >
+              {/* Zoom lens container */}
+              <div 
+                className="absolute inset-0 bg-no-repeat bg-cover pointer-events-none scale-150 transition-transform duration-100 ease-out z-25"
+                style={zoomStyle}
+              />
+
+              {/* Blurred placeholder for blur-up loading effect */}
+              <img
+                src={getBlurPlaceholderUrl(gallery[selectedImageIndex])}
+                alt=""
+                className={`absolute inset-0 w-full h-full object-contain p-6 filter blur-md transition-opacity duration-500 pointer-events-none ${
+                  imageLoaded ? 'opacity-0' : 'opacity-100'
+                }`}
+              />
+              <img
+                src={getOptimizedImageUrl(gallery[selectedImageIndex], 800)}
+                srcSet={getSrcSet(gallery[selectedImageIndex])}
+                sizes="(max-width: 768px) 100vw, 50vw"
+                alt={product.name}
+                fetchPriority="high"
+                decoding="async"
+                width={600}
+                height={600}
+                onLoad={() => setImageLoaded(true)}
+                className={`w-full h-full max-h-[350px] object-contain rounded-lg group-hover:scale-102 transition-all duration-500 ${
+                  imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                }`}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = getOptimizedImage(null, 'original');
+                  setImageLoaded(true);
+                }}
+              />
+              {product.discount > 0 && (
+                <span className="absolute top-4 left-4 bg-gradient-to-r from-rose-500 to-orange-500 text-white text-xs font-black px-3 py-1 rounded-full uppercase shadow-md">
+                  {product.discount}% OFF
+                </span>
+              )}
+            </div>
+
+            {/* Gallery Thumbnails */}
+            {gallery.length > 1 && (
+              <div className="flex gap-3 justify-center">
+                {gallery.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setSelectedImageIndex(idx);
+                      setImageLoaded(false);
+                    }}
+                    className={`w-16 h-16 rounded-xl border p-1 bg-white overflow-hidden shadow-sm transition-all ${
+                      selectedImageIndex === idx ? 'border-primary-600 ring-2 ring-primary-500/20' : 'border-slate-200 hover:border-slate-400'
+                    }`}
+                  >
+                    <img
+                      src={getOptimizedImageUrl(img, 150)}
+                      alt={`Product Thumbnail ${idx + 1}`}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-contain"
+                    />
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
@@ -396,6 +502,50 @@ const ProductDetails = () => {
         </div>
 
       </section>
+
+      {/* Lightbox Modal */}
+      {lightboxOpen && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <button 
+            onClick={() => setLightboxOpen(false)}
+            className="absolute top-6 right-6 text-white hover:text-slate-300 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-all text-xl"
+          >
+            ✕
+          </button>
+          
+          <div className="relative max-w-4xl max-h-[85vh] w-full flex items-center justify-center">
+            {gallery.length > 1 && (
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedImageIndex((selectedImageIndex - 1 + gallery.length) % gallery.length);
+                }}
+                className="absolute left-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all z-10 text-lg"
+              >
+                ◀
+              </button>
+            )}
+
+            <img
+              src={getOptimizedImageUrl(gallery[selectedImageIndex], 1600)}
+              alt={product.name}
+              className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
+            />
+
+            {gallery.length > 1 && (
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedImageIndex((selectedImageIndex + 1) % gallery.length);
+                }}
+                className="absolute right-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all z-10 text-lg"
+              >
+                ▶
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

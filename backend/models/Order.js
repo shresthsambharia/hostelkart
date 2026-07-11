@@ -34,6 +34,8 @@ const refundSchema = new mongoose.Schema({
   },
   refundDate: { type: Date, default: Date.now },
   refundedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  refundUTR: { type: String, default: '' },
+  refundMethod: { type: String, default: 'Wallet' },
 }, { timestamps: true });
 
 const orderSchema = new mongoose.Schema(
@@ -122,6 +124,17 @@ const orderSchema = new mongoose.Schema(
       default: '',
     },
     paymentExpiresAt: {
+      type: Date,
+    },
+    paymentReference: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    paymentSubmittedAt: {
+      type: Date,
+    },
+    paymentVerifiedAt: {
       type: Date,
     },
     paymentScreenshot: {
@@ -349,6 +362,9 @@ orderSchema.pre('save', async function (next) {
 orderSchema.index({ user: 1, orderStatus: 1 });
 orderSchema.index({ createdAt: -1 });
 orderSchema.index({ deliveryPartner: 1 });
+orderSchema.index({ cf_order_id: 1 }, { sparse: true });
+orderSchema.index({ transaction_id: 1 }, { sparse: true });
+orderSchema.index({ utrNumber: 1 }, { sparse: true });
 
 const Order = mongoose.model('Order', orderSchema);
 

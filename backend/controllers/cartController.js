@@ -5,10 +5,11 @@ import Cart from '../models/Cart.js';
 // @route   GET /api/cart
 // @access  Private/Student
 const getCart = asyncHandler(async (req, res) => {
-  let cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
+  let cart = await Cart.findOne({ user: req.user._id }).populate('items.product').lean();
 
   if (!cart) {
-    cart = await Cart.create({ user: req.user._id, items: [] });
+    const newCart = await Cart.create({ user: req.user._id, items: [] });
+    cart = newCart.toObject();
   }
 
   res.json(cart);
@@ -38,7 +39,7 @@ const addToCart = asyncHandler(async (req, res) => {
   }
 
   await cart.save();
-  const updatedCart = await Cart.findOne({ user: req.user._id }).populate('items.product');
+  const updatedCart = await Cart.findOne({ user: req.user._id }).populate('items.product').lean();
   res.json(updatedCart);
 });
 
@@ -66,7 +67,7 @@ const updateCartQuantity = asyncHandler(async (req, res) => {
   if (itemIndex > -1) {
     cart.items[itemIndex].quantity = qty;
     await cart.save();
-    const updatedCart = await Cart.findOne({ user: req.user._id }).populate('items.product');
+    const updatedCart = await Cart.findOne({ user: req.user._id }).populate('items.product').lean();
     res.json(updatedCart);
   } else {
     res.status(404);
@@ -88,7 +89,7 @@ const removeFromCart = asyncHandler(async (req, res) => {
   cart.items = cart.items.filter((item) => item.product.toString() !== req.params.productId);
 
   await cart.save();
-  const updatedCart = await Cart.findOne({ user: req.user._id }).populate('items.product');
+  const updatedCart = await Cart.findOne({ user: req.user._id }).populate('items.product').lean();
   res.json(updatedCart);
 });
 

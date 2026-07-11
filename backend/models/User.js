@@ -82,6 +82,22 @@ const userSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    loginAttempts: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+    lockUntil: {
+      type: Date,
+    },
+    notificationPreferences: {
+      email: { type: Boolean, default: true },
+      inApp: { type: Boolean, default: true },
+      orderUpdates: { type: Boolean, default: true },
+      paymentUpdates: { type: Boolean, default: true },
+      promotions: { type: Boolean, default: true },
+      securityAlerts: { type: Boolean, default: true },
+    },
   },
   {
     timestamps: true,

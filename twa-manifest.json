@@ -1,0 +1,54 @@
+{
+  "packageId": "com.hostelkart.app",
+  "host": "hostelkart.online",
+  "name": "HostelKart - Student Essentials Delivery",
+  "launcherName": "HostelKart",
+  "display": "standalone",
+  "themeColor": "#059669",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#059669",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://hostelkart.online/logo512.png",
+  "maskableIconUrl": "https://hostelkart.online/logo512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "C:/Users/user/.gemini/antigravity/scratch/hostelkart/hostelkart-release-key.keystore",
+    "alias": "hostelkart"
+  },
+  "appVersionName": "2.0.0",
+  "appVersionCode": 3,
+  "shortcuts": [
+    {
+      "name": "Browse Shop",
+      "shortName": "Shop",
+      "url": "https://hostelkart.online/products",
+      "chosenIconUrl": "https://hostelkart.online/logo192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://hostelkart.online/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://hostelkart.online/",
+  "minSdkVersion": 24,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "2.0.0"
+}

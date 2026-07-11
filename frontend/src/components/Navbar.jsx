@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, Heart, User, LogOut, Search, Menu, X, PlusCircle, LayoutDashboard, ClipboardList, Bell, Wallet, Gift, Clock, TrendingUp, Trash2, Mic, MicOff, CreditCard } from 'lucide-react';
+import { ShoppingCart, Heart, User, LogOut, Search, Menu, X, PlusCircle, LayoutDashboard, ClipboardList, Bell, Wallet, Gift, Clock, TrendingUp, Trash2, Mic, MicOff, CreditCard, HelpCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { notificationAPI, productAPI } from '../api';
@@ -560,6 +560,14 @@ const Navbar = () => {
                         >
                           <CreditCard size={16} className="mr-2" />
                           Payment History
+                        </Link>
+                        <Link
+                          to="/support"
+                          onClick={() => setProfileDropdownOpen(false)}
+                          className="flex items-center px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary-600"
+                        >
+                          <HelpCircle size={16} className="mr-2" />
+                          Support Desk
                         </Link>
                       </>
                     )}

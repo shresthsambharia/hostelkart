@@ -25,6 +25,13 @@
         adsenseScript.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7808569576221532';
         adsenseScript.crossOrigin = 'anonymous';
         document.head.appendChild(adsenseScript);
+
+        // 3. Microsoft Clarity
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", "clarity-project-id");
       }
 
       // Load dynamically after 3.5 seconds OR on first user interaction
@@ -54,11 +61,26 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="apple-touch-icon" href="/logo192.png" />
     
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://www.hostelkart.online/" />
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.hostelkart.online/" />
     <meta property="og:title" content="HostelKart - Daily hostel essentials delivered to your room" />
     <meta property="og:description" content="Get fresh fruits, vegetables, personal care, stationery, instant food, and more delivered direct to your hostel block in your selected time slot!" />
+    <meta property="og:image" content="https://www.hostelkart.online/logo512.png" />
     <meta property="og:site_name" content="HostelKart" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://www.hostelkart.online/" />
+    <meta name="twitter:title" content="HostelKart - Daily hostel essentials delivered to your room" />
+    <meta name="twitter:description" content="Get fresh fruits, vegetables, personal care, stationery, instant food, and more delivered direct to your hostel block in your selected time slot!" />
+    <meta name="twitter:image" content="https://www.hostelkart.online/logo512.png" />
+
+    <!-- Google Search Console Site Verification -->
+    <meta name="google-site-verification" content="google-site-verification-id" />
 
     <!-- Modern Premium Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

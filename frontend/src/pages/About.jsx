@@ -1,9 +1,14 @@
 import React from 'react';
 import { ShoppingBag, ShieldCheck, Zap, Heart } from 'lucide-react';
+import SEO from '../components/SEO';
 
 const About = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-12 animate-fadeIn">
+      <SEO 
+        title="About Us"
+        description="Learn more about HostelKart - direct-to-room delivery service for college students, delivering snacks, stationery, fruits, vegetables, and room care essentials."
+      />
       {/* Hero section */}
       <div className="text-center space-y-4">
         <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary-100 text-primary-700 uppercase tracking-widest">

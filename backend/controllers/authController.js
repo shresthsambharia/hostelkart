@@ -11,6 +11,7 @@ import RefreshToken from '../models/RefreshToken.js';
 import { logger } from '../utils/logger.js';
 import { encrypt, decrypt } from '../utils/crypto.js';
 import { generateSecret, verifyTOTP, generateRecoveryCodes } from '../utils/totp.js';
+import { setCsrfCookie } from '../middleware/securityMiddleware.js';
 
 // Helper to generate access token (15m expiry)
 const generateToken = (id) => {
@@ -36,11 +37,41 @@ const setRefreshTokenCookie = (res, token) => {
   });
 };
 
+// Helper to set access token in secure HttpOnly cookie
+const setAccessTokenCookie = (res, token) => {
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 15 * 60 * 1000, // 15 mins
+  });
+};
+
 // @desc    Register a new student
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, phone, referralCode, captchaId, captchaAnswer } = req.body;
+
+  // 1. Email format check
+  const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+  if (!email || !emailRegex.test(email)) {
+    res.status(400);
+    throw new Error('Please provide a valid email address');
+  }
+
+  // 2. Phone format check (E.164 format or standard 10 digit)
+  if (!phone || (!/^\+?[1-9]\d{1,14}$/.test(phone.trim()) && !/^\d{10}$/.test(phone.trim()))) {
+    res.status(400);
+    throw new Error('Please provide a valid phone number (e.g. 10 digits or E.164 international format)');
+  }
+
+  // 3. Password strength check
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  if (!password || !passwordRegex.test(password)) {
+    res.status(400);
+    throw new Error('Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)');
+  }
 
   // CAPTCHA verification
   if (!captchaId || !captchaAnswer) {
@@ -100,6 +131,18 @@ const registerUser = asyncHandler(async (req, res) => {
     await Cart.create({ user: user._id, items: [] });
     await Wishlist.create({ user: user._id, products: [] });
 
+    try {
+      const { createAlert } = await import('./notificationController.js');
+      await createAlert(
+        user._id,
+        'Welcome to HostelKart!',
+        `Hello ${user.name}, your account has been successfully created. Welcome aboard!`,
+        'Promo'
+      );
+    } catch (err) {
+      console.error('Failed to trigger registration welcome alert:', err.message);
+    }
+
     // Generate dual-tokens
     const token = generateToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
@@ -113,6 +156,8 @@ const registerUser = asyncHandler(async (req, res) => {
 
     // Set refresh token in HttpOnly cookie
     setRefreshTokenCookie(res, refreshToken);
+    setAccessTokenCookie(res, token);
+    const csrfToken = setCsrfCookie(res);
 
     res.status(201).json({
       _id: user._id,
@@ -124,6 +169,7 @@ const registerUser = asyncHandler(async (req, res) => {
       referredBy: user.referredBy,
       hostelDetails: user.hostelDetails,
       token,
+      csrfToken,
     });
   } else {
     logger.error('AUTH_REGISTER_FAILED', 'Failed to register user', { email });
@@ -154,11 +200,35 @@ const authUser = asyncHandler(async (req, res) => {
     throw new Error('Invalid email or password');
   }
 
+  // Check lockout
+  if (user.lockUntil && user.lockUntil > Date.now()) {
+    logger.warn('AUTH_LOGIN_LOCKED', `Login attempt blocked: Account locked for email ${email} until ${user.lockUntil}`);
+    res.status(401);
+    throw new Error('Account is temporarily locked due to multiple failed login attempts. Please try again in 15 minutes.');
+  }
+
   const isMatch = await user.matchPassword(password);
   if (!isMatch) {
-    logger.warn('AUTH_LOGIN_PASSWORD_MISMATCH', `Login failed: Password mismatch for email: ${email}`);
+    user.loginAttempts += 1;
+    if (user.loginAttempts >= 5) {
+      user.lockUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes lock
+      user.loginAttempts = 0; // reset attempts counter after locking
+      await user.save();
+      logger.warn('AUTH_LOGIN_LOCK_TRIGGERED', `Account locked for email ${email} due to 5 consecutive failures`);
+      res.status(401);
+      throw new Error('Account is temporarily locked. Please try again after 15 minutes.');
+    }
+    await user.save();
+    logger.warn('AUTH_LOGIN_PASSWORD_MISMATCH', `Login failed: Password mismatch for email: ${email}. Attempt ${user.loginAttempts}/5`);
     res.status(401);
     throw new Error('Invalid email or password');
+  }
+
+  // Reset attempts on successful password match
+  if (user.loginAttempts > 0 || user.lockUntil) {
+    user.loginAttempts = 0;
+    user.lockUntil = undefined;
+    await user.save();
   }
 
   // Credentials are valid, proceed to login/2FA checks
@@ -208,14 +278,30 @@ const authUser = asyncHandler(async (req, res) => {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     });
 
-    // Set refresh token in HttpOnly cookie
+    // Set refresh token and access token in HttpOnly cookies
     setRefreshTokenCookie(res, refreshToken);
+    setAccessTokenCookie(res, token);
+    const csrfToken = setCsrfCookie(res);
 
     logger.info('AUTH_LOGIN_SUCCESS', `User logged in successfully: ${user.email}`, {
       userId: user._id,
       email: user.email,
       role: user.role,
     });
+
+    if (user.role === 'admin') {
+      const AdminLog = (await import('../models/AdminLog.js')).default;
+      await AdminLog.create({
+        admin: user._id,
+        adminName: user.name,
+        action: 'Admin Login',
+        method: req.method,
+        url: req.originalUrl,
+        ip: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent'],
+        details: { email: user.email, success: true },
+      });
+    }
 
     res.json({
       _id: user._id,
@@ -226,6 +312,7 @@ const authUser = asyncHandler(async (req, res) => {
       hostelDetails: user.hostelDetails,
       twoFactorEnabled: user.twoFactorEnabled,
       token,
+      csrfToken,
     });
   } else {
     logger.warn('AUTH_LOGIN_FAILED', `Failed login attempt for email: ${email}`, { email });
@@ -341,9 +428,12 @@ const getCaptcha = asyncHandler(async (req, res) => {
   
   const captchaRecord = await Captcha.create({ text: cap.text.toLowerCase() });
   
+  const csrfToken = setCsrfCookie(res);
+
   res.json({
     captchaId: captchaRecord._id,
     captchaSvg: cap.data,
+    csrfToken,
   });
 });
 
@@ -372,7 +462,24 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       throw new Error('User not found');
     }
 
+    // Delete the old used refresh token (Rotation)
+    await RefreshToken.deleteOne({ _id: activeToken._id });
+
+    // Generate new dual tokens
     const accessToken = generateToken(user._id);
+    const newRefreshToken = generateRefreshToken(user._id);
+
+    // Save new refresh token in DB
+    await RefreshToken.create({
+      user: user._id,
+      token: newRefreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    });
+
+    // Set updated HttpOnly cookies
+    setRefreshTokenCookie(res, newRefreshToken);
+    setAccessTokenCookie(res, accessToken);
+
     res.json({ token: accessToken });
   } catch (err) {
     res.status(401);
@@ -385,15 +492,56 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 // @access  Public
 const logoutUser = asyncHandler(async (req, res) => {
   const refreshToken = getCookieValue(req.headers.cookie, 'refreshToken');
+  const token = getCookieValue(req.headers.cookie, 'token');
+
   logger.info('AUTH_LOGOUT', 'User logged out', { ip: req.ip });
+
+  let userId = null;
+  if (refreshToken) {
+    try {
+      const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+      userId = decoded.id;
+    } catch (e) {}
+  } else if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+      userId = decoded.id;
+    } catch (e) {}
+  }
+
+  if (userId) {
+    const user = await User.findById(userId);
+    if (user && user.role === 'admin') {
+      const AdminLog = (await import('../models/AdminLog.js')).default;
+      await AdminLog.create({
+        admin: user._id,
+        adminName: user.name,
+        action: 'Admin Logout',
+        method: req.method,
+        url: req.originalUrl,
+        ip: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent'],
+        details: { email: user.email, success: true },
+      });
+    }
+  }
+
   if (refreshToken) {
     await RefreshToken.deleteOne({ token: refreshToken });
   }
+
   res.clearCookie('refreshToken', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
   });
+
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+  });
+
   res.json({ success: true, message: 'Logged out successfully' });
 });
 
@@ -483,6 +631,18 @@ const verify2FASetup = asyncHandler(async (req, res) => {
 
   logger.info('AUTH_2FA_SETUP_SUCCESS', `2FA enabled successfully for admin: ${user.email}`, { userId: user._id });
 
+  try {
+    const { createAlert } = await import('./notificationController.js');
+    await createAlert(
+      user._id,
+      'Two-Factor Authentication Enabled',
+      `Hello ${user.name}, two-factor authentication (2FA) has been successfully enabled on your account.`,
+      'SecurityAlert'
+    );
+  } catch (err) {
+    console.error('Failed to trigger 2FA enable alert:', err.message);
+  }
+
   res.json({
     success: true,
     recoveryCodes,
@@ -561,6 +721,7 @@ const login2FA = asyncHandler(async (req, res) => {
   const attemptKey = decoded.id;
   const currentAttempts = loginAttemptsMap.get(attemptKey) || 0;
   if (currentAttempts >= 5) {
+    logger.warn('AUTH_2FA_LOCKOUT_HIT', `2FA login attempts locked out for user ID: ${decoded.id}`, { ip: req.ip });
     res.status(429);
     throw new Error('Too many failed attempts. Please login again.');
   }
@@ -588,6 +749,11 @@ const login2FA = asyncHandler(async (req, res) => {
 
     if (codeIndex === -1) {
       loginAttemptsMap.set(attemptKey, currentAttempts + 1);
+      logger.warn('AUTH_2FA_RECOVERY_FAILED', `Failed 2FA recovery code verification for user: ${user.email}. Attempt ${currentAttempts + 1}/5`, {
+        userId: user._id,
+        email: user.email,
+        ip: req.ip,
+      });
       res.status(401);
       throw new Error('Invalid authentication code');
     }
@@ -605,6 +771,11 @@ const login2FA = asyncHandler(async (req, res) => {
 
     if (!isValid) {
       loginAttemptsMap.set(attemptKey, currentAttempts + 1);
+      logger.warn('AUTH_2FA_VERIFICATION_FAILED', `Failed 2FA code verification for user: ${user.email}. Attempt ${currentAttempts + 1}/5`, {
+        userId: user._id,
+        email: user.email,
+        ip: req.ip,
+      });
       res.status(401);
       throw new Error('Invalid authentication code');
     }
@@ -626,8 +797,24 @@ const login2FA = asyncHandler(async (req, res) => {
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
   });
 
-  // Set refresh token cookie
+  // Set refresh token and access token cookies
   setRefreshTokenCookie(res, refreshToken);
+  setAccessTokenCookie(res, token);
+  const csrfToken = setCsrfCookie(res);
+
+  if (user.role === 'admin') {
+    const AdminLog = (await import('../models/AdminLog.js')).default;
+    await AdminLog.create({
+      admin: user._id,
+      adminName: user.name,
+      action: 'Admin Login',
+      method: req.method,
+      url: req.originalUrl,
+      ip: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+      userAgent: req.headers['user-agent'],
+      details: { email: user.email, success: true, via: '2FA' },
+    });
+  }
 
   res.json({
     _id: user._id,
@@ -638,6 +825,7 @@ const login2FA = asyncHandler(async (req, res) => {
     hostelDetails: user.hostelDetails,
     twoFactorEnabled: user.twoFactorEnabled,
     token,
+    csrfToken,
   });
 });
 

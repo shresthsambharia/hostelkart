@@ -1,6 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import Product from '../models/Product.js';
 import Category from '../models/Category.js';
+import { invalidateProductCache } from '../middleware/cacheMiddleware.js';
 
 // Helper to log search keyword frequency asynchronously
 const logSearchKeyword = async (rawKeyword) => {
@@ -53,7 +54,7 @@ const getProducts = asyncHandler(async (req, res) => {
     }
   }
 
-  const products = await Product.find(query);
+  const products = await Product.find(query).lean();
   res.setHeader('Cache-Control', 'public, max-age=15');
   res.json(products);
 });
@@ -62,7 +63,7 @@ const getProducts = asyncHandler(async (req, res) => {
 // @route   GET /api/products/:id
 // @access  Public
 const getProductById = asyncHandler(async (req, res) => {
-  const product = await Product.findById(req.params.id);
+  const product = await Product.findById(req.params.id).lean();
 
   if (product) {
     res.setHeader('Cache-Control', 'public, max-age=30');
@@ -78,6 +79,16 @@ const getProductById = asyncHandler(async (req, res) => {
 // @access  Private/Student
 const createProductReview = asyncHandler(async (req, res) => {
   const { rating, comment } = req.body;
+
+  if (rating === undefined || comment === undefined || comment.trim() === '') {
+    res.status(400);
+    throw new Error('Rating and comment are required and comment cannot be empty');
+  }
+  const ratingNum = Number(rating);
+  if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+    res.status(400);
+    throw new Error('Rating must be a number between 1 and 5');
+  }
 
   const product = await Product.findById(req.params.id);
 
@@ -107,6 +118,7 @@ const createProductReview = asyncHandler(async (req, res) => {
       product.reviews.length;
 
     await product.save();
+    await invalidateProductCache(product._id);
     res.status(201).json({ message: 'Review added successfully' });
   } else {
     res.status(404);
@@ -118,7 +130,7 @@ const createProductReview = asyncHandler(async (req, res) => {
 // @route   GET /api/products/categories
 // @access  Public
 const getCategories = asyncHandler(async (req, res) => {
-  const categories = await Category.find({});
+  const categories = await Category.find({}).lean();
   res.setHeader('Cache-Control', 'public, max-age=3600');
   res.json(categories);
 });
@@ -143,16 +155,19 @@ const getSearchSuggestions = asyncHandler(async (req, res) => {
     ]
   })
   .select('name category image price discount')
-  .limit(6);
+  .limit(6)
+  .lean();
 
   // Find matching categories
   const categories = await Category.find({ name: queryRegex })
     .select('name image')
-    .limit(3);
+    .limit(3)
+    .lean();
 
   // Track the search query asynchronously
   logSearchKeyword(q);
 
+  res.setHeader('Cache-Control', 'public, max-age=300');
   res.json({ products, categories });
 });
 
@@ -164,7 +179,8 @@ const getTrendingSearches = asyncHandler(async (req, res) => {
   const trending = await SearchKeyword.find({})
     .sort({ count: -1 })
     .limit(8)
-    .select('keyword count');
+    .select('keyword count')
+    .lean();
   res.json(trending);
 });
 

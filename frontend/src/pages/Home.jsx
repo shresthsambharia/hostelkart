@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import SEO from '../components/SEO';
 import { productAPI, orderAPI, recommendationAPI } from '../api';
 import ProductCard, { ProductCardSkeleton } from '../components/ProductCard';
 import { useAuth } from '../context/AuthContext';
@@ -101,9 +102,38 @@ const Home = () => {
       navigate(`/products?keyword=${encodeURIComponent(searchKeyword.trim())}`);
     }
   };
+  const orgSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    'name': 'HostelKart',
+    'url': 'https://www.hostelkart.online/',
+    'logo': 'https://www.hostelkart.online/logo512.png',
+    'contactPoint': {
+      '@type': 'ContactPoint',
+      'email': 'supporthostelkart@gmail.com',
+      'contactType': 'customer support'
+    }
+  };
+
+  const websiteSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    'name': 'HostelKart',
+    'url': 'https://www.hostelkart.online/',
+    'potentialAction': {
+      '@type': 'SearchAction',
+      'target': 'https://www.hostelkart.online/products?keyword={search_term_string}',
+      'query-input': 'required name=search_term_string'
+    }
+  };
 
   return (
     <div className="space-y-6 sm:space-y-10 pb-16">
+      <SEO 
+        title="Daily hostel essentials delivered to your room"
+        description="HostelKart is your go-to hostel delivery app, delivering daily essentials, fresh fruits, vegetables, stationery, instant food, and personal care directly to your hostel room."
+        schema={[orgSchema, websiteSchema]}
+      />
       
       {/* Compact Hero Banner Card */}
       <section className="relative overflow-hidden bg-gradient-to-r from-emerald-950 via-primary-900 to-slate-900 text-white rounded-xl sm:rounded-2xl mx-4 sm:mx-8 mt-4 px-6 py-8 sm:py-10 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-6">

@@ -117,8 +117,8 @@ productSchema.pre('save', function (next) {
 });
 
 // Indexes for optimization
-productSchema.index({ category: 1 });
 productSchema.index({ price: 1 });
+productSchema.index({ category: 1, price: 1 });
 productSchema.index({ rating: -1, numReviews: -1 });
 productSchema.index({ name: 'text' });
 

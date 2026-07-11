@@ -7,6 +7,7 @@ import fs from 'fs';
 import { protect, admin } from '../middleware/authMiddleware.js';
 import { uploadBufferToCloudinary, getMediumUrl, getThumbUrl, getOriginalUrl } from '../config/cloudinary.js';
 import Order from '../models/Order.js';
+import { uploadLimiter } from '../middleware/securityMiddleware.js';
 
 const router = express.Router();
 
@@ -39,15 +40,41 @@ const upload = multer({
 });
 
 // Admin-only upload endpoint (Uploads directly to Cloudinary)
-router.post('/', protect, admin, upload.single('image'), async (req, res) => {
+router.post('/', protect, admin, uploadLimiter, upload.single('image'), async (req, res) => {
   if (!req.file) {
     res.status(400);
     throw new Error('No image file uploaded');
   }
 
+  // Enforce Magic Byte validation on memory buffer
+  const buffer = req.file.buffer;
+  const isPng = buffer.length > 4 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47;
+  const isJpg = buffer.length > 3 && buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF;
+  const isWebp = buffer.length > 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP';
+  if (!isPng && !isJpg && !isWebp) {
+    res.status(400);
+    throw new Error('Invalid file structure. Only genuine image headers (PNG, JPG, WEBP) are allowed.');
+  }
+
   try {
+    console.log('[Upload] Compressing product image...');
+    let compressedBuffer = req.file.buffer;
+    try {
+      compressedBuffer = await sharp(req.file.buffer)
+        .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toBuffer();
+    } catch (sharpError) {
+      console.warn('[Upload Warning] Sharp compression failed for product image', sharpError);
+    }
+
+    if (compressedBuffer.length > 500 * 1024) {
+      res.status(400);
+      throw new Error('Optimized image exceeds the maximum limit of 500KB. Please upload a smaller or less complex image.');
+    }
+
     console.log('[Upload] Uploading image buffer to Cloudinary...');
-    const uploadResult = await uploadBufferToCloudinary(req.file.buffer, 'hostelkart/products');
+    const uploadResult = await uploadBufferToCloudinary(compressedBuffer, 'hostelkart/products');
     
     console.log('[Upload] Cloudinary upload successful.');
 
@@ -70,10 +97,20 @@ router.post('/', protect, admin, upload.single('image'), async (req, res) => {
 });
 
 // Student/Admin payment screenshot upload endpoint
-router.post('/payment-screenshot', protect, upload.single('image'), async (req, res) => {
+router.post('/payment-screenshot', protect, uploadLimiter, upload.single('image'), async (req, res) => {
   if (!req.file) {
     res.status(400);
     throw new Error('No image file uploaded');
+  }
+
+  // Enforce Magic Byte validation on memory buffer
+  const buffer = req.file.buffer;
+  const isPng = buffer.length > 4 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47;
+  const isJpg = buffer.length > 3 && buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF;
+  const isWebp = buffer.length > 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP';
+  if (!isPng && !isJpg && !isWebp) {
+    res.status(400);
+    throw new Error('Invalid file structure. Only genuine image headers (PNG, JPG, WEBP) are allowed.');
   }
 
   try {

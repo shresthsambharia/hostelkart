@@ -11,16 +11,24 @@ import cors from 'cors';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import connectDB from './config/db.js';
+import { redisClient } from './config/redis.js';
 import { seedIfEmpty } from './seed/seedDataInline.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import helmet from 'helmet';
-import { nosqlSanitize, xssSanitize } from './middleware/securityMiddleware.js';
+import { nosqlSanitize, xssSanitize, csrfProtection } from './middleware/securityMiddleware.js';
 
 // Route imports
 import authRoutes from './routes/authRoutes.js';
 import healthRoutes from './routes/healthRoutes.js';
+import ticketRoutes from './routes/ticketRoutes.js';
 import { initSentry } from './utils/sentry.js';
+import { requestDuration } from './middleware/performanceMiddleware.js';
 import { requestTimeout } from './middleware/timeoutMiddleware.js';
+import { requestIdMiddleware } from './middleware/requestIdMiddleware.js';
+import { logger } from './utils/logger.js';
+import mongoose from 'mongoose';
+import { triggerAlert } from './utils/alertService.js';
+import metricsRoutes from './routes/metricsRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
 import wishlistRoutes from './routes/wishlistRoutes.js';
@@ -40,11 +48,22 @@ import recommendationRoutes from './routes/recommendationRoutes.js';
 // Initialize Sentry Monitoring
 initSentry();
 
-// Validate Cloudinary credentials on startup
-if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-  console.error('\x1b[31m%s\x1b[0m', '[Startup Error] Cloudinary configuration is missing! Image uploads will fail.');
+// Enforce strict environment validation checks at startup
+const requiredEnv = [
+  'JWT_SECRET',
+  'MONGO_URI',
+  'CLOUDINARY_CLOUD_NAME',
+  'CLOUDINARY_API_KEY',
+  'CLOUDINARY_API_SECRET',
+  'UPI_ID'
+];
+
+const missingEnv = requiredEnv.filter(env => !process.env[env]);
+if (missingEnv.length > 0) {
+  logger.error('STARTUP_ERROR', `Missing critical environment variables: ${missingEnv.join(', ')}. Application cannot start safely.`);
+  process.exit(1);
 } else {
-  console.log('\x1b[32m%s\x1b[0m', '[Startup] Cloudinary configuration validated successfully.');
+  logger.info('STARTUP', 'All required environment variables validated successfully.');
 }
 
 // Connect to MongoDB and Auto-Seed if empty
@@ -65,7 +84,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https://images.unsplash.com"],
+      imgSrc: ["'self'", "data:", "https://images.unsplash.com", "https://res.cloudinary.com"],
       connectSrc: ["'self'"],
       upgradeInsecureRequests: [],
     },
@@ -73,22 +92,25 @@ app.use(helmet({
 }));
 
 // Middlewares
-const allowedOrigins = [
-  'http://localhost:4173',
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'https://hostelkart-backend.onrender.com',
-  'https://hostelkart.online',
-  'https://www.hostelkart.online'
-];
+app.use(requestIdMiddleware);
+
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? ['https://hostelkart.online', 'https://www.hostelkart.online']
+  : [
+      'http://localhost:4173',
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://hostelkart.online',
+      'https://www.hostelkart.online'
+    ];
 
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app') || origin.includes('vercel.app')) {
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(null, false);
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
@@ -132,8 +154,16 @@ app.use('/api', apiLimiter);
 // Global Request Timeout Middleware (15s)
 app.use('/api', requestTimeout(15000));
 
+// Timing performance middleware
+app.use('/api', requestDuration);
+
+// CSRF Protection for state-changing operations
+app.use('/api', csrfProtection);
+
 // Routes mount
+app.use('/health', healthRoutes);
 app.use('/api/health', healthRoutes);
+app.use('/api/metrics', metricsRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
@@ -148,6 +178,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/recommendations', recommendationRoutes);
+app.use('/api/tickets', ticketRoutes);
 
 // Serve Asset Links for Android Trusted Web Activity verification
 app.get('/.well-known/assetlinks.json', (req, res) => {
@@ -167,6 +198,91 @@ app.get('/.well-known/assetlinks.json', (req, res) => {
   ]);
 });
 
+// Sitemap.xml dynamic generator
+app.get('/sitemap.xml', async (req, res) => {
+  try {
+    const products = await Product.find({}).select('_id updatedAt').lean();
+    
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://www.hostelkart.online/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://www.hostelkart.online/about</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://www.hostelkart.online/contact</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://www.hostelkart.online/privacy-policy</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://www.hostelkart.online/terms</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://www.hostelkart.online/refund-policy</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://www.hostelkart.online/products</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>`;
+
+    products.forEach((p) => {
+      xml += `
+  <url>
+    <loc>https://www.hostelkart.online/products/${p._id.toString()}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>`;
+    });
+
+    xml += `\n</urlset>`;
+
+    res.header('Content-Type', 'application/xml');
+    res.status(200).send(xml);
+  } catch (error) {
+    console.error('Failed to generate sitemap.xml:', error);
+    res.status(500).send('Error generating sitemap');
+  }
+});
+
+// Robots.txt generator
+app.get('/robots.txt', (req, res) => {
+  const robots = `User-agent: *
+Allow: /
+Allow: /products
+Allow: /about
+Allow: /contact
+Allow: /privacy-policy
+Allow: /terms
+Allow: /refund-policy
+Disallow: /admin/
+Disallow: /api/
+Disallow: /checkout/
+Disallow: /cart/
+Disallow: /profile/
+Disallow: /myorders/
+
+Sitemap: https://www.hostelkart.online/sitemap.xml
+`;
+  res.header('Content-Type', 'text/plain');
+  res.status(200).send(robots);
+});
+
 // Root route
 app.get('/', (req, res) => {
   res.send('HostelKart API is running...');
@@ -178,6 +294,7 @@ app.use(errorHandler);
 
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import { setIoInstance } from './utils/socket.js';
 
 const server = createServer(app);
 const io = new Server(server, {
@@ -187,13 +304,32 @@ const io = new Server(server, {
   },
 });
 
+setIoInstance(io);
+
 io.on('connection', (socket) => {
   console.log("Client Connected", socket.id);
+
+  // Private room for user notifications
+  socket.on('join_user', ({ userId }) => {
+    socket.join(`user_${userId}`);
+    console.log(`[Socket] User joined notification room: user_${userId}`);
+  });
 
   // Students join this room to track an order
   socket.on('join_order_track', ({ orderId }) => {
     socket.join(`order_${orderId}`);
     console.log("Join Order", orderId);
+  });
+
+  // Support Ticketing Room
+  socket.on('join_ticket', ({ ticketId }) => {
+    socket.join(ticketId);
+    console.log(`[Socket] Client joined ticket room: ${ticketId}`);
+  });
+
+  // Support Chat Typing Indicator
+  socket.on('ticket_typing', ({ ticketId, username, isTyping }) => {
+    socket.to(ticketId).emit('ticket_typing_updated', { username, isTyping });
   });
 
   // Rider publishes live coordinates & telemetry
@@ -265,6 +401,62 @@ startPaymentExpirationMonitor(io);
 
 const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+const runningServer = server.listen(PORT, () => {
+  logger.info('STARTUP', `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });
+
+// MongoDB connection event alert monitoring
+mongoose.connection.on('disconnected', () => {
+  triggerAlert('critical', 'MONGO_DISCONNECTED', 'Mongoose default connection has disconnected!');
+});
+mongoose.connection.on('error', (err) => {
+  triggerAlert('critical', 'MONGO_CONNECTION_ERROR', `MongoDB connection error: ${err.message}`, { error: err });
+});
+
+// High memory usage checking loop (Runs every 10 seconds)
+const memoryCheckInterval = setInterval(() => {
+  const memoryUsage = process.memoryUsage();
+  const heapUsedMB = memoryUsage.heapUsed / 1024 / 1024;
+  if (heapUsedMB > 250) {
+    triggerAlert('warn', 'HIGH_MEMORY_USAGE', `Memory usage threshold exceeded: ${heapUsedMB.toFixed(2)} MB used`, {
+      heapUsedMB: Number(heapUsedMB.toFixed(2)),
+      heapTotalMB: Number((memoryUsage.heapTotal / 1024 / 1024).toFixed(2)),
+    });
+  }
+}, 10000);
+
+// Graceful Shutdown sequence
+const handleShutdown = (signal) => {
+  logger.info('SHUTDOWN', `Received ${signal}. Starting graceful shutdown sequence...`);
+
+  // Stop memory check interval
+  clearInterval(memoryCheckInterval);
+
+  // Stop accepting new connections
+  runningServer.close(async () => {
+    logger.info('SHUTDOWN', 'HTTP server closed. Resolving database connections...');
+
+    try {
+      if (redisClient && typeof redisClient.quit === 'function') {
+        await redisClient.quit();
+        logger.info('SHUTDOWN', 'Redis connection closed successfully.');
+      }
+      await mongoose.connection.close();
+      logger.info('SHUTDOWN', 'MongoDB connection closed successfully.');
+    } catch (err) {
+      logger.error('SHUTDOWN_ERROR', 'Error closing database connections during shutdown', { error: err });
+    }
+
+    logger.info('SHUTDOWN', 'Observability services flushing.');
+    process.exit(0);
+  });
+
+  // Force terminate after 10s if active connections block execution
+  setTimeout(() => {
+    logger.error('SHUTDOWN_TIMEOUT', 'Graceful shutdown timeout exceeded. Forcing termination.');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGINT', () => handleShutdown('SIGINT'));
+process.on('SIGTERM', () => handleShutdown('SIGTERM'));

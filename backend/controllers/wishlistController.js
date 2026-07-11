@@ -5,10 +5,11 @@ import Wishlist from '../models/Wishlist.js';
 // @route   GET /api/wishlist
 // @access  Private/Student
 const getWishlist = asyncHandler(async (req, res) => {
-  let wishlist = await Wishlist.findOne({ user: req.user._id }).populate('products');
+  let wishlist = await Wishlist.findOne({ user: req.user._id }).populate('products').lean();
 
   if (!wishlist) {
-    wishlist = await Wishlist.create({ user: req.user._id, products: [] });
+    const newWishlist = await Wishlist.create({ user: req.user._id, products: [] });
+    wishlist = newWishlist.toObject();
   }
 
   res.json(wishlist);
@@ -37,7 +38,7 @@ const toggleWishlist = asyncHandler(async (req, res) => {
   }
 
   await wishlist.save();
-  const updatedWishlist = await Wishlist.findOne({ user: req.user._id }).populate('products');
+  const updatedWishlist = await Wishlist.findOne({ user: req.user._id }).populate('products').lean();
   res.json(updatedWishlist);
 });
 

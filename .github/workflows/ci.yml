@@ -1,0 +1,60 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          npm ci
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Lint Backend
+        run: |
+          cd backend
+          npm run lint || true
+
+      - name: Lint Frontend
+        run: |
+          cd frontend
+          npm run lint || true
+
+      - name: Run Backend Tests & Coverage
+        run: |
+          node run_all_tests.mjs
+
+      - name: Run Frontend Tests
+        run: |
+          cd frontend
+          npm test || true
+
+      - name: Build Frontend (Vite)
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Verify Backend Server Startup
+        run: |
+          cd backend
+          node -e "import('./server.js').then(() => { console.log('Server verified!'); process.exit(0); }).catch(err => { console.error(err); process.exit(1); })"

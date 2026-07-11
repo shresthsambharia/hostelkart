@@ -1,2 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /admin/
+Disallow: /delivery/
+Disallow: /api/
+
+Sitemap: https://www.hostelkart.online/sitemap.xml

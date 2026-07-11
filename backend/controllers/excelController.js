@@ -300,11 +300,34 @@ const bulkInventoryUpdate = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Export payments log to Excel
+// @route   GET /api/admin/excel/export-payments
+// @access  Private/Admin
+const exportPayments = asyncHandler(async (req, res) => {
+  const orders = await Order.find({ paymentMethod: 'UPI' }).populate('user', 'name email').lean();
+
+  const data = orders.map(o => ({
+    'Order ID': o._id.toString(),
+    'Customer Name': o.user?.name || 'Guest/Deleted',
+    'Customer Email': o.user?.email || 'N/A',
+    'Payment Reference': o.paymentReference || 'N/A',
+    'UTR Number': o.utrNumber || 'N/A',
+    'Total Amount': o.totalAmount,
+    'Payment Status': o.paymentStatus,
+    'Order Status': o.orderStatus,
+    'Submitted At': o.paymentSubmittedAt ? new Date(o.paymentSubmittedAt).toLocaleString() : 'N/A',
+    'Verified At': o.paymentVerifiedAt ? new Date(o.paymentVerifiedAt).toLocaleString() : 'N/A',
+  }));
+
+  sendExcelFile(res, data, 'Payments', 'HostelKart_Payments.xlsx');
+});
+
 export {
   exportProducts,
   exportOrders,
   exportCustomers,
   exportRevenue,
+  exportPayments,
   importProducts,
   bulkInventoryUpdate
 };

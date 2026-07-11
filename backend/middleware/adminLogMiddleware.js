@@ -34,6 +34,8 @@ const logAdminActivity = asyncHandler(async (req, res, next) => {
             ip: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress,
             userAgent: req.headers['user-agent'],
             details,
+            oldValue: req.oldValue || null,
+            newValue: req.newValue || null,
           });
         } catch (err) {
           console.error('[Admin Audit Log Middleware Error]', err);

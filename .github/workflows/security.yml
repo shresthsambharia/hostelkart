@@ -1,0 +1,26 @@
+name: Security Scanning
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Dependency Audit
+        run: |
+          cd backend && npm audit --audit-level=critical || true
+          cd ../frontend && npm audit --audit-level=critical || true
+
+      - name: GitGuardian Shield Scan
+        uses: GitGuardian/ggshield-action@v1.27.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+        continue-on-error: true

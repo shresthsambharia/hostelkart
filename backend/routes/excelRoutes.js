@@ -6,6 +6,7 @@ import {
   exportOrders,
   exportCustomers,
   exportRevenue,
+  exportPayments,
   importProducts,
   bulkInventoryUpdate
 } from '../controllers/excelController.js';
@@ -37,6 +38,7 @@ router.get('/export-products', exportProducts);
 router.get('/export-orders', exportOrders);
 router.get('/export-customers', exportCustomers);
 router.get('/export-revenue', exportRevenue);
+router.get('/export-payments', exportPayments);
 
 router.post('/import-products', upload.single('file'), importProducts);
 router.post('/bulk-inventory', upload.single('file'), bulkInventoryUpdate);

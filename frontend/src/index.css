@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+*:focus-visible {
+  outline: 3px solid #10b981 !important;
+  outline-offset: 2px !important;
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;

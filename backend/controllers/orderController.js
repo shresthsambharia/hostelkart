@@ -1,4 +1,5 @@
 import asyncHandler from 'express-async-handler';
+import crypto from 'crypto';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import Cart from '../models/Cart.js';
@@ -12,6 +13,16 @@ import QRCode from 'qrcode';
 // @route   POST /api/orders
 // @access  Private/Student
 const createOrder = asyncHandler(async (req, res) => {
+  // Idempotency lock: check if user recently created an order in the last 10s
+  const recentOrder = await Order.findOne({
+    user: req.user._id,
+    createdAt: { $gte: new Date(Date.now() - 10000) }
+  });
+  if (recentOrder) {
+    res.status(400);
+    throw new Error('Please wait 10 seconds before placing another order');
+  }
+
   if (req.body.utrNumber) {
     const existingOrder = await Order.findOne({ utrNumber: req.body.utrNumber.trim() });
     if (existingOrder) {
@@ -39,9 +50,38 @@ const createOrder = asyncHandler(async (req, res) => {
     throw new Error('No order items');
   }
 
-  // Double check stock and adjust stock
+  if (!deliveryDetails || typeof deliveryDetails !== 'object') {
+    res.status(400);
+    throw new Error('Delivery details are required');
+  }
+
+  const { hostelName, block, floor, roomNumber, phone } = deliveryDetails;
+  if (!hostelName || !hostelName.trim() ||
+      !block || !block.trim() ||
+      !floor || !floor.trim() ||
+      !roomNumber || !roomNumber.trim() ||
+      !phone || !phone.trim()) {
+    res.status(400);
+    throw new Error('All required delivery details (hostel, block, floor, room number, phone) must be provided and non-empty');
+  }
+
+  // Validate phone format
+  if (!/^\+?[1-9]\d{1,14}$/.test(phone.trim()) && !/^\d{10}$/.test(phone.trim())) {
+    res.status(400);
+    throw new Error('Invalid phone number format in delivery details');
+  }
+
+  // Double check stock and adjust stock using a single batch query
+  const productIds = orderItems.map((item) => item.product);
+  const products = await Product.find({ _id: { $in: productIds } }).lean();
+
+  const productMap = {};
+  products.forEach((p) => {
+    productMap[p._id.toString()] = p;
+  });
+
   for (const item of orderItems) {
-    const product = await Product.findById(item.product);
+    const product = productMap[item.product.toString()];
     if (!product) {
       res.status(404);
       throw new Error(`Product ${item.name} not found`);
@@ -159,8 +199,11 @@ const createOrder = asyncHandler(async (req, res) => {
   const initialOrderStatus = isUpi ? 'Pending Payment' : 'Pending';
   const expiresAt = isUpi ? new Date(Date.now() + 15 * 60 * 1000) : null;
 
+  const paymentReference = `PAY-HK-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+
   const order = new Order({
     user: req.user._id,
+    paymentReference,
     items: orderItems.map((x) => ({
       product: x.product,
       name: x.name,
@@ -276,15 +319,15 @@ const createOrder = asyncHandler(async (req, res) => {
       );
     }
 
-    // Check for low stock alert on items just ordered
+    // Check for low stock alert using in-memory mapped product states
     for (const item of orderItems) {
-      const product = await Product.findById(item.product);
-      if (product && product.stock < 10) {
+      const product = productMap[item.product.toString()];
+      if (product && (product.stock - item.quantity) < 10) {
         for (const admin of admins) {
           await createAlert(
             admin._id,
             'Low Stock Alert',
-            `Product "${product.name}" is low on stock (${product.stock} left). Please restock soon.`,
+            `Product "${product.name}" is low on stock (${product.stock - item.quantity} left). Please restock soon.`,
             'LowStockAlert'
           );
         }
@@ -307,18 +350,22 @@ const createOrder = asyncHandler(async (req, res) => {
   });
 
   if (paymentMethod === 'COD' || paymentMethod === 'UPI') {
-    // Deduct product stocks
-    for (const item of orderItems) {
-      await Product.findByIdAndUpdate(item.product, {
-        $inc: { stock: -item.quantity },
-      });
-    }
+    // Deduct product stocks using a single high-performance bulkWrite query
+    const bulkOps = orderItems.map((item) => ({
+      updateOne: {
+        filter: { _id: item.product },
+        update: { $inc: { stock: -item.quantity } },
+      },
+    }));
+    await Product.bulkWrite(bulkOps);
 
-    // Clear cart
-    const cart = await Cart.findOne({ user: req.user._id });
-    if (cart) {
-      cart.items = [];
-      await cart.save();
+    // Clear cart for COD immediately; UPI clears only when UTR is successfully submitted
+    if (paymentMethod === 'COD') {
+      const cart = await Cart.findOne({ user: req.user._id });
+      if (cart) {
+        cart.items = [];
+        await cart.save();
+      }
     }
   }
 
@@ -540,6 +587,7 @@ const submitUPIPayment = asyncHandler(async (req, res) => {
   order.paymentScreenshotHash = paymentScreenshotHash || '';
   order.paymentStatus = 'Payment Submitted';
   order.orderStatus = 'Payment Submitted';
+  order.paymentSubmittedAt = Date.now();
   
   order.timeline.push({
     status: 'Payment Submitted',
@@ -547,6 +595,13 @@ const submitUPIPayment = asyncHandler(async (req, res) => {
   });
 
   const updatedOrder = await order.save();
+
+  // Clear cart only on successful payment submission
+  const cart = await Cart.findOne({ user: req.user._id });
+  if (cart) {
+    cart.items = [];
+    await cart.save();
+  }
 
   // Notify admins
   const admins = await User.find({ role: 'admin' });

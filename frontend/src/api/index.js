@@ -12,12 +12,21 @@ const API = axios.create({
   },
 });
 
-// Interceptor to inject JWT token in the header of each request
+const getCookie = (name) => {
+  if (typeof document === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+  return null;
+};
+
+// Interceptor to inject CSRF token in the header of each write request
 API.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Attach CSRF token if present in document cookie
+    const csrfToken = getCookie('csrfToken');
+    if (csrfToken && ['post', 'put', 'delete', 'patch'].includes(config.method?.toLowerCase())) {
+      config.headers['X-CSRF-Token'] = csrfToken;
     }
     return config;
   },
@@ -61,7 +70,6 @@ API.interceptors.response.use(
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
             return API(originalRequest);
           })
           .catch((err) => Promise.reject(err));
@@ -71,14 +79,9 @@ API.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const { data } = await axios.post(`${baseURL}auth/refresh`, {}, { withCredentials: true });
-        const newToken = data.token;
+        await axios.post(`${baseURL}auth/refresh`, {}, { withCredentials: true });
 
-        localStorage.setItem('token', newToken);
-        API.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
-
-        processQueue(null, newToken);
+        processQueue(null, null);
         isRefreshing = false;
 
         return API(originalRequest);
@@ -86,7 +89,6 @@ API.interceptors.response.use(
         processQueue(refreshError, null);
         isRefreshing = false;
 
-        localStorage.removeItem('token');
         localStorage.removeItem('userInfo');
 
         if (typeof window !== 'undefined') {

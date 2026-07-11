@@ -7,7 +7,7 @@ export const getOptimizedImageUrl = (imgUrl, width = 300, quality = 60, format =
     return `https://images.unsplash.com/photo-1542838132-92c53300491e?w=${width}&q=${quality}&fm=${format}&fit=crop&auto=format`;
   }
   
-  // Cloudinary Optimization
+  // Cloudinary Optimization with progressive & auto parameters
   if (imgUrl.includes('res.cloudinary.com')) {
     const parts = imgUrl.split('image/upload/');
     if (parts.length === 2) {
@@ -30,7 +30,7 @@ export const getOptimizedImageUrl = (imgUrl, width = 300, quality = 60, format =
       }
       
       const cleanPath = cleanedSegments.join('/');
-      return `${parts[0]}image/upload/w_${width},f_auto,q_auto,c_fill/${cleanPath}`;
+      return `${parts[0]}image/upload/w_${width},f_auto,q_auto,dpr_auto,c_fill,g_auto,fl_progressive/${cleanPath}`;
     }
   }
 
@@ -54,7 +54,7 @@ export const getOptimizedImageUrl = (imgUrl, width = 300, quality = 60, format =
 /**
  * Helper to generate responsive srcset string for Unsplash and Cloudinary images
  */
-export const getSrcSet = (imgUrl, widths = [150, 300, 450, 600], quality = 60, format = 'webp') => {
+export const getSrcSet = (imgUrl, widths = [150, 300, 500, 800, 1200, 1600], quality = 60, format = 'webp') => {
   if (!imgUrl) {
     return undefined;
   }
@@ -83,7 +83,7 @@ export const getSrcSet = (imgUrl, widths = [150, 300, 450, 600], quality = 60, f
       
       const cleanPath = cleanedSegments.join('/');
       return widths
-        .map((w) => `${parts[0]}image/upload/w_${w},f_auto,q_auto,c_fill/${cleanPath} ${w}w`)
+        .map((w) => `${parts[0]}image/upload/w_${w},f_auto,q_auto,dpr_auto,c_fill,g_auto,fl_progressive/${cleanPath} ${w}w`)
         .join(', ');
     }
   }
@@ -107,9 +107,8 @@ export const getOptimizedImage = (product, type = 'medium') => {
     return getOptimizedImageUrl(null, 300);
   }
 
-  // Handle case where product is a string URL
   if (typeof product === 'string') {
-    const width = type === 'original' ? 800 : type === 'medium' ? 300 : 100;
+    const width = type === 'original' ? 1600 : type === 'medium' ? 500 : 150;
     return getOptimizedImageUrl(product, width);
   }
 
@@ -117,8 +116,7 @@ export const getOptimizedImage = (product, type = 'medium') => {
   if (type === 'medium' && product.imageMedium) return product.imageMedium;
   if (type === 'thumb' && product.imageThumb) return product.imageThumb;
 
-  // Fallback to original raw image field
-  const width = type === 'original' ? 800 : type === 'medium' ? 300 : 100;
+  const width = type === 'original' ? 1600 : type === 'medium' ? 500 : 150;
   return getOptimizedImageUrl(product.image, width);
 };
 
@@ -132,22 +130,31 @@ export const getResponsiveSrcSet = (product) => {
 };
 
 /**
- * Get small 100px thumbnail
+ * Get small 150px thumbnail
  */
 export const getThumbnail = (product) => {
   return getOptimizedImage(product, 'thumb');
 };
 
 /**
- * Get extra-small 80px thumbnail for admin table views
+ * Get extra-small 150px thumbnail for admin table views
  */
 export const getAdminThumbnail = (product) => {
-  if (!product) return getOptimizedImageUrl(null, 80);
+  if (!product) return getOptimizedImageUrl(null, 150);
   
   if (typeof product === 'string') {
-    return getOptimizedImageUrl(product, 80);
+    return getOptimizedImageUrl(product, 150);
   }
 
   if (product.imageThumb) return product.imageThumb;
-  return getOptimizedImageUrl(product.image, 80);
+  return getOptimizedImageUrl(product.image, 150);
+};
+
+/**
+ * Helper to get a tiny blurred placeholder URL for the blur-up load effect
+ */
+export const getBlurPlaceholderUrl = (product) => {
+  if (!product) return getOptimizedImageUrl(null, 20, 5, 'webp');
+  const imgUrl = typeof product === 'string' ? product : product.image;
+  return getOptimizedImageUrl(imgUrl, 20, 5, 'webp');
 };

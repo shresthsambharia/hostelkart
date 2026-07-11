@@ -19,9 +19,11 @@ import {
   updateOrderPaymentStatus,
   getAdminLogs,
   createOrderRefund,
+  updateOrderRefundStatus,
 } from '../controllers/adminController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 import { logAdminActivity } from '../middleware/adminLogMiddleware.js';
+import { cache } from '../middleware/cacheMiddleware.js';
 
 const router = express.Router();
 
@@ -29,7 +31,7 @@ const router = express.Router();
 router.use(protect, admin);
 router.use(logAdminActivity); // Audit logs for all admin write operations
 
-router.get('/analytics', getDashboardAnalytics);
+router.get('/analytics', cache(60), getDashboardAnalytics);
 router.get('/logs', getAdminLogs);
 router.post('/products', addProduct);
 router.route('/products/:id')
@@ -41,6 +43,7 @@ router.put('/orders/:id/status', updateOrderStatus);
 router.put('/orders/:id/assign', assignDeliveryPartner);
 router.put('/orders/:id/payment', updateOrderPaymentStatus);
 router.post('/orders/:id/refund', createOrderRefund);
+router.put('/orders/:id/refunds/:refundId', updateOrderRefundStatus);
 
 router.get('/users', getAllUsers);
 router.route('/delivery-partners')

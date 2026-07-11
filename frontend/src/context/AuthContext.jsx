@@ -13,20 +13,20 @@ export const AuthProvider = ({ children }) => {
   // Load user info on mount if token exists
   useEffect(() => {
     const checkLoggedIn = async () => {
-      const token = localStorage.getItem('token');
-      const savedUser = localStorage.getItem('userInfo');
-
-      if (token && savedUser) {
-        try {
-          setUser(JSON.parse(savedUser));
-          // Refresh user profile details from server
-          const { data } = await authAPI.getProfile();
-          setUser(data);
-          localStorage.setItem('userInfo', JSON.stringify(data));
-        } catch (error) {
-          console.error('Session expired or error refreshing profile:', error);
-          logout();
-        }
+      try {
+        const { data } = await authAPI.getProfile();
+        setUser(data);
+        localStorage.setItem('userInfo', JSON.stringify({
+          _id: data._id,
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          phone: data.phone,
+          hostelDetails: data.hostelDetails,
+        }));
+      } catch (error) {
+        setUser(null);
+        localStorage.removeItem('userInfo');
       }
       setInitializing(false);
     };
@@ -49,7 +49,6 @@ export const AuthProvider = ({ children }) => {
       }
 
       // Store credentials
-      localStorage.setItem('token', data.token);
       localStorage.setItem('userInfo', JSON.stringify({
         _id: data._id,
         name: data.name,
@@ -83,7 +82,6 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data } = await authAPI.register({ name, email, password, phone, captchaId, captchaAnswer });
       
-      localStorage.setItem('token', data.token);
       localStorage.setItem('userInfo', JSON.stringify({
         _id: data._id,
         name: data.name,
@@ -118,7 +116,6 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.error('Logout error on backend:', err);
     }
-    localStorage.removeItem('token');
     localStorage.removeItem('userInfo');
     setUser(null);
     navigate('/login');
@@ -129,7 +126,6 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data } = await authAPI.login2FA({ code, twoFactorToken, isRecovery });
       
-      localStorage.setItem('token', data.token);
       localStorage.setItem('userInfo', JSON.stringify({
         _id: data._id,
         name: data.name,
@@ -161,7 +157,6 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data } = await authAPI.updateProfile(profileData);
       
-      localStorage.setItem('token', data.token);
       localStorage.setItem('userInfo', JSON.stringify({
         _id: data._id,
         name: data.name,

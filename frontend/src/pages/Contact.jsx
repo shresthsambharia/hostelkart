@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Mail, Phone, MapPin, Send, CheckCircle } from 'lucide-react';
 
 const Contact = () => {
@@ -79,7 +80,12 @@ const Contact = () => {
 
         {/* Contact Form */}
         <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm md:col-span-2 space-y-6">
-          <h3 className="font-extrabold text-slate-850 text-xl border-b border-slate-100 pb-3">Send a Message</h3>
+          <h3 className="font-extrabold text-slate-850 text-xl border-b border-slate-100 pb-3 flex justify-between items-center flex-wrap gap-2">
+            <span>Send a Message</span>
+            <Link to="/support" className="text-xs font-black text-primary-600 hover:underline uppercase tracking-wide">
+              Go to Support Tickets →
+            </Link>
+          </h3>
           
           {submitted ? (
             <div className="bg-emerald-50 border border-emerald-100 text-emerald-800 p-6 rounded-xl text-center space-y-3 animate-fadeIn">

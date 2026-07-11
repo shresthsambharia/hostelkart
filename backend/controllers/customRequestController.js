@@ -7,16 +7,22 @@ import CustomRequest from '../models/CustomRequest.js';
 const createCustomRequest = asyncHandler(async (req, res) => {
   const { itemName, description, estimatedPrice } = req.body;
 
-  if (!itemName || !description) {
+  if (!itemName || !itemName.trim() || !description || !description.trim()) {
     res.status(400);
-    throw new Error('Please fill all required fields');
+    throw new Error('Item name and description are required');
+  }
+
+  const priceNum = Number(estimatedPrice || 0);
+  if (isNaN(priceNum) || priceNum < 0) {
+    res.status(400);
+    throw new Error('Estimated price must be a valid non-negative number');
   }
 
   const customRequest = await CustomRequest.create({
     user: req.user._id,
-    itemName,
-    description,
-    estimatedPrice: Number(estimatedPrice) || 0,
+    itemName: itemName.trim(),
+    description: description.trim(),
+    estimatedPrice: priceNum,
   });
 
   res.status(201).json(customRequest);
