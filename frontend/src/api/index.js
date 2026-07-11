@@ -89,9 +89,10 @@ API.interceptors.response.use(
         processQueue(refreshError, null);
         isRefreshing = false;
 
+        const hadUser = !!localStorage.getItem('userInfo');
         localStorage.removeItem('userInfo');
 
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && window.location.pathname !== '/login' && window.location.pathname !== '/register' && hadUser) {
           window.location.href = '/login?session_expired=true';
         }
         return Promise.reject(refreshError);
