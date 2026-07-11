@@ -132,7 +132,7 @@ const Login = () => {
             </div>
           ) : (
             /* Standard Login Form Inputs */
-            <div className="space-y-4 rounded-md shadow-sm">
+             <div className="space-y-4 rounded-md shadow-sm">
               <div>
                 <label htmlFor="email-address" className="text-xs font-semibold text-slate-600 block mb-1">
                   Email Address
@@ -143,6 +143,7 @@ const Login = () => {
                     name="email"
                     type="email"
                     required
+                    autoComplete="email"
                     className="input-field pl-10"
                     placeholder="name@university.com"
                     value={email}
@@ -162,6 +163,7 @@ const Login = () => {
                     name="password"
                     type="password"
                     required
+                    autoComplete="current-password"
                     className="input-field pl-10"
                     placeholder="••••••••"
                     value={password}

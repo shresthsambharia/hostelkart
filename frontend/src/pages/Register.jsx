@@ -95,7 +95,7 @@ const Register = () => {
 
         {/* Form */}
         <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
-          <div>
+           <div>
             <label htmlFor="fullname" className="text-xs font-semibold text-slate-600 block mb-1">
               Full Name
             </label>
@@ -105,6 +105,7 @@ const Register = () => {
                 name="name"
                 type="text"
                 required
+                autoComplete="name"
                 className="input-field pl-10"
                 placeholder="John Doe"
                 value={name}
@@ -124,6 +125,7 @@ const Register = () => {
                 name="email"
                 type="email"
                 required
+                autoComplete="email"
                 className="input-field pl-10"
                 placeholder="john.doe@university.edu"
                 value={email}
@@ -143,6 +145,7 @@ const Register = () => {
                 name="phone"
                 type="tel"
                 required
+                autoComplete="tel"
                 className="input-field pl-10"
                 placeholder="9876543210"
                 value={phone}
@@ -162,6 +165,7 @@ const Register = () => {
                 name="password"
                 type="password"
                 required
+                autoComplete="new-password"
                 className="input-field pl-10"
                 placeholder="At least 6 characters"
                 value={password}
@@ -181,6 +185,7 @@ const Register = () => {
                 name="confirmPassword"
                 type="password"
                 required
+                autoComplete="new-password"
                 className="input-field pl-10"
                 placeholder="Confirm password"
                 value={confirmPassword}
