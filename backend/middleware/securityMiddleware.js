@@ -127,6 +127,16 @@ export const csrfProtection = (req, res, next) => {
     return next();
   }
 
+  // Exempt state-establishing public auth endpoints from CSRF check
+  if (
+    req.originalUrl.includes('/api/auth/login') ||
+    req.originalUrl.includes('/api/auth/register') ||
+    req.originalUrl.includes('/api/auth/refresh') ||
+    req.originalUrl.includes('/api/auth/2fa/login')
+  ) {
+    return next();
+  }
+
   const csrfCookie = getCookieValue(req.headers.cookie, 'csrfToken');
   const csrfHeader = req.headers['x-csrf-token'];
 

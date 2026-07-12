@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const apiURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://hostelkart-backend.onrender.com');
+const apiURL = import.meta.env.DEV 
+  ? (import.meta.env.VITE_API_URL || 'http://localhost:5000') 
+  : '/api';
 const cleanApiURL = apiURL.replace(/\/$/, '');
 const baseURL = cleanApiURL.endsWith('/api') ? `${cleanApiURL}/` : `${cleanApiURL}/api/`;
 
