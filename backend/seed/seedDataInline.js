@@ -105,41 +105,45 @@ export const seedIfEmpty = async () => {
       console.log('- Categories auto-seeded');
     }
 
-    // 2. Seed Users if empty
-    const userCount = await User.countDocuments({});
-    let studentUser = null;
-    if (userCount === 0) {
-      const createdUsers = [];
-      for (const u of usersData) {
+    // 2. Seed Users if missing
+    for (const u of usersData) {
+      const exists = await User.findOne({ email: u.email });
+      if (!exists) {
         const newUser = new User(u);
         const savedUser = await newUser.save();
-        createdUsers.push(savedUser);
+        console.log(`- User ${u.email} auto-seeded`);
       }
-      console.log('- Users auto-seeded');
-
-      studentUser = createdUsers.find(u => u.email === 'student@hostelkart.com');
-      const deliveryPartner = createdUsers.find(u => u.email === 'delivery@hostelkart.com');
-
-      // Create delivery details partner reference
-      await DeliveryPartner.create({
-        user: deliveryPartner._id,
-        vehicleNumber: 'KA-03-EM-8822',
-        status: 'Active',
-        currentOrders: []
-      });
-      console.log('- Delivery Partner details initialized');
-
-      // Initialize cart & wishlist for seeded students
-      for (const user of createdUsers) {
-        if (user.role === 'student') {
-          await Cart.create({ user: user._id, items: [] });
-          await Wishlist.create({ user: user._id, products: [] });
-        }
-      }
-      console.log('- Student Carts and Wishlists initialized');
-    } else {
-      studentUser = await User.findOne({ email: 'student@hostelkart.com' });
     }
+
+    // Ensure all students have carts and wishlists initialized
+    const studentUsers = await User.find({ role: 'student' });
+    for (const student of studentUsers) {
+      const cartExists = await Cart.findOne({ user: student._id });
+      if (!cartExists) {
+        await Cart.create({ user: student._id, items: [] });
+      }
+      const wishlistExists = await Wishlist.findOne({ user: student._id });
+      if (!wishlistExists) {
+        await Wishlist.create({ user: student._id, products: [] });
+      }
+    }
+
+    // Ensure delivery partners have profile details initialized
+    const deliveryUsers = await User.find({ role: 'delivery' });
+    for (const du of deliveryUsers) {
+      const partnerExists = await DeliveryPartner.findOne({ user: du._id });
+      if (!partnerExists) {
+        await DeliveryPartner.create({
+          user: du._id,
+          vehicleNumber: 'KA-03-EM-8822',
+          status: 'Active',
+          currentOrders: []
+        });
+        console.log(`- Delivery Partner details initialized for ${du.email}`);
+      }
+    }
+
+    const studentUser = await User.findOne({ email: 'student@hostelkart.com' });
 
     // 3. Seed Products if empty
     const productCount = await Product.countDocuments({});
