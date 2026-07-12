@@ -50,6 +50,8 @@ const getDashboardAnalytics = asyncHandler(async (req, res) => {
     refundRequestsCount,
     pendingPaymentsCount,
     pendingDeliveriesCount,
+    totalUsers,
+    totalDeliveryPartners,
   ] = await Promise.all([
     Product.countDocuments({}),
     Product.countDocuments({ isAvailable: true }),
@@ -65,6 +67,8 @@ const getDashboardAnalytics = asyncHandler(async (req, res) => {
     Order.countDocuments({ paymentStatus: 'Refund Pending' }),
     Order.countDocuments({ paymentStatus: { $in: ['Payment Submitted', 'Pending Verification', 'Payment Pending Verification'] } }),
     Order.countDocuments({ orderStatus: { $ne: 'Delivered', $ne: 'Cancelled' }, paymentStatus: 'Paid' }),
+    User.countDocuments({}),
+    User.countDocuments({ role: 'delivery' }),
   ]);
 
   const allOrders = await Order.find({}).lean();
