@@ -224,8 +224,8 @@ const Home = () => {
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-              {recs.buyAgain.slice(0, 4).map((product, idx) => (
-                <ProductCard key={product._id} product={product} priority={idx < 4} />
+              {recs.buyAgain.slice(0, 4).map((product) => (
+                <ProductCard key={product._id} product={product} />
               ))}
             </div>
           )}
@@ -253,8 +253,8 @@ const Home = () => {
             </div>
           ) : recs.recommendedForYou?.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-              {recs.recommendedForYou.slice(0, 4).map((product, idx) => (
-                <ProductCard key={product._id} product={product} priority={idx < 4} />
+              {recs.recommendedForYou.slice(0, 4).map((product) => (
+                <ProductCard key={product._id} product={product} />
               ))}
             </div>
           ) : (
