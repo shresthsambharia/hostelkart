@@ -29,22 +29,12 @@ const generateRefreshToken = (id) => {
 
 // Helper to set refresh token in secure HttpOnly cookie
 const setRefreshTokenCookie = (res, token) => {
-  res.cookie('refreshToken', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  });
+  // Disabled - using Bearer tokens in headers
 };
 
 // Helper to set access token in secure HttpOnly cookie
 const setAccessTokenCookie = (res, token) => {
-  res.cookie('token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 15 * 60 * 1000, // 15 mins
-  });
+  // Disabled - using Bearer tokens in headers
 };
 
 // @desc    Register a new student
@@ -169,6 +159,7 @@ const registerUser = asyncHandler(async (req, res) => {
       referredBy: user.referredBy,
       hostelDetails: user.hostelDetails,
       token,
+      refreshToken,
       csrfToken,
     });
   } else {
@@ -312,6 +303,7 @@ const authUser = asyncHandler(async (req, res) => {
       hostelDetails: user.hostelDetails,
       twoFactorEnabled: user.twoFactorEnabled,
       token,
+      refreshToken,
       csrfToken,
     });
   } else {
@@ -441,7 +433,7 @@ const getCaptcha = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/refresh
 // @access  Public
 const refreshAccessToken = asyncHandler(async (req, res) => {
-  const refreshToken = getCookieValue(req.headers.cookie, 'refreshToken');
+  const refreshToken = req.body.refreshToken || getCookieValue(req.headers.cookie, 'refreshToken');
 
   if (!refreshToken) {
     res.status(401);
@@ -480,7 +472,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     setRefreshTokenCookie(res, newRefreshToken);
     setAccessTokenCookie(res, accessToken);
 
-    res.json({ token: accessToken });
+    res.json({ token: accessToken, refreshToken: newRefreshToken });
   } catch (err) {
     res.status(401);
     throw new Error('Refresh token verification failed');
@@ -491,8 +483,9 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/logout
 // @access  Public
 const logoutUser = asyncHandler(async (req, res) => {
-  const refreshToken = getCookieValue(req.headers.cookie, 'refreshToken');
-  const token = getCookieValue(req.headers.cookie, 'token');
+  const refreshToken = req.body.refreshToken || getCookieValue(req.headers.cookie, 'refreshToken');
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer') ? authHeader.split(' ')[1] : getCookieValue(req.headers.cookie, 'token');
 
   logger.info('AUTH_LOGOUT', 'User logged out', { ip: req.ip });
 
@@ -825,6 +818,7 @@ const login2FA = asyncHandler(async (req, res) => {
     hostelDetails: user.hostelDetails,
     twoFactorEnabled: user.twoFactorEnabled,
     token,
+    refreshToken,
     csrfToken,
   });
 });

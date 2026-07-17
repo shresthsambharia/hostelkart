@@ -22,9 +22,14 @@ const getCookie = (name) => {
   return null;
 };
 
-// Interceptor to inject CSRF token in the header of each write request
+// Interceptor to inject Bearer token and CSRF token in the headers of requests
 API.interceptors.request.use(
   (config) => {
+    // Attach Bearer token if present in localStorage
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
     // Attach CSRF token if present in document cookie
     const csrfToken = getCookie('csrfToken');
     if (csrfToken && ['post', 'put', 'delete', 'patch'].includes(config.method?.toLowerCase())) {
@@ -72,6 +77,7 @@ API.interceptors.response.use(
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
+            originalRequest.headers['Authorization'] = `Bearer ${token}`;
             return API(originalRequest);
           })
           .catch((err) => Promise.reject(err));
@@ -81,17 +87,26 @@ API.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        await axios.post(`${baseURL}auth/refresh`, {}, { withCredentials: true });
+        const refreshToken = localStorage.getItem('refreshToken');
+        const { data } = await axios.post(`${baseURL}auth/refresh`, { refreshToken });
 
-        processQueue(null, null);
+        localStorage.setItem('token', data.token);
+        if (data.refreshToken) {
+          localStorage.setItem('refreshToken', data.refreshToken);
+        }
+
+        processQueue(null, data.token);
         isRefreshing = false;
 
+        originalRequest.headers['Authorization'] = `Bearer ${data.token}`;
         return API(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
         isRefreshing = false;
 
         const hadUser = !!localStorage.getItem('userInfo');
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         localStorage.removeItem('userInfo');
 
         if (typeof window !== 'undefined' && window.location.pathname !== '/login' && window.location.pathname !== '/register' && hadUser) {
@@ -132,7 +147,7 @@ export const authAPI = {
   updateProfile: (profileData) => API.put('/auth/profile', profileData),
   updateFcmToken: (fcmToken) => API.put('/auth/fcm-token', { fcmToken }),
   getCaptcha: () => API.get('/auth/captcha'),
-  logout: () => API.post('/auth/logout'),
+  logout: (refreshToken) => API.post('/auth/logout', { refreshToken }),
   setup2FA: (data) => API.post('/auth/2fa/setup', data),
   verify2FASetup: (data) => API.post('/auth/2fa/verify-setup', data),
   disable2FA: (data) => API.post('/auth/2fa/disable', data),

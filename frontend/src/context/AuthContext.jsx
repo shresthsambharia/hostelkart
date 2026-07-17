@@ -20,8 +20,11 @@ export const AuthProvider = ({ children }) => {
   // Load user info on mount if token exists
   useEffect(() => {
     const checkLoggedIn = async () => {
-      const hasCachedUser = !!localStorage.getItem('userInfo');
+      const hasCachedUser = !!localStorage.getItem('userInfo') && !!localStorage.getItem('token');
       if (!hasCachedUser) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userInfo');
         setUser(null);
         return;
       }
@@ -41,8 +44,10 @@ export const AuthProvider = ({ children }) => {
         // If it's a network error (e.g. server wakeup delay, offline), keep the cached session active!
         // Only clear the session if the server explicitly returns a 401/403 auth error.
         if (error.response?.status === 401 || error.response?.status === 403) {
-          setUser(null);
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
           localStorage.removeItem('userInfo');
+          setUser(null);
         }
       }
     };
@@ -63,6 +68,10 @@ export const AuthProvider = ({ children }) => {
           twoFactorToken: data.twoFactorToken,
         };
       }
+
+      // Store tokens
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('refreshToken', data.refreshToken);
 
       // Store credentials
       localStorage.setItem('userInfo', JSON.stringify({
@@ -98,6 +107,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data } = await authAPI.register({ name, email, password, phone, captchaId, captchaAnswer });
       
+      // Store tokens
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('refreshToken', data.refreshToken);
+
       localStorage.setItem('userInfo', JSON.stringify({
         _id: data._id,
         name: data.name,
@@ -128,10 +141,13 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(async () => {
     try {
-      await authAPI.logout();
+      const refreshToken = localStorage.getItem('refreshToken');
+      await authAPI.logout(refreshToken);
     } catch (err) {
       console.error('Logout error on backend:', err);
     }
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('userInfo');
     setUser(null);
     navigate('/login');
@@ -142,6 +158,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data } = await authAPI.login2FA({ code, twoFactorToken, isRecovery });
       
+      // Store tokens
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('refreshToken', data.refreshToken);
+
       localStorage.setItem('userInfo', JSON.stringify({
         _id: data._id,
         name: data.name,
