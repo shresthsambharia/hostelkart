@@ -170,6 +170,8 @@ const Home = () => {
               alt="HostelKart Logo"
               fetchPriority="high"
               decoding="async"
+              width={160}
+              height={160}
               className="max-w-full max-h-full object-contain filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.15)]"
             />
           </div>

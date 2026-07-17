@@ -122,6 +122,11 @@ app.use(helmet({
   },
 }));
 
+app.use((req, res, next) => {
+  res.setHeader('Permissions-Policy', 'geolocation=(), camera=(), microphone=(), interest-cohort=()');
+  next();
+});
+
 // Middlewares
 app.use(requestIdMiddleware);
 

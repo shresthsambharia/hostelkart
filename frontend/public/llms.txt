@@ -1,0 +1,21 @@
+# HostelKart
+
+Student essentials delivery platform.
+
+## Website
+
+https://hostelkart.online
+
+## Pages
+
+https://hostelkart.online/
+
+https://hostelkart.online/shop
+
+https://hostelkart.online/custom-request
+
+https://hostelkart.online/login
+
+https://hostelkart.online/register
+
+https://hostelkart.online/contact

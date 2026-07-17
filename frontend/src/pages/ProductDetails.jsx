@@ -197,6 +197,8 @@ const ProductDetails = () => {
               <img
                 src={getBlurPlaceholderUrl(gallery[selectedImageIndex])}
                 alt=""
+                width={600}
+                height={600}
                 className={`absolute inset-0 w-full h-full object-contain p-6 filter blur-md transition-opacity duration-500 pointer-events-none ${
                   imageLoaded ? 'opacity-0' : 'opacity-100'
                 }`}
@@ -246,6 +248,8 @@ const ProductDetails = () => {
                       alt={`Product Thumbnail ${idx + 1}`}
                       loading="lazy"
                       decoding="async"
+                      width={150}
+                      height={150}
                       className="w-full h-full object-contain"
                     />
                   </button>
@@ -529,6 +533,8 @@ const ProductDetails = () => {
             <img
               src={getOptimizedImageUrl(gallery[selectedImageIndex], 1600)}
               alt={product.name}
+              width={1600}
+              height={1600}
               className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
             />
 
