@@ -79,7 +79,7 @@ const Footer = () => {
           </a>
         </div>
 
-        <div className="mt-8 pt-8 border-t border-slate-800 text-center text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="mt-8 pt-8 border-t border-slate-800 text-center text-xs text-slate-400 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p>Designed for college campuses. Quick delivery direct to your block and room.</p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link to="/about" className="hover:text-slate-300 transition-colors">About Us</Link>

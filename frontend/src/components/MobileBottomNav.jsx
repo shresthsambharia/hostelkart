@@ -53,7 +53,7 @@ const MobileBottomNav = () => {
             key={link.name}
             to={link.path}
             className={`flex flex-col items-center justify-center relative w-12 text-center transition-colors ${
-              active ? 'text-primary-600 font-extrabold scale-105' : 'text-slate-500 font-medium'
+              active ? 'text-emerald-800 font-extrabold scale-105' : 'text-slate-500 font-medium'
             }`}
           >
             <div className="relative p-1">
