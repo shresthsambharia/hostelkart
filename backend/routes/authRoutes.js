@@ -31,6 +31,12 @@ const router = express.Router();
 router.get('/captcha', getCaptcha);
 router.post('/refresh', refreshAccessToken);
 router.post('/logout', logoutUser);
+router.get('/debug-cookies', (req, res) => {
+  res.json({
+    headers: req.headers,
+    cookies: req.headers.cookie || 'none',
+  });
+});
 
 router.post('/register', authLimiter, registerUser);
 router.post('/login', authLimiter, authUser);
