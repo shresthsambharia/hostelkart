@@ -5,14 +5,27 @@ import { authAPI } from '../api';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('userInfo');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(false);
-  const [initializing, setInitializing] = useState(true);
+  const [initializing, setInitializing] = useState(false);
   const navigate = useNavigate();
 
   // Load user info on mount if token exists
   useEffect(() => {
     const checkLoggedIn = async () => {
+      const hasCachedUser = !!localStorage.getItem('userInfo');
+      if (!hasCachedUser) {
+        setUser(null);
+        return;
+      }
+
       try {
         const { data } = await authAPI.getProfile();
         setUser(data);
@@ -25,10 +38,13 @@ export const AuthProvider = ({ children }) => {
           hostelDetails: data.hostelDetails,
         }));
       } catch (error) {
-        setUser(null);
-        localStorage.removeItem('userInfo');
+        // If it's a network error (e.g. server wakeup delay, offline), keep the cached session active!
+        // Only clear the session if the server explicitly returns a 401/403 auth error.
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          setUser(null);
+          localStorage.removeItem('userInfo');
+        }
       }
-      setInitializing(false);
     };
 
     checkLoggedIn();
