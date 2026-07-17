@@ -1,21 +1,17 @@
 # HostelKart
 
-Student essentials delivery platform.
+> HostelKart is a high-performance student essentials delivery platform delivering groceries, fresh fruits, vegetables, instant food, stationery, and room care items directly to hostel rooms and floor blocks.
 
 ## Website
+* [HostelKart Home](https://hostelkart.online) - Main landing page with custom recommendations, popular item categories, recent order rebuy shortcuts, and user dashboard access.
 
-https://hostelkart.online
+## Core Services
+* [Shop Products](https://hostelkart.online/shop) - Comprehensive product catalog showing real-time inventory, category filters, and detailed items.
+* [Custom Delivery Request](https://hostelkart.online/custom-request) - Special order placement interface for items not listed in the standard catalog.
 
-## Pages
+## Account Management
+* [Login](https://hostelkart.online/login) - Customer authentication portal supporting multi-factor authentication (2FA).
+* [Register](https://hostelkart.online/register) - New customer onboarding page validating student credentials.
 
-https://hostelkart.online/
-
-https://hostelkart.online/shop
-
-https://hostelkart.online/custom-request
-
-https://hostelkart.online/login
-
-https://hostelkart.online/register
-
-https://hostelkart.online/contact
+## Communication
+* [Contact Support](https://hostelkart.online/contact) - Customer care portal to file support tickets, view FAQ responses, and check delivery status.
