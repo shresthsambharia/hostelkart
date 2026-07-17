@@ -244,14 +244,14 @@ const Navbar = () => {
                 <button
                   type="button"
                   onClick={startVoiceSearch}
-                  className={`absolute right-10 top-2.5 text-slate-400 hover:text-primary-600 transition-colors ${isListening ? 'text-red-500 animate-pulse' : ''}`}
+                  className={`absolute right-9 top-1 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-primary-600 transition-colors ${isListening ? 'text-red-500 animate-pulse' : ''}`}
                   title="Search by voice"
                   aria-label="Voice Search"
                 >
                   <Mic size={16} />
                 </button>
 
-                <button type="submit" className="absolute right-4 top-2 text-slate-400 hover:text-primary-600" aria-label="Submit Search">
+                <button type="submit" className="absolute right-2 top-1 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-primary-600" aria-label="Submit Search">
                   <Search size={18} />
                 </button>
               </div>
@@ -646,13 +646,13 @@ const Navbar = () => {
             <button
               type="button"
               onClick={startVoiceSearch}
-              className={`absolute right-10 top-3 text-slate-400 hover:text-primary-600 transition-colors ${isListening ? 'text-red-500 animate-pulse' : ''}`}
+              className={`absolute right-9 top-1 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-primary-600 transition-colors ${isListening ? 'text-red-500 animate-pulse' : ''}`}
               title="Search by voice"
               aria-label="Voice Search"
             >
               <Mic size={14} />
             </button>
-            <button type="submit" className="absolute right-4 top-3 text-slate-400" aria-label="Submit Search">
+            <button type="submit" className="absolute right-2 top-1 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-primary-600" aria-label="Submit Search">
               <Search size={16} />
             </button>
           </form>
