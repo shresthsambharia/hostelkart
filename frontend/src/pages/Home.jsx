@@ -35,16 +35,7 @@ const Home = () => {
   const [recsLoading, setRecsLoading] = useState(true);
   const [delayedRecsLoading, setDelayedRecsLoading] = useState(true);
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [loadBelowFold, setLoadBelowFold] = useState(false);
   const navigate = useNavigate();
-
-  // Defer below-the-fold rendering until the main paint is finished and the page is interactive
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoadBelowFold(true);
-    }, 400); // 400ms delay to ensure instant interactivity on first paint
-    return () => clearTimeout(timer);
-  }, []);
 
   // Fetch recommendations after initial mount to prioritize static content rendering
   useEffect(() => {
@@ -233,136 +224,128 @@ const Home = () => {
       )}
 
       {/* 2. Recommended For You */}
-      {loadBelowFold && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
-          <div className="flex justify-between items-baseline">
-            <div className="space-y-0.5">
-              <h2 className="text-sm sm:text-base font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-primary-650" />
-                Recommended For You
-              </h2>
-              <p className="text-[10px] sm:text-xs text-slate-400 font-medium">Personalized recommendations based on your preferences</p>
-            </div>
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+        <div className="flex justify-between items-baseline">
+          <div className="space-y-0.5">
+            <h2 className="text-sm sm:text-base font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-primary-650" />
+              Recommended For You
+            </h2>
+            <p className="text-[10px] sm:text-xs text-slate-400 font-medium">Personalized recommendations based on your preferences</p>
           </div>
+        </div>
 
-          {delayedRecsLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-              {[...Array(4)].map((_, i) => (
-                <ProductCardSkeleton key={i} />
-              ))}
-            </div>
-          ) : recs.recommendedForYou?.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-              {recs.recommendedForYou.slice(0, 4).map((product) => (
-                <ProductCard key={product._id} product={product} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 bg-slate-50 rounded-2xl border border-slate-100/50">
-              <p className="text-slate-400 text-xs font-semibold">No recommendations available.</p>
-            </div>
-          )}
-        </section>
-      )}
+        {delayedRecsLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            {[...Array(4)].map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : recs.recommendedForYou?.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            {recs.recommendedForYou.slice(0, 4).map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 bg-slate-50 rounded-2xl border border-slate-100/50">
+            <p className="text-slate-400 text-xs font-semibold">No recommendations available.</p>
+          </div>
+        )}
+      </section>
 
       {/* 3. Students Also Bought */}
-      {loadBelowFold && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
-          <div className="flex justify-between items-baseline">
-            <div className="space-y-0.5">
-              <h2 className="text-sm sm:text-base font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                <HomeIcon className="w-4 h-4 text-emerald-650" />
-                Students Also Bought
-              </h2>
-              <p className="text-[10px] sm:text-xs text-slate-400 font-medium">Popular choices among students living in your hostels</p>
-            </div>
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+        <div className="flex justify-between items-baseline">
+          <div className="space-y-0.5">
+            <h2 className="text-sm sm:text-base font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              <HomeIcon className="w-4 h-4 text-emerald-650" />
+              Students Also Bought
+            </h2>
+            <p className="text-[10px] sm:text-xs text-slate-400 font-medium">Popular choices among students living in your hostels</p>
           </div>
+        </div>
 
-          {delayedRecsLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-              {[...Array(4)].map((_, i) => (
-                <ProductCardSkeleton key={i} />
-              ))}
-            </div>
-          ) : recs.studentsAlsoBought?.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-              {recs.studentsAlsoBought.slice(0, 4).map((product) => (
-                <ProductCard key={product._id} product={product} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 bg-slate-50 rounded-2xl border border-slate-100/50">
-              <p className="text-slate-400 text-xs font-semibold">No popular choices found.</p>
-            </div>
-          )}
-        </section>
-      )}
+        {delayedRecsLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            {[...Array(4)].map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : recs.studentsAlsoBought?.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            {recs.studentsAlsoBought.slice(0, 4).map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 bg-slate-50 rounded-2xl border border-slate-100/50">
+            <p className="text-slate-400 text-xs font-semibold">No popular choices found.</p>
+          </div>
+        )}
+      </section>
 
       {/* 4. Frequently Bought Together */}
-      {loadBelowFold && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
-          <div className="flex justify-between items-baseline">
-            <div className="space-y-0.5">
-              <h2 className="text-sm sm:text-base font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-primary-500" />
-                Frequently Bought Together
-              </h2>
-              <p className="text-[10px] sm:text-xs text-slate-400 font-medium">Common product combinations purchased in single orders</p>
-            </div>
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+        <div className="flex justify-between items-baseline">
+          <div className="space-y-0.5">
+            <h2 className="text-sm sm:text-base font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-primary-500" />
+              Frequently Bought Together
+            </h2>
+            <p className="text-[10px] sm:text-xs text-slate-400 font-medium">Common product combinations purchased in single orders</p>
           </div>
+        </div>
 
-          {delayedRecsLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-              {[...Array(4)].map((_, i) => (
-                <ProductCardSkeleton key={i} />
-              ))}
-            </div>
-          ) : recs.frequentlyBoughtTogether?.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-              {recs.frequentlyBoughtTogether.slice(0, 4).map((product) => (
-                <ProductCard key={product._id} product={product} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 bg-slate-50 rounded-2xl border border-slate-100/50">
-              <p className="text-slate-400 text-xs font-semibold">No combination items found.</p>
-            </div>
-          )}
-        </section>
-      )}
+        {delayedRecsLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            {[...Array(4)].map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : recs.frequentlyBoughtTogether?.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            {recs.frequentlyBoughtTogether.slice(0, 4).map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 bg-slate-50 rounded-2xl border border-slate-100/50">
+            <p className="text-slate-400 text-xs font-semibold">No combination items found.</p>
+          </div>
+        )}
+      </section>
 
       {/* 5. Trending Products */}
-      {loadBelowFold && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
-          <div className="flex justify-between items-baseline">
-            <div className="space-y-0.5">
-              <h2 className="text-sm sm:text-base font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                <span>🔥</span>
-                Trending Products
-              </h2>
-              <p className="text-[10px] sm:text-xs text-slate-400 font-medium">Hot products flying off the shelves this hour</p>
-            </div>
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+        <div className="flex justify-between items-baseline">
+          <div className="space-y-0.5">
+            <h2 className="text-sm sm:text-base font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              <span>🔥</span>
+              Trending Products
+            </h2>
+            <p className="text-[10px] sm:text-xs text-slate-400 font-medium">Hot products flying off the shelves this hour</p>
           </div>
+        </div>
 
-          {recsLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-              {[...Array(4)].map((_, i) => (
-                <ProductCardSkeleton key={i} />
-              ))}
-            </div>
-          ) : recs.trending?.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-              {recs.trending.slice(0, 4).map((product) => (
-                <ProductCard key={product._id} product={product} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 bg-slate-50 rounded-2xl border border-slate-100/50">
-              <p className="text-slate-400 text-xs font-semibold">No trending products found.</p>
-            </div>
-          )}
-        </section>
-      )}
+        {recsLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            {[...Array(4)].map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : recs.trending?.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            {recs.trending.slice(0, 4).map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 bg-slate-50 rounded-2xl border border-slate-100/50">
+            <p className="text-slate-400 text-xs font-semibold">No trending products found.</p>
+          </div>
+        )}
+      </section>
     </div>
   );
 };
