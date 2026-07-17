@@ -37,11 +37,7 @@
         }
       }
 
-      // Load dynamically after 3.5 seconds OR on first user interaction
-      const loadTimeout = setTimeout(loadThirdPartyScripts, 3500);
-
       function triggerScriptLoad() {
-        clearTimeout(loadTimeout);
         loadThirdPartyScripts();
         ['scroll', 'mousedown', 'touchstart', 'keydown'].forEach(event => {
           window.removeEventListener(event, triggerScriptLoad);
