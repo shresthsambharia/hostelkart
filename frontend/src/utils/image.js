@@ -135,9 +135,9 @@ export const getOptimizedImage = (product, type = 'medium') => {
     return getOptimizedImageUrl(product, width);
   }
 
-  if (type === 'original' && product.imageOriginal) return product.imageOriginal;
-  if (type === 'medium' && product.imageMedium) return product.imageMedium;
-  if (type === 'thumb' && product.imageThumb) return product.imageThumb;
+  if (type === 'original' && product.imageOriginal) return getOptimizedImageUrl(product.imageOriginal, 1080);
+  if (type === 'medium' && product.imageMedium) return getOptimizedImageUrl(product.imageMedium, 512);
+  if (type === 'thumb' && product.imageThumb) return getOptimizedImageUrl(product.imageThumb, 256);
 
   const width = type === 'original' ? 1080 : type === 'medium' ? 512 : 256;
   return getOptimizedImageUrl(product.image, width);
