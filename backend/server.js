@@ -5,6 +5,27 @@ import dotenv from 'dotenv';
 // Load environmental variables immediately
 dotenv.config();
 
+process.on('uncaughtException', (err) => {
+  console.error('CRITICAL: Uncaught Exception:', err);
+  if (logger && typeof logger.error === 'function') {
+    logger.error('UNCAUGHT_EXCEPTION', `Uncaught Exception: ${err.message}`, {
+      message: err.message,
+      stack: err.stack,
+    });
+  }
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('CRITICAL: Unhandled Rejection at:', promise, 'reason:', reason);
+  if (logger && typeof logger.error === 'function') {
+    logger.error('UNHANDLED_REJECTION', `Unhandled Rejection: ${reason instanceof Error ? reason.message : reason}`, {
+      reason: reason instanceof Error ? { message: reason.message, stack: reason.stack } : reason,
+    });
+  }
+  process.exit(1);
+});
+
 import Order from './models/Order.js';
 import Product from './models/Product.js';
 import cors from 'cors';
@@ -68,8 +89,18 @@ if (missingEnv.length > 0) {
 
 // Connect to MongoDB and Auto-Seed if empty
 const initializeDatabase = async () => {
-  await connectDB();
-  await seedIfEmpty();
+  try {
+    await connectDB();
+    await seedIfEmpty();
+    logger.info('STARTUP', 'Database connection and seeding check completed.');
+  } catch (error) {
+    logger.error('STARTUP_DATABASE_ERROR', 'Failed to initialize database during startup', {
+      message: error.message,
+      stack: error.stack,
+    });
+    console.error('CRITICAL: Database initialization failed during server startup:', error);
+    process.exit(1);
+  }
 };
 initializeDatabase();
 
