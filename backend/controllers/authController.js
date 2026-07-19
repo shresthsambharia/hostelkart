@@ -262,12 +262,12 @@ const authUser = asyncHandler(async (req, res) => {
     const token = generateToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
 
-    // Save refresh token to DB
-    await RefreshToken.create({
+    // Save refresh token to DB asynchronously in background to prevent response blocking
+    RefreshToken.create({
       user: user._id,
       token: refreshToken,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-    });
+    }).catch(err => logger.error('REFRESH_TOKEN_SAVE_FAILED', err.message));
 
     // Set refresh token and access token in HttpOnly cookies
     setRefreshTokenCookie(res, refreshToken);

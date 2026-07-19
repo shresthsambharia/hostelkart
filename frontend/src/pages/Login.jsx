@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Lock, Mail, AlertCircle, Shield, KeyRound, ArrowLeft } from 'lucide-react';
+import { Lock, Mail, AlertCircle, Shield, KeyRound, ArrowLeft, Loader2 } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -11,9 +11,18 @@ const Login = () => {
   const [twoFactorToken, setTwoFactorToken] = useState('');
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [isRecovery, setIsRecovery] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [slowNotice, setSlowNotice] = useState(false);
   
-  const { login, login2FA, user } = useAuth();
+  const { login, login2FA, user, loading } = useAuth();
   const navigate = useNavigate();
+
+  // Pre-warm backend instance as soon as the login page opens
+  useEffect(() => {
+    const apiURL = import.meta.env.VITE_API_URL || 'https://hostelkart-backend.onrender.com';
+    const backendBase = apiURL.replace(/\/api\/?$/, '');
+    fetch(`${backendBase}/health`).catch(() => {});
+  }, []);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -27,35 +36,54 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setIsSubmitting(true);
 
-    if (twoFactorRequired) {
-      if (!twoFactorCode) {
-        setError(isRecovery ? 'Please enter your recovery code' : 'Please enter your 6-digit verification code');
+    const slowTimer = setTimeout(() => {
+      setSlowNotice(true);
+    }, 3000);
+
+    try {
+      if (twoFactorRequired) {
+        if (!twoFactorCode) {
+          setError(isRecovery ? 'Please enter your recovery code' : 'Please enter your 6-digit verification code');
+          setIsSubmitting(false);
+          clearTimeout(slowTimer);
+          setSlowNotice(false);
+          return;
+        }
+        
+        const res = await login2FA(twoFactorCode, twoFactorToken, isRecovery);
+        if (!res.success) {
+          setError(res.message);
+        }
         return;
       }
-      
-      const res = await login2FA(twoFactorCode, twoFactorToken, isRecovery);
-      if (!res.success) {
+
+      if (!email || !password) {
+        setError('Please fill in all fields');
+        setIsSubmitting(false);
+        clearTimeout(slowTimer);
+        setSlowNotice(false);
+        return;
+      }
+
+      const res = await login(email, password);
+      if (res.success) {
+        if (res.twoFactorRequired) {
+          setTwoFactorRequired(true);
+          setTwoFactorToken(res.twoFactorToken);
+          setTwoFactorCode('');
+          setIsRecovery(false);
+        }
+      } else {
         setError(res.message);
       }
-      return;
-    }
-
-    if (!email || !password) {
-      setError('Please fill in all fields');
-      return;
-    }
-
-    const res = await login(email, password);
-    if (res.success) {
-      if (res.twoFactorRequired) {
-        setTwoFactorRequired(true);
-        setTwoFactorToken(res.twoFactorToken);
-        setTwoFactorCode('');
-        setIsRecovery(false);
-      }
-    } else {
-      setError(res.message);
+    } catch (err) {
+      setError(err.message || 'Authentication error. Please try again.');
+    } finally {
+      clearTimeout(slowTimer);
+      setIsSubmitting(false);
+      setSlowNotice(false);
     }
   };
 
@@ -176,8 +204,25 @@ const Login = () => {
           )}
 
           <div className="space-y-3">
-            <button type="submit" className="w-full btn-primary text-sm">
-              {twoFactorRequired ? 'Verify & Sign In' : 'Sign In'}
+            {slowNotice && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-center space-x-2 text-amber-800 text-xs font-semibold animate-pulse">
+                <Loader2 className="w-4 h-4 animate-spin text-amber-600 shrink-0" />
+                <span>Waking up secure server instance, please hold on...</span>
+              </div>
+            )}
+            <button
+              type="submit"
+              disabled={isSubmitting || loading}
+              className="w-full btn-primary text-sm flex items-center justify-center space-x-2 disabled:opacity-75 disabled:cursor-not-allowed"
+            >
+              {(isSubmitting || loading) ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>{slowNotice ? 'Connecting to Server...' : 'Signing In...'}</span>
+                </>
+              ) : (
+                <span>{twoFactorRequired ? 'Verify & Sign In' : 'Sign In'}</span>
+              )}
             </button>
 
             {twoFactorRequired && (
