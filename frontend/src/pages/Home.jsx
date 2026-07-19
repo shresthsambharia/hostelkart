@@ -159,6 +159,7 @@ const Home = () => {
             <img
               src="/logo512.png"
               alt="HostelKart Logo"
+              loading="eager"
               fetchPriority="high"
               decoding="async"
               width={160}
