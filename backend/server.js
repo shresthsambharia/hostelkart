@@ -461,12 +461,28 @@ const memoryCheckInterval = setInterval(() => {
   }
 }, 10000);
 
+// Self-KeepAlive Ping to prevent Render free-tier instance from sleeping (Pings every 8 minutes)
+const keepAliveInterval = setInterval(() => {
+  if (process.env.NODE_ENV === 'production') {
+    const keepAliveUrl = 'https://hostelkart-backend.onrender.com/health';
+    import('https').then(https => {
+      https.get(keepAliveUrl, (res) => {
+        res.resume();
+        logger.info('KEEPALIVE_PING', `Self keep-alive ping status: ${res.statusCode}`);
+      }).on('error', (err) => {
+        logger.warn('KEEPALIVE_ERROR', `Keep-alive ping error: ${err.message}`);
+      });
+    }).catch(() => {});
+  }
+}, 8 * 60 * 1000); // 8 minutes
+
 // Graceful Shutdown sequence
 const handleShutdown = (signal) => {
   logger.info('SHUTDOWN', `Received ${signal}. Starting graceful shutdown sequence...`);
 
-  // Stop memory check interval
+  // Stop intervals
   clearInterval(memoryCheckInterval);
+  clearInterval(keepAliveInterval);
 
   // Stop accepting new connections
   runningServer.close(async () => {
