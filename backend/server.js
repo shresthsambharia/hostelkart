@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import express from 'express';
 import dotenv from 'dotenv';
+import https from 'https';
 // Load environmental variables immediately
 dotenv.config();
 
@@ -464,15 +465,14 @@ const memoryCheckInterval = setInterval(() => {
 // Self-KeepAlive Ping to prevent Render free-tier instance from sleeping (Pings every 8 minutes)
 const keepAliveInterval = setInterval(() => {
   if (process.env.NODE_ENV === 'production') {
-    const keepAliveUrl = 'https://hostelkart-backend.onrender.com/health';
-    import('https').then(https => {
-      https.get(keepAliveUrl, (res) => {
+    try {
+      const req = https.get('https://hostelkart-backend.onrender.com/health', (res) => {
         res.resume();
-        logger.info('KEEPALIVE_PING', `Self keep-alive ping status: ${res.statusCode}`);
-      }).on('error', (err) => {
-        logger.warn('KEEPALIVE_ERROR', `Keep-alive ping error: ${err.message}`);
       });
-    }).catch(() => {});
+      req.on('error', () => {});
+    } catch (err) {
+      // Safe catch to ensure ping issues never crash the process
+    }
   }
 }, 8 * 60 * 1000); // 8 minutes
 
