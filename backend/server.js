@@ -3,11 +3,11 @@ import fs from 'fs';
 import express from 'express';
 import dotenv from 'dotenv';
 import https from 'https';
-// Load environmental variables immediately
-dotenv.config();
+console.log("STEP 1 Loaded dotenv");
 
 process.on('uncaughtException', (err) => {
-  console.error('CRITICAL: Uncaught Exception:', err);
+  console.error('UNCAUGHT EXCEPTION');
+  console.error(err);
   if (logger && typeof logger.error === 'function') {
     logger.error('UNCAUGHT_EXCEPTION', `Uncaught Exception: ${err.message}`, {
       message: err.message,
@@ -18,7 +18,8 @@ process.on('uncaughtException', (err) => {
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('CRITICAL: Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('UNHANDLED REJECTION');
+  console.error(reason);
   if (logger && typeof logger.error === 'function') {
     logger.error('UNHANDLED_REJECTION', `Unhandled Rejection: ${reason instanceof Error ? reason.message : reason}`, {
       reason: reason instanceof Error ? { message: reason.message, stack: reason.stack } : reason,
@@ -34,6 +35,8 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import connectDB from './config/db.js';
 import { redisClient } from './config/redis.js';
+console.log("STEP 2 Connected Redis");
+
 import { seedIfEmpty } from './seed/seedDataInline.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import helmet from 'helmet';
@@ -64,28 +67,28 @@ import excelRoutes from './routes/excelRoutes.js';
 import couponRoutes from './routes/couponRoutes.js';
 import walletRoutes from './routes/walletRoutes.js';
 import recommendationRoutes from './routes/recommendationRoutes.js';
-
-
+console.log("STEP 4 Routes Loaded");
 
 // Initialize Sentry Monitoring
 initSentry();
 
-// Enforce strict environment validation checks at startup
-const requiredEnv = [
-  'JWT_SECRET',
-  'MONGO_URI',
-  'CLOUDINARY_CLOUD_NAME',
-  'CLOUDINARY_API_KEY',
-  'CLOUDINARY_API_SECRET',
-  'UPI_ID'
-];
-
-const missingEnv = requiredEnv.filter(env => !process.env[env]);
-if (missingEnv.length > 0) {
-  logger.error('STARTUP_ERROR', `Missing critical environment variables: ${missingEnv.join(', ')}. Application cannot start safely.`);
+// Essential required environment variables for startup
+const essentialEnv = ['JWT_SECRET', 'MONGO_URI'];
+const missingEssentialEnv = essentialEnv.filter(env => !process.env[env]);
+if (missingEssentialEnv.length > 0) {
+  console.error(`CRITICAL STARTUP ERROR: Missing essential environment variables: ${missingEssentialEnv.join(', ')}`);
+  logger.error('STARTUP_ERROR', `Missing essential environment variables: ${missingEssentialEnv.join(', ')}. Application cannot start safely.`);
   process.exit(1);
 } else {
-  logger.info('STARTUP', 'All required environment variables validated successfully.');
+  console.log("STEP 4 Validated Environment Variables");
+  logger.info('STARTUP', 'Essential environment variables validated successfully.');
+}
+
+// Optional integration environment variables
+const optionalEnv = ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET', 'UPI_ID'];
+const missingOptionalEnv = optionalEnv.filter(env => !process.env[env]);
+if (missingOptionalEnv.length > 0) {
+  console.warn(`[STARTUP WARNING] Optional integration environment variables not set: ${missingOptionalEnv.join(', ')}. Fallback/mock mode active.`);
 }
 
 // Connect to MongoDB and Auto-Seed if empty
@@ -438,7 +441,9 @@ startPaymentExpirationMonitor(io);
 
 const PORT = process.env.PORT || 5000;
 
+console.log("STEP 5 Starting Express");
 const runningServer = server.listen(PORT, () => {
+  console.log("STEP 6 Server Listening");
   logger.info('STARTUP', `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });
 

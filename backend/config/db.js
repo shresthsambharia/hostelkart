@@ -22,6 +22,7 @@ const connectDB = async () => {
     try {
       logger.info('DATABASE_CONNECT_ATTEMPT', `Connecting to MongoDB (Attempt ${attempt + 1}/${maxAttempts})...`);
       const conn = await mongoose.connect(mongoUri, options);
+      console.log("STEP 3 Connected Mongo");
       logger.info('DATABASE_CONNECTED', `MongoDB Connected: ${conn.connection.host}`);
       return conn;
     } catch (error) {
