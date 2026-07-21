@@ -1368,6 +1368,204 @@ const updateOrderRefundStatus = asyncHandler(async (req, res) => {
   res.json(updatedOrder);
 });
 
+// @desc    Perform COMPLETE Production Product Deduplication & Reference Migration
+// @route   POST /api/admin/products/deduplicate
+// @access  Private/Admin
+const deduplicateProducts = asyncHandler(async (req, res) => {
+  const db = mongoose.connection.db;
+  const host = mongoose.connection.host;
+  const dbName = mongoose.connection.name;
+
+  // STEP 1: VERIFY PRODUCTION DATABASE
+  const productsBefore = await db.collection('products').find({}).toArray();
+  const initialProductsCount = productsBefore.length;
+  const initialCategoriesCount = await db.collection('categories').countDocuments();
+
+  console.log(`[Deduplicate] STEP 1 VERIFIED: Host=${host}, DB=${dbName}, Products=${initialProductsCount}, Categories=${initialCategoriesCount}`);
+
+  // STEP 2: BACKUP
+  const backupTimestamp = Date.now();
+  const backupCollectionName = `products_backup_${backupTimestamp}`;
+  if (productsBefore.length > 0) {
+    await db.collection(backupCollectionName).insertMany(productsBefore.map(p => ({ ...p })));
+  }
+  const backupCount = await db.collection(backupCollectionName).countDocuments();
+  console.log(`[Deduplicate] STEP 2 BACKUP COMPLETE: Created ${backupCollectionName} with ${backupCount} records.`);
+
+  // STEP 3: FIND DUPLICATES & BUILD MAP
+  const groups = {};
+  productsBefore.forEach(p => {
+    const normName = (p.name || '').trim().toLowerCase();
+    if (!groups[normName]) groups[normName] = [];
+    groups[normName].push(p);
+  });
+
+  const keepIdMap = {}; // deleteIdStr -> keepIdObj
+  const keepIdsSet = new Set();
+  const deleteIdsArr = [];
+  const keepProductDocs = [];
+
+  Object.keys(groups).forEach(normName => {
+    const list = groups[normName];
+    // Sort by oldest createdAt, then oldest _id
+    list.sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (timeA !== timeB) return timeA - timeB;
+      return String(a._id).localeCompare(String(b._id));
+    });
+
+    const primaryDoc = list[0];
+    keepIdsSet.add(String(primaryDoc._id));
+    keepProductDocs.push(primaryDoc);
+
+    for (let i = 1; i < list.length; i++) {
+      const dupeDoc = list[i];
+      deleteIdsArr.push(dupeDoc._id);
+      keepIdMap[String(dupeDoc._id)] = primaryDoc._id;
+    }
+  });
+
+  console.log(`[Deduplicate] STEP 3 MAPPING: Primary Kept=${keepIdsSet.size}, Duplicates to Delete=${deleteIdsArr.length}`);
+
+  // STEP 4: UPDATE REFERENCES IN ALL OTHER COLLECTIONS
+  let totalReferencesUpdated = 0;
+  const collections = await db.listCollections().toArray();
+
+  for (const colInfo of collections) {
+    const colName = colInfo.name;
+    if (colName === 'products' || colName.startsWith('products_backup_')) continue;
+
+    // Update references in orders (orderItems.product)
+    if (colName === 'orders') {
+      const orders = await db.collection('orders').find({}).toArray();
+      for (const order of orders) {
+        let orderModified = false;
+        if (Array.isArray(order.orderItems)) {
+          order.orderItems.forEach(item => {
+            if (item.product && keepIdMap[String(item.product)]) {
+              item.product = keepIdMap[String(item.product)];
+              orderModified = true;
+              totalReferencesUpdated++;
+            }
+          });
+        }
+        if (orderModified) {
+          await db.collection('orders').updateOne({ _id: order._id }, { $set: { orderItems: order.orderItems } });
+        }
+      }
+    }
+
+    // Update references in carts (items.product)
+    if (colName === 'carts') {
+      const carts = await db.collection('carts').find({}).toArray();
+      for (const cart of carts) {
+        let cartModified = false;
+        if (Array.isArray(cart.items)) {
+          cart.items.forEach(item => {
+            if (item.product && keepIdMap[String(item.product)]) {
+              item.product = keepIdMap[String(item.product)];
+              cartModified = true;
+              totalReferencesUpdated++;
+            }
+          });
+        }
+        if (cartModified) {
+          await db.collection('carts').updateOne({ _id: cart._id }, { $set: { items: cart.items } });
+        }
+      }
+    }
+
+    // Update references in wishlists (products array)
+    if (colName === 'wishlists') {
+      const wishlists = await db.collection('wishlists').find({}).toArray();
+      for (const w of wishlists) {
+        let wModified = false;
+        if (Array.isArray(w.products)) {
+          w.products = w.products.map(pId => {
+            if (keepIdMap[String(pId)]) {
+              wModified = true;
+              totalReferencesUpdated++;
+              return keepIdMap[String(pId)];
+            }
+            return pId;
+          });
+        }
+        if (wModified) {
+          await db.collection('wishlists').updateOne({ _id: w._id }, { $set: { products: w.products } });
+        }
+      }
+    }
+  }
+
+  console.log(`[Deduplicate] STEP 4 REFERENCES UPDATED: Total references migrated=${totalReferencesUpdated}`);
+
+  // STEP 5: DELETE DUPLICATES FROM PRODUCTS COLLECTION
+  let deletedCount = 0;
+  if (deleteIdsArr.length > 0) {
+    const deleteRes = await db.collection('products').deleteMany({ _id: { $in: deleteIdsArr } });
+    deletedCount = deleteRes.deletedCount;
+  }
+  console.log(`[Deduplicate] STEP 5 DELETED: ${deletedCount} duplicate product documents deleted from Atlas.`);
+
+  // STEP 6: VERIFY DATABASE PRODUCTS AFTER
+  const productsAfter = await db.collection('products').find({}).toArray();
+  const productsAfterCount = productsAfter.length;
+  const uniqueNamesAfter = new Set(productsAfter.map(p => (p.name || '').trim().toLowerCase()));
+  const duplicateNamesAfterCount = productsAfterCount - uniqueNamesAfter.size;
+
+  // STEP 8: POPULATE normalizedName & CREATE UNIQUE INDEX
+  for (const p of productsAfter) {
+    const norm = (p.name || '').trim().toLowerCase();
+    await db.collection('products').updateOne({ _id: p._id }, { $set: { normalizedName: norm } });
+  }
+
+  let indexCreated = false;
+  try {
+    await db.collection('products').createIndex({ normalizedName: 1 }, { unique: true, sparse: true });
+    indexCreated = true;
+    console.log('[Deduplicate] STEP 8 INDEX CREATED: Unique sparse index on normalizedName established.');
+  } catch (idxErr) {
+    console.error('[Deduplicate] Index Creation Note:', idxErr.message);
+  }
+
+  invalidateProductCache();
+  invalidateAnalyticsCache();
+
+  res.status(200).json({
+    success: true,
+    step1_verify: {
+      host,
+      databaseName: dbName,
+      initialProductsCount,
+      initialCategoriesCount
+    },
+    step2_backup: {
+      backupCollectionName,
+      backupCount
+    },
+    step3_duplicates: {
+      uniqueProductsCount: keepIdsSet.size,
+      duplicatesToDeleteCount: deleteIdsArr.length
+    },
+    step4_references: {
+      totalReferencesMigrated: totalReferencesUpdated
+    },
+    step5_deleted: {
+      deletedCount
+    },
+    step6_after: {
+      productsBeforeCount: initialProductsCount,
+      productsAfterCount,
+      uniqueNamesCount: uniqueNamesAfter.size,
+      duplicateNamesRemaining: duplicateNamesAfterCount
+    },
+    step8_index: {
+      indexCreated
+    }
+  });
+});
+
 export {
   getDashboardAnalytics,
   addProduct,
@@ -1389,4 +1587,5 @@ export {
   getAdminLogs,
   createOrderRefund,
   updateOrderRefundStatus,
+  deduplicateProducts,
 };

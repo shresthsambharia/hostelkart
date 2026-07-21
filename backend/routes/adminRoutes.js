@@ -20,6 +20,7 @@ import {
   getAdminLogs,
   createOrderRefund,
   updateOrderRefundStatus,
+  deduplicateProducts,
 } from '../controllers/adminController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 import { logAdminActivity } from '../middleware/adminLogMiddleware.js';
@@ -34,6 +35,7 @@ router.use(logAdminActivity); // Audit logs for all admin write operations
 router.get('/analytics', cache(60), getDashboardAnalytics);
 router.get('/logs', getAdminLogs);
 router.post('/products', addProduct);
+router.post('/products/deduplicate', deduplicateProducts);
 router.route('/products/:id')
   .put(editProduct)
   .delete(deleteProduct);

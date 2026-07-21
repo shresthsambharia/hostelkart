@@ -78,6 +78,13 @@ const productSchema = new mongoose.Schema(
       required: true,
       default: true,
     },
+    normalizedName: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+      lowercase: true,
+    },
     imageOriginal: {
       type: String,
     },
@@ -93,8 +100,11 @@ const productSchema = new mongoose.Schema(
   }
 );
 
-// Pre-save middleware to populate optimized variants
+// Pre-save middleware to populate optimized variants and normalizedName
 productSchema.pre('save', function (next) {
+  if (this.name) {
+    this.normalizedName = this.name.trim().toLowerCase();
+  }
   if (this.isModified('image') || !this.imageOriginal) {
     const imgUrl = this.image;
     if (imgUrl && imgUrl.includes('res.cloudinary.com')) {
@@ -123,6 +133,7 @@ productSchema.index({ price: 1 });
 productSchema.index({ category: 1, price: 1 });
 productSchema.index({ rating: -1, numReviews: -1 });
 productSchema.index({ name: 'text' });
+productSchema.index({ normalizedName: 1 }, { unique: true, sparse: true });
 
 const Product = mongoose.model('Product', productSchema);
 

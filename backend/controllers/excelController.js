@@ -203,17 +203,39 @@ const importProducts = asyncHandler(async (req, res) => {
         });
       }
 
-      await Product.create({
-        name,
-        image,
-        description,
-        price,
-        discount,
-        category,
-        stock,
-        deliveryTime,
-        isAvailable: stock > 0
+      const normalizedName = name.trim().toLowerCase();
+      const existingProduct = await Product.findOne({
+        $or: [
+          { normalizedName },
+          { name: { $regex: new RegExp(`^${name.trim()}$`, 'i') } }
+        ]
       });
+
+      if (existingProduct) {
+        existingProduct.price = price;
+        existingProduct.stock = stock;
+        existingProduct.discount = discount;
+        existingProduct.description = description;
+        existingProduct.image = image;
+        existingProduct.category = category;
+        existingProduct.deliveryTime = deliveryTime;
+        existingProduct.isAvailable = stock > 0;
+        existingProduct.normalizedName = normalizedName;
+        await existingProduct.save();
+      } else {
+        await Product.create({
+          name: name.trim(),
+          normalizedName,
+          image,
+          description,
+          price,
+          discount,
+          category,
+          stock,
+          deliveryTime,
+          isAvailable: stock > 0
+        });
+      }
       importedCount++;
     } catch (err) {
       errors.push(`Row ${i + 2}: Database error - ${err.message}`);
