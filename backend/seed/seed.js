@@ -28,13 +28,13 @@ const connectDB = async () => {
 };
 
 const categories = [
-  { name: 'Fruits', description: 'Fresh and organic seasonal fruits', image: 'https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=400' },
-  { name: 'Vegetables', description: 'Fresh vegetables for hostel cooking', image: 'https://images.unsplash.com/photo-1566385101042-1a010c129fa6?w=400' },
-  { name: 'Dairy Products', description: 'Milk, cheese, butter, yogurt, and paneer', image: 'https://images.unsplash.com/photo-1529258283582-7239c52bde0a?w=400' },
-  { name: 'Personal Care', description: 'Shampoo, soaps, toothpaste, and grooming', image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400' },
-  { name: 'Stationery', description: 'Notebooks, pens, registers, and study tools', image: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=400' },
-  { name: 'Electronics Accessories', description: 'OTG cables, phone stands, charging wires, and earphones', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400' },
-  { name: 'Instant Food', description: 'Cup noodles, ready-to-eat meals, and soup packets', image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400' }
+  { name: 'Fruits', description: 'Fresh and organic seasonal fruits', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg' },
+  { name: 'Vegetables', description: 'Fresh vegetables for hostel cooking', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg' },
+  { name: 'Dairy Products', description: 'Milk, cheese, butter, yogurt, and paneer', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg' },
+  { name: 'Personal Care', description: 'Shampoo, soaps, toothpaste, and grooming', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000004/personal_care.jpg' },
+  { name: 'Stationery', description: 'Notebooks, pens, registers, and study tools', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000005/stationery.jpg' },
+  { name: 'Electronics Accessories', description: 'OTG cables, phone stands, charging wires, and earphones', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000006/electronics.jpg' },
+  { name: 'Instant Food', description: 'Cup noodles, ready-to-eat meals, and soup packets', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000007/instant_food.jpg' }
 ];
 
 const usersData = [

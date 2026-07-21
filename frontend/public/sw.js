@@ -101,7 +101,6 @@ self.addEventListener('fetch', (event) => {
     url.hostname.includes('fonts.googleapis.com') || 
     url.hostname.includes('fonts.gstatic.com') || 
     url.hostname.includes('res.cloudinary.com') || 
-    url.hostname.includes('images.unsplash.com') ||
     url.pathname.includes('/_vercel/image');
 
   const isLocalAsset = url.origin === self.location.origin;

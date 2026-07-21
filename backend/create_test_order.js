@@ -37,7 +37,7 @@ const run = async () => {
       price: 280,
       stock: 50,
       category: "Instant Food",
-      image: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=300",
+      image: "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000007/instant_food.jpg",
       rating: 4.5,
       numReviews: 12
     });
@@ -53,7 +53,7 @@ const run = async () => {
       price: 66,
       stock: 100,
       category: "Dairy Products",
-      image: "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=300",
+      image: "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
       rating: 4.8,
       numReviews: 24
     });
@@ -69,7 +69,7 @@ const run = async () => {
       price: 180,
       stock: 80,
       category: "Instant Food",
-      image: "https://images.unsplash.com/photo-1549007994-cb92ca817bc7?w=300",
+      image: "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000007/instant_food.jpg",
       rating: 4.7,
       numReviews: 18
     });

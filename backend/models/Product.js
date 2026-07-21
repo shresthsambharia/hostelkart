@@ -97,16 +97,18 @@ const productSchema = new mongoose.Schema(
 productSchema.pre('save', function (next) {
   if (this.isModified('image') || !this.imageOriginal) {
     const imgUrl = this.image;
-    if (imgUrl && imgUrl.startsWith('https://images.unsplash.com')) {
-      const baseUrl = imgUrl.split('?')[0];
-      this.imageOriginal = `${baseUrl}?auto=format&fit=crop&q=80`;
-      this.imageMedium = `${baseUrl}?w=300&fit=crop&q=70&auto=format`;
-      this.imageThumb = `${baseUrl}?w=100&fit=crop&q=70&auto=format`;
-    } else if (imgUrl && imgUrl.includes('-medium.webp')) {
-      const baseName = imgUrl.replace('-medium.webp', '');
-      this.imageOriginal = `${baseName}-original.webp`;
-      this.imageMedium = `${baseName}-medium.webp`;
-      this.imageThumb = `${baseName}-thumb.webp`;
+    if (imgUrl && imgUrl.includes('res.cloudinary.com')) {
+      const parts = imgUrl.split('image/upload/');
+      if (parts.length === 2) {
+        const cleanPath = parts[1].replace(/^w_\d+,f_auto,q_auto,dpr_auto,c_fill,g_auto,fl_progressive\//, '');
+        this.imageOriginal = `${parts[0]}image/upload/w_1080,f_auto,q_auto,dpr_auto,c_fill,g_auto,fl_progressive/${cleanPath}`;
+        this.imageMedium = `${parts[0]}image/upload/w_512,f_auto,q_auto,dpr_auto,c_fill,g_auto,fl_progressive/${cleanPath}`;
+        this.imageThumb = `${parts[0]}image/upload/w_256,f_auto,q_auto,dpr_auto,c_fill,g_auto,fl_progressive/${cleanPath}`;
+      } else {
+        this.imageOriginal = imgUrl;
+        this.imageMedium = imgUrl;
+        this.imageThumb = imgUrl;
+      }
     } else {
       this.imageOriginal = imgUrl;
       this.imageMedium = imgUrl;

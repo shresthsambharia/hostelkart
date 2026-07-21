@@ -3,16 +3,16 @@ import React from 'react';
 import { getOptimizedImageUrl, getSrcSet } from '../utils/image';
 
 describe('HostelKart Frontend Component & Utility Tests', () => {
-  it('should correctly optimize unsplash images', () => {
-    const unsplashUrl = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format';
-    const opt = getOptimizedImageUrl(unsplashUrl, 300);
-    expect(opt).toContain('w=300');
-    expect(opt).toContain('fm=webp');
+  it('should correctly optimize Cloudinary images', () => {
+    const cloudUrl = 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/sample.jpg';
+    const opt = getOptimizedImageUrl(cloudUrl, 300);
+    expect(opt).toContain('w_300');
+    expect(opt).toContain('f_auto');
   });
 
   it('should fallback to default image if imgUrl is empty', () => {
     const fallback = getOptimizedImageUrl(null, 300);
-    expect(fallback).toContain('unsplash.com');
+    expect(fallback).toContain('res.cloudinary.com');
     expect(fallback).toContain('w=300');
   });
 

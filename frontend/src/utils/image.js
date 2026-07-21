@@ -31,11 +31,6 @@ export const getOptimizedImageUrl = (imgUrl, width = 300, quality = 60, format =
     }
   }
 
-  if (targetUrl.startsWith('https://images.unsplash.com')) {
-    const baseUrl = targetUrl.split('?')[0];
-    return `${baseUrl}?w=${width}&q=${quality}&fm=${format}&fit=crop&auto=format`;
-  }
-
   if (targetUrl.startsWith('/uploads/') || targetUrl.startsWith('uploads/')) {
     const relativePath = targetUrl.startsWith('/') ? targetUrl : `/${targetUrl}`;
     const apiURL = import.meta.env.VITE_API_URL || 'https://hostelkart-backend.onrender.com';
@@ -47,7 +42,7 @@ export const getOptimizedImageUrl = (imgUrl, width = 300, quality = 60, format =
 };
 
 /**
- * Helper to generate responsive srcset string for Unsplash and Cloudinary images
+ * Helper to generate responsive srcset string for Cloudinary images
  */
 export const getSrcSet = (imgUrl, widths = [256, 384, 512, 640, 750, 828, 1080], quality = 60, format = 'webp') => {
   if (!imgUrl) {
@@ -80,13 +75,6 @@ export const getSrcSet = (imgUrl, widths = [256, 384, 512, 640, 750, 828, 1080],
         .map((w) => `${parts[0]}image/upload/w_${w},f_auto,q_auto,dpr_auto,c_fill,g_auto,fl_progressive/${cleanPath} ${w}w`)
         .join(', ');
     }
-  }
-
-  if (imgUrl.startsWith('https://images.unsplash.com')) {
-    const baseUrl = imgUrl.split('?')[0];
-    return widths
-      .map((w) => `${baseUrl}?w=${w}&q=${quality}&fm=${format}&fit=crop&auto=format ${w}w`)
-      .join(', ');
   }
 
   return undefined;

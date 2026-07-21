@@ -800,7 +800,7 @@ const AdminProducts = () => {
                 <label className="text-xs font-semibold text-slate-600 block mb-1">Product Image URL</label>
                 <input
                   type="text"
-                  placeholder="Paste online image URL (e.g., https://images.unsplash.com/...) or upload below"
+                  placeholder="Paste online image URL (e.g., https://res.cloudinary.com/...) or upload below"
                   className="input-field text-sm"
                   value={image}
                   onChange={(e) => setImage(e.target.value)}

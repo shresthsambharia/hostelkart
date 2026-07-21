@@ -8,7 +8,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Fresh, juicy, red apples. High in fiber.",
-    "image": "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Fresh",
     "mrp": 120
   },
@@ -21,7 +21,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sweet yellow bananas. Source of energy.",
-    "image": "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Organic",
     "mrp": 60
   },
@@ -34,7 +34,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sweet, juicy, seedless black grapes.",
-    "image": "https://images.unsplash.com/photo-1537640538966-79f369143f8f?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Seedless",
     "mrp": 90
   },
@@ -47,7 +47,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Citrusy oranges. Loaded with Vitamin C.",
-    "image": "https://images.unsplash.com/photo-1547514701-42782101795e?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Fresh",
     "mrp": 100
   },
@@ -60,7 +60,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Ripe, sweet papaya. Ideal for breakfast.",
-    "image": "https://images.unsplash.com/photo-1517282009859-f000ec3b26fe?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Fresh",
     "mrp": 70
   },
@@ -73,7 +73,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sweet, juicy, aromatic mangoes.",
-    "image": "https://images.unsplash.com/photo-1553279768-865429fa0078?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Sweet",
     "mrp": 180
   },
@@ -86,7 +86,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Crisp and sweet seedless green grapes.",
-    "image": "https://images.unsplash.com/photo-1537640538966-79f369143f8f?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Seedless",
     "mrp": 85
   },
@@ -99,7 +99,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Juicy, sweet watermelon, perfect for hydration.",
-    "image": "https://images.unsplash.com/photo-1589984662646-e7b2e4962f18?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Fresh",
     "mrp": 80
   },
@@ -112,7 +112,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sweet and tangy fresh pineapple.",
-    "image": "https://images.unsplash.com/photo-1550258987-190a2d41a8ba?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Fresh",
     "mrp": 95
   },
@@ -125,7 +125,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Premium quality pomegranates rich in antioxidants.",
-    "image": "https://images.unsplash.com/photo-1528825871115-3581a5387919?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Fresh",
     "mrp": 130
   },
@@ -138,7 +138,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Vitamin C rich fresh kiwi fruit.",
-    "image": "https://images.unsplash.com/photo-1585059895524-72359e061381?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Fresh",
     "mrp": 110
   },
@@ -151,7 +151,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Fresh and delicious red strawberries.",
-    "image": "https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Fresh",
     "mrp": 140
   },
@@ -164,7 +164,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Fresh green guavas with white pulp.",
-    "image": "https://images.unsplash.com/photo-1536584749557-9d7fbef8b43f?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Guava",
     "mrp": 60
   },
@@ -177,7 +177,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Crisp and juicy sweet pears.",
-    "image": "https://images.unsplash.com/photo-1514756331096-242fdeb70d4a?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Sweet",
     "mrp": 120
   },
@@ -190,7 +190,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sweet, brown, textured sapota fruits.",
-    "image": "https://images.unsplash.com/photo-1528826490691-e40df5f78235?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Chikoo",
     "mrp": 55
   },
@@ -203,7 +203,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Exotic pink dragon fruit with white flesh.",
-    "image": "https://images.unsplash.com/photo-1527324688151-0e627063f26f?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Dragon",
     "mrp": 140
   },
@@ -216,7 +216,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Fresh coconut water rich in electrolytes.",
-    "image": "https://images.unsplash.com/photo-1614082242765-7c98ca0f3df3?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Fresh",
     "mrp": 65
   },
@@ -229,7 +229,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Aromatic and sweet muskmelon.",
-    "image": "https://images.unsplash.com/photo-1579385960010-0931bb2514ab?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Sweet",
     "mrp": 75
   },
@@ -242,7 +242,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Imported fresh blueberries.",
-    "image": "https://images.unsplash.com/photo-1498557850523-fd3d118b962e?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Fresh",
     "mrp": 220
   },
@@ -255,7 +255,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sweet and juicy red cherries.",
-    "image": "https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Red",
     "mrp": 180
   },
@@ -268,7 +268,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Tangy fresh yellow lemons.",
-    "image": "https://images.unsplash.com/photo-1590502593747-42a996133562?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Fresh",
     "mrp": 30
   },
@@ -281,7 +281,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sweet and juicy seasonal lychee.",
-    "image": "https://images.unsplash.com/photo-1601275224025-4c079555c2d3?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Sweet",
     "mrp": 160
   },
@@ -294,7 +294,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Fragrant and sweet fresh peaches.",
-    "image": "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Juicy",
     "mrp": 150
   },
@@ -307,7 +307,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Tart and sweet red plums.",
-    "image": "https://images.unsplash.com/photo-1603816656461-9c60e5dbbf9c?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Sweet",
     "mrp": 110
   },
@@ -320,7 +320,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Fresh, velvety soft apricots.",
-    "image": "https://images.unsplash.com/photo-1501747315-124a0eaca060?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Fresh",
     "mrp": 190
   },
@@ -333,7 +333,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Plump and juicy fresh blackberries.",
-    "image": "https://images.unsplash.com/photo-1518635017498-87f514b751ba?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Blackberry",
     "mrp": 210
   },
@@ -346,7 +346,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Bright red, delicate fresh raspberries.",
-    "image": "https://images.unsplash.com/photo-1577069861033-55d04cec4ef5?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Raspberry",
     "mrp": 230
   },
@@ -359,7 +359,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sweet, creamy custard apples.",
-    "image": "https://images.unsplash.com/photo-1528825871115-3581a5387919?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Custard",
     "mrp": 120
   },
@@ -372,7 +372,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Fresh sweet lime for juicing.",
-    "image": "https://images.unsplash.com/photo-1590502593747-42a996133562?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Sweet",
     "mrp": 90
   },
@@ -385,7 +385,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sweet, soft fresh figs.",
-    "image": "https://images.unsplash.com/photo-1596701062351-df1f8d368a8c?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Fresh",
     "mrp": 140
   },
@@ -398,7 +398,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Creamy Hass avocados.",
-    "image": "https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Butter",
     "mrp": 260
   },
@@ -411,7 +411,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Daily essential potatoes.",
-    "image": "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Fresh",
     "mrp": 30
   },
@@ -424,7 +424,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Juicy red tomatoes.",
-    "image": "https://images.unsplash.com/photo-1561136594-7f68413baa99?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Fresh",
     "mrp": 25
   },
@@ -437,7 +437,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Pungent red onions.",
-    "image": "https://images.unsplash.com/photo-1620574387735-3624d75b2dbc?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Fresh",
     "mrp": 40
   },
@@ -450,7 +450,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Fresh, strong garlic bulbs.",
-    "image": "https://images.unsplash.com/photo-1540148426945-6cf22a6b2383?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Garlic",
     "mrp": 45
   },
@@ -463,7 +463,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Spicy, fibrous fresh ginger root.",
-    "image": "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Fresh",
     "mrp": 35
   },
@@ -476,7 +476,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Clean, iron-rich spinach leaves.",
-    "image": "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Fresh",
     "mrp": 20
   },
@@ -489,7 +489,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Fresh white cauliflower head.",
-    "image": "https://images.unsplash.com/photo-1568584711271-6c929fb49b60?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Cauliflower",
     "mrp": 35
   },
@@ -502,7 +502,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Crispy green cabbage head.",
-    "image": "https://images.unsplash.com/photo-1611105637889-3dfa1059f8a3?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Green",
     "mrp": 30
   },
@@ -515,7 +515,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sweet, crunchy red carrots.",
-    "image": "https://images.unsplash.com/photo-1598170845058-32b996a6bd41?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Red",
     "mrp": 40
   },
@@ -528,7 +528,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Fresh, sharp white radish.",
-    "image": "https://images.unsplash.com/photo-1590779033100-9f60a05a013d?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "White",
     "mrp": 25
   },
@@ -541,7 +541,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Crispy green bell peppers.",
-    "image": "https://images.unsplash.com/photo-1563565312874-843f7ec40034?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Green",
     "mrp": 30
   },
@@ -554,7 +554,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Cool and hydrating cucumbers.",
-    "image": "https://images.unsplash.com/photo-1449300079323-02e209d9d3a6?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Fresh",
     "mrp": 28
   },
@@ -567,7 +567,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Fresh, tender okra / lady finger.",
-    "image": "https://images.unsplash.com/photo-1625938146369-adc83368bda7?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Lady",
     "mrp": 35
   },
@@ -580,7 +580,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Glossy dark purple brinjal.",
-    "image": "https://images.unsplash.com/photo-1628747503898-eac65e6df1de?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Eggplant",
     "mrp": 30
   },
@@ -593,7 +593,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Freshly shelled green sweet peas.",
-    "image": "https://images.unsplash.com/photo-1592417817098-8f3d6eb19675?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Green",
     "mrp": 60
   },
@@ -606,7 +606,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Freshly cut green coriander leaves.",
-    "image": "https://images.unsplash.com/photo-1588879460618-9249e7d947d1?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Fresh",
     "mrp": 15
   },
@@ -619,7 +619,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Aromatic fresh mint leaves.",
-    "image": "https://images.unsplash.com/photo-1603569283847-aa295f0d016a?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Mint",
     "mrp": 15
   },
@@ -632,7 +632,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Nutritious deep red beetroots.",
-    "image": "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Fresh",
     "mrp": 32
   },
@@ -645,7 +645,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Starchy, sweet potatoes.",
-    "image": "https://images.unsplash.com/photo-1598170845058-32b996a6bd41?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Sweet",
     "mrp": 35
   },
@@ -658,7 +658,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sweet and nutritious pumpkin slices.",
-    "image": "https://images.unsplash.com/photo-1506976785307-8732e854ad03?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Pumpkin",
     "mrp": 40
   },
@@ -671,7 +671,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Premium fresh green broccoli.",
-    "image": "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Green",
     "mrp": 60
   },
@@ -684,7 +684,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Freshly packed button mushrooms.",
-    "image": "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Button",
     "mrp": 48
   },
@@ -697,7 +697,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sweet golden corn cobs.",
-    "image": "https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Sweet",
     "mrp": 30
   },
@@ -710,7 +710,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Fresh bitter gourds.",
-    "image": "https://images.unsplash.com/photo-1625938146369-adc83368bda7?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Bitter",
     "mrp": 35
   },
@@ -723,7 +723,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Tender and light bottle gourd.",
-    "image": "https://images.unsplash.com/photo-1587049352847-4a23e5133ec2?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Bottle",
     "mrp": 28
   },
@@ -736,7 +736,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Crispy green string beans.",
-    "image": "https://images.unsplash.com/photo-1592417817098-8f3d6eb19675?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Green",
     "mrp": 25
   },
@@ -749,7 +749,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Aromatic curry leaves for tempering.",
-    "image": "https://images.unsplash.com/photo-1627485264983-76950f52b58b?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Curry",
     "mrp": 12
   },
@@ -762,7 +762,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Hot and spicy green chillies.",
-    "image": "https://images.unsplash.com/photo-1607305387299-a3d9611cd46f?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Green",
     "mrp": 15
   },
@@ -775,7 +775,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Fresh spring onions with green tops.",
-    "image": "https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Spring",
     "mrp": 25
   },
@@ -788,7 +788,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Spicy green chillies (100g) and fresh ginger (100g).",
-    "image": "https://images.unsplash.com/photo-1607305387299-a3d9611cd46f?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg",
     "brand": "Fresh",
     "mrp": 20
   },
@@ -801,7 +801,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Crisp potato chips salted to perfection.",
-    "image": "https://images.unsplash.com/photo-1599490659213-e2b9527b0876?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Lays",
     "mrp": 20
   },
@@ -814,7 +814,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Crunchy grain puffs loaded with Indian spices.",
-    "image": "https://images.unsplash.com/photo-1621447504864-d8686e1d681c?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Kurkure",
     "mrp": 20
   },
@@ -827,7 +827,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Cookies with vanilla cream filling.",
-    "image": "https://images.unsplash.com/photo-1558961303-1d20210a2f43?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Oreo",
     "mrp": 35
   },
@@ -840,7 +840,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Instant microwaveable popcorn pack.",
-    "image": "https://images.unsplash.com/photo-1578849278619-e73505e9610f?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Act II",
     "mrp": 15
   },
@@ -853,7 +853,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Spicy bean and gram flour noodles.",
-    "image": "https://images.unsplash.com/photo-1601050690597-df056fb4ce78?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Haldiram",
     "mrp": 40
   },
@@ -866,7 +866,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Smooth, creamy milk chocolate bar.",
-    "image": "https://images.unsplash.com/photo-1548907040-4d42b52125ca?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Cadbury",
     "mrp": 80
   },
@@ -879,7 +879,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Rich butter cookies with smiley face pattern.",
-    "image": "https://images.unsplash.com/photo-1558961303-1d20210a2f43?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Britannia",
     "mrp": 30
   },
@@ -892,7 +892,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Crunchy tortilla chips loaded with cheese.",
-    "image": "https://images.unsplash.com/photo-1566478989037-eec170784d20?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Doritos",
     "mrp": 30
   },
@@ -905,7 +905,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Crunchy spiced potato noodle snacks.",
-    "image": "https://images.unsplash.com/photo-1601050690597-df056fb4ce78?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Haldiram",
     "mrp": 40
   },
@@ -918,7 +918,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Premium chocolate chip cookies.",
-    "image": "https://images.unsplash.com/photo-1558961303-1d20210a2f43?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Hide",
     "mrp": 35
   },
@@ -931,7 +931,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Crispy wafer fingers covered in milk chocolate.",
-    "image": "https://images.unsplash.com/photo-1548907040-4d42b52125ca?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "KitKat",
     "mrp": 25
   },
@@ -944,7 +944,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Nougat, caramel and peanuts covered in chocolate.",
-    "image": "https://images.unsplash.com/photo-1548907040-4d42b52125ca?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Snickers",
     "mrp": 40
   },
@@ -957,7 +957,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Saddle-shaped potato crisps stacked in a tube.",
-    "image": "https://images.unsplash.com/photo-1566478989037-eec170784d20?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Pringles",
     "mrp": 110
   },
@@ -970,7 +970,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "The classic, beloved energy biscuits.",
-    "image": "https://images.unsplash.com/photo-1558961303-1d20210a2f43?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Parle-G",
     "mrp": 20
   },
@@ -983,7 +983,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Achari flavor triangular chips.",
-    "image": "https://images.unsplash.com/photo-1566478989037-eec170784d20?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Bingo",
     "mrp": 20
   },
@@ -996,7 +996,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sweet spread containing cocoa and hazelnuts.",
-    "image": "https://images.unsplash.com/photo-1553456558-aff63285bdd1?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Nutella",
     "mrp": 320
   },
@@ -1009,7 +1009,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Healthy wheat digestive biscuits.",
-    "image": "https://images.unsplash.com/photo-1558961303-1d20210a2f43?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "McVities",
     "mrp": 70
   },
@@ -1022,7 +1022,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Traditional Indian cashew fudge dessert.",
-    "image": "https://images.unsplash.com/photo-1601050690597-df056fb4ce78?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Haldiram",
     "mrp": 250
   },
@@ -1035,7 +1035,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Premium 55% cocoa dark chocolate bar.",
-    "image": "https://images.unsplash.com/photo-1548907040-4d42b52125ca?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Amul",
     "mrp": 100
   },
@@ -1048,7 +1048,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Crispy tea time wheat biscuits.",
-    "image": "https://images.unsplash.com/photo-1558961303-1d20210a2f43?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Britannia",
     "mrp": 30
   },
@@ -1061,7 +1061,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Nutritious roasted and salted premium almonds.",
-    "image": "https://images.unsplash.com/photo-1508061253366-f7da158b6d46?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Roasted",
     "mrp": 210
   },
@@ -1074,7 +1074,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Crunchy salted premium cashews.",
-    "image": "https://images.unsplash.com/photo-1508061253366-f7da158b6d46?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Roasted",
     "mrp": 240
   },
@@ -1087,7 +1087,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sour cream & onion flavor potato chips.",
-    "image": "https://images.unsplash.com/photo-1566478989037-eec170784d20?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Lays",
     "mrp": 20
   },
@@ -1100,7 +1100,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Cookies with luxurious liquid choco center.",
-    "image": "https://images.unsplash.com/photo-1558961303-1d20210a2f43?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Sunfeast",
     "mrp": 40
   },
@@ -1113,7 +1113,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Chocolate flavored wheat breakfast cereal.",
-    "image": "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Kellogg’s",
     "mrp": 120
   },
@@ -1126,7 +1126,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Traditional flaky sweet made of chickpea flour.",
-    "image": "https://images.unsplash.com/photo-1601050690597-df056fb4ce78?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Haldiram",
     "mrp": 70
   },
@@ -1139,7 +1139,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Classic chocolate cream sandwich biscuits.",
-    "image": "https://images.unsplash.com/photo-1558961303-1d20210a2f43?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Bourbon",
     "mrp": 20
   },
@@ -1152,7 +1152,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Traditional spicy crinkle cut potato chips.",
-    "image": "https://images.unsplash.com/photo-1566478989037-eec170784d20?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Uncle",
     "mrp": 20
   },
@@ -1165,7 +1165,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Tasty cheese flavored ready-to-eat popcorn.",
-    "image": "https://images.unsplash.com/photo-1578849278619-e73505e9610f?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Popcorn",
     "mrp": 15
   },
@@ -1178,7 +1178,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sweet and salty biscuit loaded with herbs.",
-    "image": "https://images.unsplash.com/photo-1558961303-1d20210a2f43?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Britannia",
     "mrp": 25
   },
@@ -1191,7 +1191,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Chilled carbonated cola.",
-    "image": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Coca Cola",
     "mrp": 40
   },
@@ -1204,7 +1204,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Energy booster for late-night exams.",
-    "image": "https://images.unsplash.com/photo-1542841791-1927fec16500?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Red Bull",
     "mrp": 125
   },
@@ -1217,7 +1217,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Rich instant coffee granules.",
-    "image": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Nescafé",
     "mrp": 175
   },
@@ -1230,7 +1230,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Detoxifying green tea leaves.",
-    "image": "https://images.unsplash.com/photo-1597481499750-3e6b22637e12?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Lipton",
     "mrp": 150
   },
@@ -1243,7 +1243,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Mixed fruit juice blend.",
-    "image": "https://images.unsplash.com/photo-1622506972776-309d426aa010?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Real",
     "mrp": 110
   },
@@ -1256,7 +1256,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Chilled pepsi soda can.",
-    "image": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Pepsi",
     "mrp": 40
   },
@@ -1269,7 +1269,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Chilled lemon lime soft drink.",
-    "image": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Sprite",
     "mrp": 40
   },
@@ -1282,7 +1282,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Intense energy boost formulation.",
-    "image": "https://images.unsplash.com/photo-1542841791-1927fec16500?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Monster",
     "mrp": 125
   },
@@ -1295,7 +1295,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "100% pure squeezed orange juice.",
-    "image": "https://images.unsplash.com/photo-1622506972776-309d426aa010?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Tropicana",
     "mrp": 120
   },
@@ -1308,7 +1308,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Traditional thick mango pulp beverage.",
-    "image": "https://images.unsplash.com/photo-1622506972776-309d426aa010?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Paper Boat",
     "mrp": 35
   },
@@ -1321,7 +1321,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Purified drinking mineral water.",
-    "image": "https://images.unsplash.com/photo-1523362628745-0c100150b504?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Bisleri",
     "mrp": 20
   },
@@ -1334,7 +1334,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Delicious cold coffee milk beverage.",
-    "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Amul",
     "mrp": 30
   },
@@ -1347,7 +1347,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Yummy chocolate flavored milk drink.",
-    "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Amul",
     "mrp": 30
   },
@@ -1360,7 +1360,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sports drink rich in electrolytes.",
-    "image": "https://images.unsplash.com/photo-1542841791-1927fec16500?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Gatorade",
     "mrp": 60
   },
@@ -1373,7 +1373,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Rich aroma black tea blend.",
-    "image": "https://images.unsplash.com/photo-1597481499750-3e6b22637e12?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Tata",
     "mrp": 140
   },
@@ -1386,7 +1386,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Premium quality black tea leaves.",
-    "image": "https://images.unsplash.com/photo-1597481499750-3e6b22637e12?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Brooke",
     "mrp": 195
   },
@@ -1399,7 +1399,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Chocolate nutrition drink powder.",
-    "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Bournvita",
     "mrp": 220
   },
@@ -1412,7 +1412,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Classic malt nutrition drink powder.",
-    "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Horlicks",
     "mrp": 230
   },
@@ -1425,7 +1425,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Chilled red energy drink.",
-    "image": "https://images.unsplash.com/photo-1542841791-1927fec16500?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Sting",
     "mrp": 20
   },
@@ -1438,7 +1438,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sparkling apple juice drink.",
-    "image": "https://images.unsplash.com/photo-1622506972776-309d426aa010?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Appy",
     "mrp": 20
   },
@@ -1451,7 +1451,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Strong spicy cola drink.",
-    "image": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Thums",
     "mrp": 40
   },
@@ -1464,7 +1464,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Orange flavored fizzy drink.",
-    "image": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Fanta",
     "mrp": 40
   },
@@ -1477,7 +1477,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sweet & tart cranberry fruit beverage.",
-    "image": "https://images.unsplash.com/photo-1622506972776-309d426aa010?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Real",
     "mrp": 120
   },
@@ -1490,7 +1490,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Guava nectar fruit juice.",
-    "image": "https://images.unsplash.com/photo-1622506972776-309d426aa010?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Real",
     "mrp": 110
   },
@@ -1503,7 +1503,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Instant orange powdered drink mix.",
-    "image": "https://images.unsplash.com/photo-1622506972776-309d426aa010?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Tang",
     "mrp": 140
   },
@@ -1516,7 +1516,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Probiotic milk beverage for gut health.",
-    "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Yakult",
     "mrp": 80
   },
@@ -1529,7 +1529,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "100% natural coconut water.",
-    "image": "https://images.unsplash.com/photo-1523362628745-0c100150b504?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Coconut",
     "mrp": 40
   },
@@ -1542,7 +1542,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Classic chocolate syrup.",
-    "image": "https://images.unsplash.com/photo-1553456558-aff63285bdd1?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Hershey’s",
     "mrp": 120
   },
@@ -1555,7 +1555,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Premium fine-blend instant coffee.",
-    "image": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "BRU",
     "mrp": 180
   },
@@ -1568,7 +1568,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "6 bottles of purified drinking water.",
-    "image": "https://images.unsplash.com/photo-1523362628745-0c100150b504?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Mineral",
     "mrp": 110
   },
@@ -1581,7 +1581,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Toned milk. Fresh daily essential.",
-    "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Amul",
     "mrp": 66
   },
@@ -1594,7 +1594,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Classic salted butter block.",
-    "image": "https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Amul",
     "mrp": 56
   },
@@ -1607,7 +1607,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Creamy plain curd.",
-    "image": "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Mother Dairy",
     "mrp": 35
   },
@@ -1620,7 +1620,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Soft cottage cheese block.",
-    "image": "https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Amul",
     "mrp": 90
   },
@@ -1633,7 +1633,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Creamy cheese slices.",
-    "image": "https://images.unsplash.com/photo-1486299267070-83823f5448dd?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Amul",
     "mrp": 140
   },
@@ -1646,7 +1646,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Spiced buttermilk for digestion.",
-    "image": "https://images.unsplash.com/photo-1529258283582-7239c52bde0a?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Amul",
     "mrp": 15
   },
@@ -1659,7 +1659,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sweet and creamy yogurt beverage.",
-    "image": "https://images.unsplash.com/photo-1529258283582-7239c52bde0a?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Amul",
     "mrp": 25
   },
@@ -1672,7 +1672,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Low fat fresh cream for cooking.",
-    "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Amul",
     "mrp": 65
   },
@@ -1685,7 +1685,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Clarified cow butter fat.",
-    "image": "https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Amul",
     "mrp": 310
   },
@@ -1698,7 +1698,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Processed cheese blocks.",
-    "image": "https://images.unsplash.com/photo-1486299267070-83823f5448dd?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Amul",
     "mrp": 120
   },
@@ -1711,7 +1711,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Spiced garlic flavored cheese spread.",
-    "image": "https://images.unsplash.com/photo-1486299267070-83823f5448dd?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Amul",
     "mrp": 90
   },
@@ -1724,7 +1724,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Daily fresh cow milk packet.",
-    "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Mother Dairy",
     "mrp": 30
   },
@@ -1737,7 +1737,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Thick set curd cup.",
-    "image": "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Mother Dairy",
     "mrp": 22
   },
@@ -1750,7 +1750,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Fresh and soft cottage cheese block.",
-    "image": "https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Mother Dairy",
     "mrp": 85
   },
@@ -1763,7 +1763,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Garlic flavored salted butter block.",
-    "image": "https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Amul",
     "mrp": 62
   },
@@ -1776,7 +1776,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "High protein creamy peanut butter.",
-    "image": "https://images.unsplash.com/photo-1553456558-aff63285bdd1?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Peanut",
     "mrp": 165
   },
@@ -1789,7 +1789,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "High-fat full cream milk packet.",
-    "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Amul",
     "mrp": 74
   },
@@ -1802,7 +1802,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Individually wrapped cheese slices.",
-    "image": "https://images.unsplash.com/photo-1486299267070-83823f5448dd?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Britannia",
     "mrp": 135
   },
@@ -1815,7 +1815,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Thick greek yogurt with blueberries.",
-    "image": "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Epigamia",
     "mrp": 45
   },
@@ -1828,7 +1828,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Thick greek yogurt with strawberries.",
-    "image": "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Epigamia",
     "mrp": 45
   },
@@ -1841,7 +1841,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Thick greek yogurt with mango pulp.",
-    "image": "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Epigamia",
     "mrp": 45
   },
@@ -1854,7 +1854,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Rich Belgian chocolate milkshake.",
-    "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Amul",
     "mrp": 35
   },
@@ -1867,7 +1867,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Rich vanilla bean milkshake.",
-    "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Amul",
     "mrp": 30
   },
@@ -1880,7 +1880,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Kesar and real almond bits milkshake.",
-    "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Amul",
     "mrp": 35
   },
@@ -1893,7 +1893,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Freshly packed soft paneer block.",
-    "image": "https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Milkymist",
     "mrp": 90
   },
@@ -1906,7 +1906,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Thick set premium curd packet.",
-    "image": "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Milkymist",
     "mrp": 40
   },
@@ -1919,7 +1919,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Chilled coffee beverage with hazelnut flavor.",
-    "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Nescafé",
     "mrp": 40
   },
@@ -1932,7 +1932,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Whipping cream for baking and desserts.",
-    "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Amul",
     "mrp": 80
   },
@@ -1945,7 +1945,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Plain processed cheese spread.",
-    "image": "https://images.unsplash.com/photo-1486299267070-83823f5448dd?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Britannia",
     "mrp": 85
   },
@@ -1958,7 +1958,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Diced mozzarella cheese block.",
-    "image": "https://images.unsplash.com/photo-1486299267070-83823f5448dd?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
     "brand": "Amul",
     "mrp": 125
   },
@@ -1971,7 +1971,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Antibacterial handwash refill.",
-    "image": "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000004/personal_care.jpg",
     "brand": "Dettol",
     "mrp": 99
   },
@@ -1984,7 +1984,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Toothpaste with cooling crystals.",
-    "image": "https://images.unsplash.com/photo-1559599141-3849f2008967?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000004/personal_care.jpg",
     "brand": "Colgate",
     "mrp": 110
   },
@@ -1997,7 +1997,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Cleansing shower gel with charcoal.",
-    "image": "https://images.unsplash.com/photo-1601049541289-9b1b7bbbfe19?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000004/personal_care.jpg",
     "brand": "Nivea",
     "mrp": 199
   },
@@ -2010,7 +2010,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Cool menthol anti-dandruff shampoo.",
-    "image": "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000004/personal_care.jpg",
     "brand": "Head & Shoulders",
     "mrp": 160
   },
@@ -2023,7 +2023,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Long lasting masculine fragrance.",
-    "image": "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000004/personal_care.jpg",
     "brand": "Park",
     "mrp": 210
   },
@@ -2036,7 +2036,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Relief from headache and body pain.",
-    "image": "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Crocin",
     "mrp": 35
   },
@@ -2049,7 +2049,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "First-aid antiseptic disinfectant.",
-    "image": "https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Dettol",
     "mrp": 60
   },
@@ -2062,7 +2062,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Adhesive plaster bandage strips.",
-    "image": "https://images.unsplash.com/photo-1603398938378-e54eab446dde?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Band-Aid",
     "mrp": 25
   },
@@ -2075,7 +2075,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Quick action back/joint pain spray.",
-    "image": "https://images.unsplash.com/photo-1550572017-edd951b55104?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Volini",
     "mrp": 135
   },
@@ -2088,7 +2088,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Relieves acidity in 6 seconds.",
-    "image": "https://images.unsplash.com/photo-1607619056574-7b8d304a3b13?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Eno",
     "mrp": 10
   },
@@ -2101,7 +2101,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "High quality notebook spiral binding.",
-    "image": "https://images.unsplash.com/photo-1531346878377-a5be20888e57?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000005/stationery.jpg",
     "brand": "Classmate",
     "mrp": 45
   },
@@ -2114,7 +2114,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Smudge-proof blue gel pens.",
-    "image": "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000005/stationery.jpg",
     "brand": "Santoor",
     "mrp": 50
   },
@@ -2127,7 +2127,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Dark graphite pencils box.",
-    "image": "https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000005/stationery.jpg",
     "brand": "Apsara",
     "mrp": 60
   },
@@ -2140,7 +2140,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Pack of 4 fluorescent highlighters.",
-    "image": "https://images.unsplash.com/photo-1519751138087-5bf79df62d5b?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000005/stationery.jpg",
     "brand": "Faber-Castell",
     "mrp": 90
   },
@@ -2153,7 +2153,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Pastel colored sticky notes pad.",
-    "image": "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000005/stationery.jpg",
     "brand": "Sticky",
     "mrp": 40
   },
@@ -2166,7 +2166,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Plastic bucket (16L) with matching mug.",
-    "image": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Plastic",
     "mrp": 220
   },
@@ -2179,7 +2179,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Durable clothing hangers.",
-    "image": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Plastic",
     "mrp": 90
   },
@@ -2192,7 +2192,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "100% cotton bedshet + 2 pillowcases.",
-    "image": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Cotton",
     "mrp": 399
   },
@@ -2205,7 +2205,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Brass padlock with 3 keys.",
-    "image": "https://images.unsplash.com/photo-1590001155093-a3c66ab0c3ff?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Godrej",
     "mrp": 180
   },
@@ -2218,7 +2218,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Laundry powder for bucket washing.",
-    "image": "https://images.unsplash.com/photo-1563453392212-326f5e854473?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Surf Excel",
     "mrp": 140
   },
@@ -2231,7 +2231,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Braided Type-C fast charging cable.",
-    "image": "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000006/electronics.jpg",
     "brand": "Type-C",
     "mrp": 199
   },
@@ -2244,7 +2244,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Earphones with 3.5mm headphone jack.",
-    "image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000006/electronics.jpg",
     "brand": "Wired",
     "mrp": 299
   },
@@ -2257,7 +2257,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Foldable metal table phone stand.",
-    "image": "https://images.unsplash.com/photo-1586105251261-72a756497a11?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000006/electronics.jpg",
     "brand": "Adjustable",
     "mrp": 150
   },
@@ -2270,7 +2270,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Compact USB 3.0 flash drive.",
-    "image": "https://images.unsplash.com/photo-1601524909162-be87252be298?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000006/electronics.jpg",
     "brand": "SanDisk",
     "mrp": 449
   },
@@ -2283,7 +2283,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Extension board cord with surge protector.",
-    "image": "https://images.unsplash.com/photo-1558882224-cca166733360?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000006/electronics.jpg",
     "brand": "Extension",
     "mrp": 349
   },
@@ -2296,7 +2296,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Maggi instant masala noodles.",
-    "image": "https://images.unsplash.com/photo-1612966608967-312ba3d2a7bc?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000007/instant_food.jpg",
     "brand": "Maggi",
     "mrp": 168
   },
@@ -2309,7 +2309,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Non-sticky round block noodles.",
-    "image": "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000007/instant_food.jpg",
     "brand": "Yippee",
     "mrp": 90
   },
@@ -2322,7 +2322,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Instant vegetable hot and sour soup.",
-    "image": "https://images.unsplash.com/photo-1547592165-e1d17fed6005?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000007/instant_food.jpg",
     "brand": "Knorr",
     "mrp": 15
   },
@@ -2335,7 +2335,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Ready-to-eat cooked lentil curry pack.",
-    "image": "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000007/instant_food.jpg",
     "brand": "Ready-To-Eat",
     "mrp": 85
   },
@@ -2348,7 +2348,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Spicy cup noodles fork included.",
-    "image": "https://images.unsplash.com/photo-1526318896980-cf78c088247c?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000007/instant_food.jpg",
     "brand": "Ching’s",
     "mrp": 45
   },
@@ -2362,7 +2362,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sweet and tangy fresh oranges, high in Vitamin C.",
-    "image": "https://images.unsplash.com/photo-1547514701-42782101795e?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Nagpur Fresh"
   },
   {
@@ -2375,7 +2375,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Crunchy green guavas with white pulp.",
-    "image": "https://images.unsplash.com/photo-1536584749557-9d7fbef8b43f?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg",
     "brand": "Fresh Farms"
   },
   {
@@ -2388,7 +2388,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Delicious thick mango pulp fruit drink.",
-    "image": "https://images.unsplash.com/photo-1622506972776-309d426aa010?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Maaza"
   },
   {
@@ -2401,7 +2401,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Soft satin pillow covers for a comfortable sleep.",
-    "image": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "ComfortHome"
   },
   {
@@ -2414,7 +2414,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Durable mesh laundry bag to organize dirty clothes.",
-    "image": "https://images.unsplash.com/photo-1563453392212-326f5e854473?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "OrganizerPro"
   },
   {
@@ -2427,7 +2427,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Lightweight plastic room trash can / dustbin.",
-    "image": "https://images.unsplash.com/photo-1563453392212-326f5e854473?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "CleanMax"
   },
   {
@@ -2440,7 +2440,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Aromatic room spray freshener for fresh fragrance.",
-    "image": "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg",
     "brand": "Godrej"
   },
   {
@@ -2453,7 +2453,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Standard scientific calculator for engineering and science labs.",
-    "image": "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000005/stationery.jpg",
     "brand": "Casio"
   },
   {
@@ -2466,7 +2466,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Bright whiteboard markers for group study sessions.",
-    "image": "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000005/stationery.jpg",
     "brand": "Luxor"
   },
   {
@@ -2479,7 +2479,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Sturdy metal stapler with plastic top.",
-    "image": "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000005/stationery.jpg",
     "brand": "Kangaroo"
   },
   {
@@ -2492,7 +2492,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Mathematical instruments geometry box.",
-    "image": "https://images.unsplash.com/photo-1519751138087-5bf79df62d5b?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000005/stationery.jpg",
     "brand": "Camel"
   },
   {
@@ -2505,7 +2505,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "High-quality copier paper for assignments and notes.",
-    "image": "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000005/stationery.jpg",
     "brand": "JK"
   },
   {
@@ -2518,7 +2518,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Antibacterial bathing soap bar.",
-    "image": "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000004/personal_care.jpg",
     "brand": "Dettol"
   },
   {
@@ -2531,7 +2531,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Neem and turmeric face wash for pimple-free skin.",
-    "image": "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000004/personal_care.jpg",
     "brand": "Himalaya"
   },
   {
@@ -2544,7 +2544,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Gentle cleaning bristles toothbrush.",
-    "image": "https://images.unsplash.com/photo-1559599141-3849f2008967?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000004/personal_care.jpg",
     "brand": "Oral-B"
   },
   {
@@ -2557,7 +2557,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "100% pure coconut hair oil.",
-    "image": "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000004/personal_care.jpg",
     "brand": "Parachute"
   },
   {
@@ -2570,7 +2570,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Kills 99.9% germs instantly.",
-    "image": "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000004/personal_care.jpg",
     "brand": "Lifebuoy"
   },
   {
@@ -2583,7 +2583,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Super soft and absorbent 2-ply tissue paper.",
-    "image": "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000004/personal_care.jpg",
     "brand": "SoftTouch"
   },
   {
@@ -2596,7 +2596,7 @@ export const productsData = [
     "deliveryTime": "Scheduled Delivery",
     "isAvailable": true,
     "description": "Refreshing soft moisturizing cream with Jojoba oil.",
-    "image": "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400",
+    "image": "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000004/personal_care.jpg",
     "brand": "Nivea"
   }
 ];

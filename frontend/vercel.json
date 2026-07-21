@@ -33,7 +33,7 @@
   ],
   "images": {
     "sizes": [256, 384, 512, 640, 750, 828, 1080, 1200, 1920, 2048],
-    "domains": ["images.unsplash.com", "res.cloudinary.com", "hostelkart-backend.onrender.com"],
+    "domains": ["res.cloudinary.com", "hostelkart-backend.onrender.com"],
     "minimumCacheTTL": 86400,
     "formats": ["image/avif", "image/webp"]
   },

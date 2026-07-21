@@ -180,7 +180,7 @@ const importProducts = asyncHandler(async (req, res) => {
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     const name = row['Name'] || row['name'];
-    const image = row['Image'] || row['image'] || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300';
+    const image = row['Image'] || row['image'] || 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg';
     const description = row['Description'] || row['description'] || 'No description provided';
     const price = Number(row['Price'] || row['Price (INR)'] || row['price']);
     const discount = Number(row['Discount'] || row['Discount (%)'] || row['discount'] || 0);
@@ -199,7 +199,7 @@ const importProducts = asyncHandler(async (req, res) => {
       if (!categoryExists) {
         await Category.create({
           name: category,
-          image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=100'
+          image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg'
         });
       }
 
