@@ -5,7 +5,7 @@ import {
   Send, AlertTriangle, Star, Search, Filter, RefreshCcw, 
   Clock, CheckSquare, Award 
 } from 'lucide-react';
-import axios from 'axios';
+import { ticketAPI, adminAPI } from '../api';
 
 const AdminSupport = () => {
   const [tickets, setTickets] = useState([]);
@@ -58,43 +58,28 @@ const AdminSupport = () => {
 
   const fetchTickets = async () => {
     try {
-      const config = {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      };
-      const apiURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://hostelkart-backend.onrender.com/api');
-      
-      const { data } = await axios.get(`${apiURL}/tickets/admin`, config);
+      const { data } = await ticketAPI.adminGetAll();
       setTickets(data);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to fetch admin tickets:', err);
     }
   };
 
   const fetchAdmins = async () => {
     try {
-      const config = {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      };
-      const apiURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://hostelkart-backend.onrender.com/api');
-      
-      const { data } = await axios.get(`${apiURL}/admin/users`, config);
+      const { data } = await adminAPI.getAllUsers();
       setAdminsList(data.filter(u => u.role === 'admin'));
     } catch (err) {
-      console.error(err);
+      console.error('Failed to fetch admin users list:', err);
     }
   };
 
   const fetchAnalytics = async () => {
     try {
-      const config = {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      };
-      const apiURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://hostelkart-backend.onrender.com/api');
-      
-      const { data } = await axios.get(`${apiURL}/tickets/admin/analytics`, config);
+      const { data } = await ticketAPI.adminGetAnalytics();
       setAnalytics(data);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to fetch ticket analytics:', err);
     }
   };
 
@@ -108,48 +93,35 @@ const AdminSupport = () => {
     setActiveTicket(ticket);
     
     try {
-      const config = {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      };
-      const apiURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://hostelkart-backend.onrender.com/api');
-      
-      const { data } = await axios.get(`${apiURL}/tickets/${ticket._id}`, config);
+      const { data } = await ticketAPI.getById(ticket._id);
       setActiveTicketDetails(data);
       setMessages(data.messages);
 
       socketRef.current.emit('join_ticket', { ticketId: ticket._id });
       setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 200);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to select ticket:', err);
     }
   };
 
   const handleSendReply = async (e) => {
     e.preventDefault();
-    if (!newMsg.trim()) return;
+    if (!newMsg.trim() || !activeTicket) return;
 
     try {
-      const config = {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      };
-      const apiURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://hostelkart-backend.onrender.com/api');
-      
-      await axios.post(`${apiURL}/tickets/${activeTicket._id}/messages`, {
-        content: newMsg,
-        isInternalNote
-      }, config);
+      await ticketAPI.addMessage(activeTicket._id, newMsg, isInternalNote);
 
       setNewMsg('');
       setIsInternalNote(false);
       socketRef.current.emit('ticket_typing', { ticketId: activeTicket._id, username: 'Admin', isTyping: false });
     } catch (err) {
-      console.error(err);
+      console.error('Failed to send admin reply:', err);
     }
   };
 
   const handleTyping = (e) => {
     setNewMsg(e.target.value);
-    if (!isTyping) {
+    if (!isTyping && activeTicket) {
       setIsTyping(true);
       socketRef.current.emit('ticket_typing', { ticketId: activeTicket._id, username: 'Admin', isTyping: true });
       setTimeout(() => {
@@ -160,39 +132,31 @@ const AdminSupport = () => {
   };
 
   const updateTicketMetadata = async (field, value) => {
+    if (!activeTicket) return;
     try {
-      const config = {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      };
-      const apiURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://hostelkart-backend.onrender.com/api');
-      
       const payload = {};
       payload[field] = value;
 
-      const { data } = await axios.put(`${apiURL}/tickets/admin/${activeTicket._id}`, payload, config);
+      await ticketAPI.adminUpdate(activeTicket._id, payload);
       
       const updated = { ...activeTicket, ...payload };
       setActiveTicket(updated);
       fetchTickets();
       fetchAnalytics();
     } catch (err) {
-      console.error(err);
+      console.error('Failed to update ticket metadata:', err);
     }
   };
 
   const handleCloseTicket = async () => {
+    if (!activeTicket) return;
     try {
-      const config = {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      };
-      const apiURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://hostelkart-backend.onrender.com/api');
-      
-      await axios.put(`${apiURL}/tickets/${activeTicket._id}/close`, {}, config);
+      await ticketAPI.close(activeTicket._id);
       fetchTickets();
       fetchAnalytics();
       setActiveTicket(null);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to close admin ticket:', err);
     }
   };
 

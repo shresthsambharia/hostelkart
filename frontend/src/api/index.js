@@ -304,4 +304,16 @@ export const recommendationAPI = {
   },
 };
 
+export const ticketAPI = {
+  create: (ticketData) => API.post('/tickets', ticketData),
+  getAll: (params) => API.get('/tickets', { params }),
+  getById: (id) => API.get(`/tickets/${id}`),
+  addMessage: (id, content, isInternalNote = false) => API.post(`/tickets/${id}/messages`, { content, isInternalNote }),
+  close: (id) => API.put(`/tickets/${id}/close`),
+  rate: (id, rating, feedback) => API.put(`/tickets/${id}/rate`, { rating, feedback }),
+  adminGetAll: (params) => API.get('/tickets/admin', { params }),
+  adminGetAnalytics: () => API.get('/tickets/admin/analytics'),
+  adminUpdate: (id, data) => API.put(`/tickets/admin/${id}`, data),
+};
+
 export default API;

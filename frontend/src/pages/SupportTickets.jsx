@@ -5,7 +5,7 @@ import {
   MessageSquare, PlusCircle, ShieldAlert, CheckCircle2, 
   Send, AlertTriangle, Star, Search, Filter, RefreshCcw 
 } from 'lucide-react';
-import axios from 'axios';
+import { ticketAPI } from '../api';
 
 // Static Knowledge Base
 const faqs = [
@@ -40,6 +40,7 @@ const SupportTickets = () => {
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   
   // Feedback rating
   const [rating, setRating] = useState(5);
@@ -80,14 +81,10 @@ const SupportTickets = () => {
 
   const fetchTickets = async () => {
     try {
-      const config = {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      };
-      const apiURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://hostelkart-backend.onrender.com/api');
-      const { data } = await axios.get(`${apiURL}/tickets`, config);
+      const { data } = await ticketAPI.getAll();
       setTickets(data);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load support tickets:', err);
     }
   };
 
@@ -100,13 +97,11 @@ const SupportTickets = () => {
     setActiveTicket(ticket);
     setCreating(false);
     setRated(false);
+    setError('');
+    setSuccessMsg('');
     
     try {
-      const config = {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      };
-      const apiURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://hostelkart-backend.onrender.com/api');
-      const { data } = await axios.get(`${apiURL}/tickets/${ticket._id}`, config);
+      const { data } = await ticketAPI.getById(ticket._id);
       setActiveTicketDetails(data);
       setMessages(data.messages);
 
@@ -114,35 +109,26 @@ const SupportTickets = () => {
       socketRef.current.emit('join_ticket', { ticketId: ticket._id });
       setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 200);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to fetch ticket details:', err);
     }
   };
 
   const handleSendReply = async (e) => {
     e.preventDefault();
-    if (!newMsg.trim()) return;
+    if (!newMsg.trim() || !activeTicket) return;
 
     try {
-      const config = {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      };
-      const apiURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://hostelkart-backend.onrender.com/api');
-      
-      const { data } = await axios.post(`${apiURL}/tickets/${activeTicket._id}/messages`, {
-        content: newMsg
-      }, config);
-
+      const { data } = await ticketAPI.addMessage(activeTicket._id, newMsg);
       setNewMsg('');
-      // Emit stop typing
       socketRef.current.emit('ticket_typing', { ticketId: activeTicket._id, username: user.name, isTyping: false });
     } catch (err) {
-      console.error(err);
+      console.error('Failed to send reply message:', err);
     }
   };
 
   const handleTyping = (e) => {
     setNewMsg(e.target.value);
-    if (!isTyping) {
+    if (!isTyping && activeTicket) {
       setIsTyping(true);
       socketRef.current.emit('ticket_typing', { ticketId: activeTicket._id, username: user.name, isTyping: true });
       setTimeout(() => {
@@ -155,62 +141,54 @@ const SupportTickets = () => {
   const handleCreateTicket = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccessMsg('');
+
+    if (!subject.trim() || !description.trim()) {
+      setError('Please fill out all required fields (Subject & Description)');
+      return;
+    }
 
     try {
-      const config = {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      };
-      const apiURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://hostelkart-backend.onrender.com/api');
-      
-      const { data } = await axios.post(`${apiURL}/tickets`, {
+      const { data } = await ticketAPI.create({
         category,
-        subject,
-        description
-      }, config);
+        subject: subject.trim(),
+        description: description.trim()
+      });
 
       setSubject('');
       setDescription('');
+      setCategory('Order Issue');
       setCreating(false);
-      fetchTickets();
+      setSuccessMsg(`Support Ticket ${data.ticketId || ''} created successfully!`);
+      await fetchTickets();
       selectTicket(data);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create support ticket');
+      setError(err.response?.data?.message || 'Failed to submit support ticket. Please check your inputs.');
     }
   };
 
   const handleCloseTicket = async () => {
+    if (!activeTicket) return;
     try {
-      const config = {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      };
-      const apiURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://hostelkart-backend.onrender.com/api');
-      
-      await axios.put(`${apiURL}/tickets/${activeTicket._id}/close`, {}, config);
-      fetchTickets();
-      // Reload ticket status
+      await ticketAPI.close(activeTicket._id);
+      await fetchTickets();
       const updated = { ...activeTicket, status: 'Closed' };
       setActiveTicket(updated);
+      setSuccessMsg('Support ticket closed.');
     } catch (err) {
-      console.error(err);
+      console.error('Failed to close ticket:', err);
     }
   };
 
   const submitFeedback = async (e) => {
     e.preventDefault();
+    if (!activeTicket) return;
     try {
-      const config = {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      };
-      const apiURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://hostelkart-backend.onrender.com/api');
-      
-      await axios.put(`${apiURL}/tickets/${activeTicket._id}/rate`, {
-        stars: rating,
-        feedback
-      }, config);
+      await ticketAPI.rate(activeTicket._id, rating, feedback);
       setRated(true);
       setFeedback('');
     } catch (err) {
-      console.error(err);
+      console.error('Failed to submit feedback:', err);
     }
   };
 
@@ -311,6 +289,13 @@ const SupportTickets = () => {
                 <PlusCircle className="text-primary-600 w-5 h-5" />
                 <span>Create New Ticket</span>
               </h2>
+
+              {successMsg && (
+                <div className="bg-emerald-50 border border-emerald-150 text-emerald-700 p-3 rounded-lg text-xs font-semibold flex items-center justify-between">
+                  <span>{successMsg}</span>
+                  <button onClick={() => setSuccessMsg('')} className="font-bold text-[10px] underline">Dismiss</button>
+                </div>
+              )}
 
               {error && (
                 <div className="bg-red-50 border border-red-150 text-red-700 p-3 rounded-lg text-xs font-semibold">
