@@ -77,9 +77,11 @@ const Navbar = () => {
     const fetchNotifications = async () => {
       try {
         const { data } = await notificationAPI.getAll();
-        setNotifications(data);
+        const list = Array.isArray(data) ? data : (data?.notifications || []);
+        setNotifications(list);
       } catch (error) {
         console.error('Failed to load navbar notifications:', error);
+        setNotifications([]);
       }
     };
     fetchNotifications();
@@ -90,7 +92,10 @@ const Navbar = () => {
   const handleMarkAsRead = async (notifId) => {
     try {
       await notificationAPI.markRead(notifId);
-      setNotifications(prev => prev.map(n => n._id === notifId ? { ...n, isRead: true } : n));
+      setNotifications(prev => {
+        const list = Array.isArray(prev) ? prev : (prev?.notifications || []);
+        return list.map(n => n._id === notifId ? { ...n, isRead: true } : n);
+      });
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
     }
@@ -99,13 +104,17 @@ const Navbar = () => {
   const handleMarkAllRead = async () => {
     try {
       await notificationAPI.markAllRead();
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setNotifications(prev => {
+        const list = Array.isArray(prev) ? prev : (prev?.notifications || []);
+        return list.map(n => ({ ...n, isRead: true }));
+      });
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const notificationList = Array.isArray(notifications) ? notifications : (notifications?.notifications || []);
+  const unreadCount = notificationList.filter(n => !n.isRead).length;
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -462,11 +471,11 @@ const Navbar = () => {
                       )}
                     </div>
 
-                    {notifications.length === 0 ? (
+                    {notificationList.length === 0 ? (
                       <p className="text-[11px] text-slate-400 italic text-center py-6">No notifications yet.</p>
                     ) : (
                       <div className="divide-y divide-slate-50">
-                        {notifications.map((notif) => (
+                        {notificationList.map((notif) => (
                           <div
                             key={notif._id}
                             onClick={() => !notif.isRead && handleMarkAsRead(notif._id)}
