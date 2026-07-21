@@ -22,6 +22,14 @@ const getCookie = (name) => {
   return null;
 };
 
+const getCsrfToken = () => {
+  const cookieToken = getCookie('csrfToken');
+  if (cookieToken) return cookieToken;
+  const storedToken = localStorage.getItem('csrfToken');
+  if (storedToken) return storedToken;
+  return null;
+};
+
 // Interceptor to inject Bearer token and CSRF token in the headers of requests
 API.interceptors.request.use(
   (config) => {
@@ -30,8 +38,8 @@ API.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
-    // Attach CSRF token if present in document cookie
-    const csrfToken = getCookie('csrfToken');
+    // Attach CSRF token if present in cookie or stored in localStorage
+    const csrfToken = getCsrfToken();
     if (csrfToken && ['post', 'put', 'delete', 'patch'].includes(config.method?.toLowerCase())) {
       config.headers['X-CSRF-Token'] = csrfToken;
     }
@@ -147,6 +155,7 @@ export const authAPI = {
   updateProfile: (profileData) => API.put('/auth/profile', profileData),
   updateFcmToken: (fcmToken) => API.put('/auth/fcm-token', { fcmToken }),
   getCaptcha: () => API.get('/auth/captcha'),
+  getCsrfToken: () => API.get('/auth/csrf'),
   logout: (refreshToken) => API.post('/auth/logout', { refreshToken }),
   setup2FA: (data) => API.post('/auth/2fa/setup', data),
   verify2FASetup: (data) => API.post('/auth/2fa/verify-setup', data),

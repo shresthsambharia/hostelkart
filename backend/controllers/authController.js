@@ -867,6 +867,12 @@ const regenerateRecoveryCodes = asyncHandler(async (req, res) => {
     success: true,
     recoveryCodes,
   });
+// @desc    Get fresh CSRF token
+// @route   GET /api/auth/csrf
+// @access  Public
+const getCsrfToken = asyncHandler(async (req, res) => {
+  const csrfToken = setCsrfCookie(res);
+  res.json({ csrfToken });
 });
 
 export {
@@ -883,4 +889,5 @@ export {
   disable2FA,
   login2FA,
   regenerateRecoveryCodes,
+  getCsrfToken,
 };

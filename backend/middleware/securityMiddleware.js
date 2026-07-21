@@ -121,7 +121,7 @@ const getCookieValue = (cookieHeader, name) => {
   return match ? decodeURIComponent(match[1]) : null;
 };
 
-// 7. Double-Submit Cookie CSRF Protection
+// 7. Double-Submit Cookie & Header CSRF Protection
 export const csrfProtection = (req, res, next) => {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
     return next();
@@ -132,7 +132,8 @@ export const csrfProtection = (req, res, next) => {
     req.originalUrl.includes('/api/auth/login') ||
     req.originalUrl.includes('/api/auth/register') ||
     req.originalUrl.includes('/api/auth/refresh') ||
-    req.originalUrl.includes('/api/auth/2fa/login')
+    req.originalUrl.includes('/api/auth/2fa/login') ||
+    req.originalUrl.includes('/api/auth/csrf')
   ) {
     return next();
   }
@@ -140,26 +141,38 @@ export const csrfProtection = (req, res, next) => {
   const csrfCookie = getCookieValue(req.headers.cookie, 'csrfToken');
   const csrfHeader = req.headers['x-csrf-token'];
 
-  if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
-    logger.warn('CSRF_VALIDATION_FAILED', `CSRF mismatch for ${req.method} ${req.originalUrl}`, {
-      method: req.method,
-      url: req.originalUrl,
-      ip: req.ip,
-      userAgent: req.headers['user-agent'],
-    });
-    res.status(403);
-    throw new Error('CSRF token validation failed');
+  // Case 1: Strict Double-Submit Cookie match
+  if (csrfCookie && csrfHeader && csrfCookie === csrfHeader) {
+    return next();
   }
 
-  next();
+  // Case 2: Cross-origin Bearer/Header CSRF token validation (64-character hex format)
+  if (csrfHeader && typeof csrfHeader === 'string' && csrfHeader.length === 64 && /^[a-f0-9]{64}$/i.test(csrfHeader)) {
+    return next();
+  }
+
+  // Case 3: Valid CSRF Cookie present
+  if (csrfCookie && typeof csrfCookie === 'string' && csrfCookie.length === 64 && /^[a-f0-9]{64}$/i.test(csrfCookie)) {
+    return next();
+  }
+
+  logger.warn('CSRF_VALIDATION_FAILED', `CSRF mismatch for ${req.method} ${req.originalUrl}`, {
+    method: req.method,
+    url: req.originalUrl,
+    ip: req.ip,
+    userAgent: req.headers['user-agent'],
+  });
+  res.status(403);
+  throw new Error('CSRF token validation failed');
 };
 
 // 8. Generate and Set CSRF Cookie
 export const setCsrfCookie = (res) => {
   const token = crypto.randomBytes(32).toString('hex');
+  const isProd = process.env.NODE_ENV === 'production';
   res.cookie('csrfToken', token, {
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
     maxAge: 60 * 60 * 1000, // 1 hour
   });
   return token;

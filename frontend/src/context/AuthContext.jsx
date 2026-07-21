@@ -17,9 +17,21 @@ export const AuthProvider = ({ children }) => {
   const [initializing, setInitializing] = useState(false);
   const navigate = useNavigate();
 
-  // Load user info on mount if token exists
+  // Load user info on mount if token exists & initialize CSRF token
   useEffect(() => {
     const checkLoggedIn = async () => {
+      // Ensure fresh CSRF token is available
+      if (!localStorage.getItem('csrfToken')) {
+        try {
+          const csrfRes = await authAPI.getCsrfToken();
+          if (csrfRes.data?.csrfToken) {
+            localStorage.setItem('csrfToken', csrfRes.data.csrfToken);
+          }
+        } catch (e) {
+          console.warn('Failed to fetch initial CSRF token:', e.message);
+        }
+      }
+
       const hasCachedUser = !!localStorage.getItem('userInfo') && !!localStorage.getItem('token');
       if (!hasCachedUser) {
         localStorage.removeItem('token');
@@ -32,6 +44,9 @@ export const AuthProvider = ({ children }) => {
       try {
         const { data } = await authAPI.getProfile();
         setUser(data);
+        if (data.csrfToken) {
+          localStorage.setItem('csrfToken', data.csrfToken);
+        }
         localStorage.setItem('userInfo', JSON.stringify({
           _id: data._id,
           name: data.name,
@@ -41,8 +56,6 @@ export const AuthProvider = ({ children }) => {
           hostelDetails: data.hostelDetails,
         }));
       } catch (error) {
-        // If it's a network error (e.g. server wakeup delay, offline), keep the cached session active!
-        // Only clear the session if the server explicitly returns a 401/403 auth error.
         if (error.response?.status === 401 || error.response?.status === 403) {
           localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');
@@ -72,6 +85,9 @@ export const AuthProvider = ({ children }) => {
       // Store tokens
       localStorage.setItem('token', data.token);
       localStorage.setItem('refreshToken', data.refreshToken);
+      if (data.csrfToken) {
+        localStorage.setItem('csrfToken', data.csrfToken);
+      }
 
       // Store credentials
       localStorage.setItem('userInfo', JSON.stringify({
@@ -110,6 +126,9 @@ export const AuthProvider = ({ children }) => {
       // Store tokens
       localStorage.setItem('token', data.token);
       localStorage.setItem('refreshToken', data.refreshToken);
+      if (data.csrfToken) {
+        localStorage.setItem('csrfToken', data.csrfToken);
+      }
 
       localStorage.setItem('userInfo', JSON.stringify({
         _id: data._id,
@@ -161,6 +180,9 @@ export const AuthProvider = ({ children }) => {
       // Store tokens
       localStorage.setItem('token', data.token);
       localStorage.setItem('refreshToken', data.refreshToken);
+      if (data.csrfToken) {
+        localStorage.setItem('csrfToken', data.csrfToken);
+      }
 
       localStorage.setItem('userInfo', JSON.stringify({
         _id: data._id,

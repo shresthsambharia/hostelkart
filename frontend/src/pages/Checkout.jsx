@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { orderAPI, couponAPI, walletAPI } from '../api';
+import { orderAPI, couponAPI, walletAPI, authAPI } from '../api';
 import { Check, ClipboardList, MapPin, CreditCard, ChevronRight, AlertCircle, Copy, Upload, Image } from 'lucide-react';
 
 const Checkout = () => {
@@ -254,6 +254,18 @@ const Checkout = () => {
     }
 
     setLoading(true);
+
+    // Ensure CSRF token is present before state-changing order placement
+    if (!localStorage.getItem('csrfToken')) {
+      try {
+        const csrfRes = await authAPI.getCsrfToken();
+        if (csrfRes.data?.csrfToken) {
+          localStorage.setItem('csrfToken', csrfRes.data.csrfToken);
+        }
+      } catch (e) {
+        console.warn('Pre-order CSRF token refresh warning:', e.message);
+      }
+    }
 
     if (paymentMethod === 'ONLINE') {
       try {

@@ -14,6 +14,7 @@ import {
   disable2FA,
   login2FA,
   regenerateRecoveryCodes,
+  getCsrfToken,
 } from '../controllers/authController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 
@@ -28,6 +29,7 @@ const authLimiter = rateLimit({
 
 const router = express.Router();
 
+router.get('/csrf', getCsrfToken);
 router.get('/captcha', getCaptcha);
 router.post('/refresh', refreshAccessToken);
 router.post('/logout', logoutUser);
