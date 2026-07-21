@@ -3,7 +3,7 @@
  * for both Unsplash and Cloudinary images.
  */
 export const getOptimizedImageUrl = (imgUrl, width = 300, quality = 60, format = 'webp') => {
-  const targetUrl = imgUrl || 'https://images.unsplash.com/photo-1542838132-92c53300491e';
+  const targetUrl = imgUrl || 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg';
   
   if (targetUrl.includes('res.cloudinary.com')) {
     const parts = targetUrl.split('image/upload/');
