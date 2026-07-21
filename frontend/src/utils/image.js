@@ -5,59 +5,45 @@
 export const getOptimizedImageUrl = (imgUrl, width = 300, quality = 60, format = 'webp') => {
   const targetUrl = imgUrl || 'https://images.unsplash.com/photo-1542838132-92c53300491e';
   
-  if (import.meta.env.DEV) {
-    // Local development fallback
-    if (targetUrl.includes('res.cloudinary.com')) {
-      const parts = targetUrl.split('image/upload/');
-      if (parts.length === 2) {
-        let rest = parts[1];
-        const pathSegments = rest.split('/');
-        const cleanedSegments = [];
-        let foundVersionOrPublicId = false;
+  if (targetUrl.includes('res.cloudinary.com')) {
+    const parts = targetUrl.split('image/upload/');
+    if (parts.length === 2) {
+      let rest = parts[1];
+      const pathSegments = rest.split('/');
+      const cleanedSegments = [];
+      let foundVersionOrPublicId = false;
 
-        for (const segment of pathSegments) {
-          if (foundVersionOrPublicId) {
+      for (const segment of pathSegments) {
+        if (foundVersionOrPublicId) {
+          cleanedSegments.push(segment);
+        } else {
+          const isVersion = /^v\d+$/.test(segment);
+          const isTransformation = segment.includes('_') || segment.includes(',');
+          if (isVersion || !isTransformation) {
+            foundVersionOrPublicId = true;
             cleanedSegments.push(segment);
-          } else {
-            const isVersion = /^v\d+$/.test(segment);
-            const isTransformation = segment.includes('_') || segment.includes(',');
-            if (isVersion || !isTransformation) {
-              foundVersionOrPublicId = true;
-              cleanedSegments.push(segment);
-            }
           }
         }
-        
-        const cleanPath = cleanedSegments.join('/');
-        return `${parts[0]}image/upload/w_${width},f_auto,q_auto,dpr_auto,c_fill,g_auto,fl_progressive/${cleanPath}`;
       }
+      
+      const cleanPath = cleanedSegments.join('/');
+      return `${parts[0]}image/upload/w_${width},f_auto,q_auto,dpr_auto,c_fill,g_auto,fl_progressive/${cleanPath}`;
     }
-
-    if (targetUrl.startsWith('https://images.unsplash.com')) {
-      const baseUrl = targetUrl.split('?')[0];
-      return `${baseUrl}?w=${width}&q=${quality}&fm=${format}&fit=crop&auto=format`;
-    }
-
-    if (targetUrl.startsWith('/uploads/') || targetUrl.startsWith('uploads/')) {
-      const relativePath = targetUrl.startsWith('/') ? targetUrl : `/${targetUrl}`;
-      const apiURL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const backendBase = apiURL.replace(/\/api\/?$/, '');
-      return `${backendBase}${relativePath}`;
-    }
-
-    return targetUrl;
   }
 
-  // Production: Route all allowed domains via Vercel edge Image Optimizer
-  let absoluteUrl = targetUrl;
+  if (targetUrl.startsWith('https://images.unsplash.com')) {
+    const baseUrl = targetUrl.split('?')[0];
+    return `${baseUrl}?w=${width}&q=${quality}&fm=${format}&fit=crop&auto=format`;
+  }
+
   if (targetUrl.startsWith('/uploads/') || targetUrl.startsWith('uploads/')) {
     const relativePath = targetUrl.startsWith('/') ? targetUrl : `/${targetUrl}`;
-    absoluteUrl = `https://hostelkart-backend.onrender.com${relativePath}`;
-  } else if (targetUrl.startsWith('https://images.unsplash.com')) {
-    absoluteUrl = targetUrl.split('?')[0];
+    const apiURL = import.meta.env.VITE_API_URL || 'https://hostelkart-backend.onrender.com';
+    const backendBase = apiURL.replace(/\/api\/?$/, '');
+    return `${backendBase}${relativePath}`;
   }
 
-  return `/_vercel/image?url=${encodeURIComponent(absoluteUrl)}&w=${width}&q=${quality}`;
+  return targetUrl;
 };
 
 /**
@@ -68,58 +54,42 @@ export const getSrcSet = (imgUrl, widths = [256, 384, 512, 640, 750, 828, 1080],
     return undefined;
   }
 
-  if (import.meta.env.DEV) {
-    // Development local srcsets
-    if (imgUrl.includes('res.cloudinary.com')) {
-      const parts = imgUrl.split('image/upload/');
-      if (parts.length === 2) {
-        let rest = parts[1];
-        const pathSegments = rest.split('/');
-        const cleanedSegments = [];
-        let foundVersionOrPublicId = false;
+  if (imgUrl.includes('res.cloudinary.com')) {
+    const parts = imgUrl.split('image/upload/');
+    if (parts.length === 2) {
+      let rest = parts[1];
+      const pathSegments = rest.split('/');
+      const cleanedSegments = [];
+      let foundVersionOrPublicId = false;
 
-        for (const segment of pathSegments) {
-          if (foundVersionOrPublicId) {
+      for (const segment of pathSegments) {
+        if (foundVersionOrPublicId) {
+          cleanedSegments.push(segment);
+        } else {
+          const isVersion = /^v\d+$/.test(segment);
+          const isTransformation = segment.includes('_') || segment.includes(',');
+          if (isVersion || !isTransformation) {
+            foundVersionOrPublicId = true;
             cleanedSegments.push(segment);
-          } else {
-            const isVersion = /^v\d+$/.test(segment);
-            const isTransformation = segment.includes('_') || segment.includes(',');
-            if (isVersion || !isTransformation) {
-              foundVersionOrPublicId = true;
-              cleanedSegments.push(segment);
-            }
           }
         }
-        
-        const cleanPath = cleanedSegments.join('/');
-        return widths
-          .map((w) => `${parts[0]}image/upload/w_${w},f_auto,q_auto,dpr_auto,c_fill,g_auto,fl_progressive/${cleanPath} ${w}w`)
-          .join(', ');
       }
-    }
-
-    if (imgUrl.startsWith('https://images.unsplash.com')) {
-      const baseUrl = imgUrl.split('?')[0];
+      
+      const cleanPath = cleanedSegments.join('/');
       return widths
-        .map((w) => `${baseUrl}?w=${w}&q=${quality}&fm=${format}&fit=crop&auto=format ${w}w`)
+        .map((w) => `${parts[0]}image/upload/w_${w},f_auto,q_auto,dpr_auto,c_fill,g_auto,fl_progressive/${cleanPath} ${w}w`)
         .join(', ');
     }
-
-    return undefined;
   }
 
-  // Production: Route SrcSet widths via Vercel Edge Image Optimizer
-  let absoluteUrl = imgUrl;
-  if (imgUrl.startsWith('/uploads/') || imgUrl.startsWith('uploads/')) {
-    const relativePath = imgUrl.startsWith('/') ? imgUrl : `/${imgUrl}`;
-    absoluteUrl = `https://hostelkart-backend.onrender.com${relativePath}`;
-  } else if (imgUrl.startsWith('https://images.unsplash.com')) {
-    absoluteUrl = imgUrl.split('?')[0];
+  if (imgUrl.startsWith('https://images.unsplash.com')) {
+    const baseUrl = imgUrl.split('?')[0];
+    return widths
+      .map((w) => `${baseUrl}?w=${w}&q=${quality}&fm=${format}&fit=crop&auto=format ${w}w`)
+      .join(', ');
   }
 
-  return widths
-    .map((w) => `/_vercel/image?url=${encodeURIComponent(absoluteUrl)}&w=${w}&q=${quality} ${w}w`)
-    .join(', ');
+  return undefined;
 };
 
 /**
