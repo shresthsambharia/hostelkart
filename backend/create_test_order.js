@@ -36,8 +36,8 @@ const run = async () => {
       description: "Premium black tea from Lipton yellow label series",
       price: 280,
       stock: 50,
-      category: "Instant Food",
-      image: "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000007/instant_food.jpg",
+      category: "Dairy Products",
+      image: "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg",
       rating: 4.5,
       numReviews: 12
     });
@@ -68,7 +68,7 @@ const run = async () => {
       description: "Premium smooth milk chocolate",
       price: 180,
       stock: 80,
-      category: "Instant Food",
+      category: "Dairy Products",
       image: "https://res.cloudinary.com/dquhh8aee/image/upload/v1718000007/instant_food.jpg",
       rating: 4.7,
       numReviews: 18

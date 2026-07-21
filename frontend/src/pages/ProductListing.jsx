@@ -8,7 +8,6 @@ const staticCategoryNames = [
   'Fruits',
   'Vegetables',
   'Stationery',
-  'Instant Food',
   'Electronics Accessories',
   'Personal Care',
   'Dairy Products'

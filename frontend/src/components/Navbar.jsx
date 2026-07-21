@@ -792,10 +792,10 @@ const Navbar = () => {
       {(!user || user.role === 'student') && (
         <div className="bg-slate-50/90 border-t border-slate-100/60 py-2 overflow-x-auto no-scrollbar scroll-smooth">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-2 text-[11px] font-bold whitespace-nowrap">
-            {['Fruits', 'Snacks', 'Beverages', 'Stationery', 'Personal Care', 'Hostel Essentials'].map((cat) => (
+            {['Fruits', 'Vegetables', 'Dairy Products', 'Stationery', 'Personal Care', 'Electronics Accessories'].map((cat) => (
               <Link
                 key={cat}
-                to={`/products?category=${encodeURIComponent(cat === 'Hostel Essentials' ? 'Instant Food' : cat)}`}
+                to={`/products?category=${encodeURIComponent(cat)}`}
                 className="px-3.5 py-1.5 rounded-full bg-white border border-slate-200 hover:border-primary-500 hover:text-primary-600 transition-all shadow-sm shrink-0"
               >
                 {cat}

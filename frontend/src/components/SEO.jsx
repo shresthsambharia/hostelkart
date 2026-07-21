@@ -43,7 +43,7 @@ const SEO = ({
       tag.setAttribute('href', href);
     };
 
-    const defaultDesc = 'HostelKart is your go-to hostel delivery app, delivering daily essentials, fresh fruits, vegetables, stationery, instant food, and personal care directly to your hostel room in your selected time slot.';
+    const defaultDesc = 'HostelKart is your go-to hostel delivery app, delivering daily essentials, fresh fruits, vegetables, stationery, and personal care directly to your hostel room in your selected time slot.';
     const activeDesc = description || defaultDesc;
     setMetaTag('description', activeDesc);
 

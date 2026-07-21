@@ -12,7 +12,7 @@ const Footer = () => {
               Hostel<span className="text-primary-400">Kart</span>
             </span>
             <p className="text-sm text-slate-400 max-w-sm">
-              Daily hostel essentials delivered to your room. Get fresh fruits, personal care, stationery, instant food, and more delivered in your selected time slot!
+              Daily hostel essentials delivered to your room. Get fresh fruits, personal care, stationery, and more delivered in your selected time slot!
             </p>
             <div className="pt-2 text-xs text-slate-500">
               <p>HostelKart Delivery Service &copy; {new Date().getFullYear()}</p>
@@ -28,7 +28,7 @@ const Footer = () => {
                 <Link to="/products?category=Fruits" className="hover:text-primary-400 transition-colors">Fruits & Vegetables</Link>
               </li>
               <li>
-                <Link to="/products?category=Instant Food" className="hover:text-primary-400 transition-colors">Instant Food</Link>
+                <Link to="/products?category=Stationery" className="hover:text-primary-400 transition-colors">Stationery</Link>
               </li>
               <li>
                 <Link to="/products?category=Personal Care" className="hover:text-primary-400 transition-colors">Personal Care</Link>

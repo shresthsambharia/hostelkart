@@ -17,7 +17,6 @@ const staticCategories = [
   { name: 'Fruits', emoji: '🍎' },
   { name: 'Vegetables', emoji: '🥦' },
   { name: 'Stationery', emoji: '📚' },
-  { name: 'Instant Food', emoji: '🍜' },
   { name: 'Electronics Accessories', emoji: '🔌' },
   { name: 'Personal Care', emoji: '🧼' },
   { name: 'Dairy Products', emoji: '🧀' }
@@ -122,7 +121,7 @@ const Home = () => {
     <div className="space-y-6 sm:space-y-10 pb-16">
       <SEO 
         title="Daily hostel essentials delivered to your room"
-        description="HostelKart is your go-to hostel delivery app, delivering daily essentials, fresh fruits, vegetables, stationery, instant food, and personal care directly to your hostel room."
+        description="HostelKart is your go-to hostel delivery app, delivering daily essentials, fresh fruits, vegetables, stationery, and personal care directly to your hostel room."
         schema={[orgSchema, websiteSchema]}
       />
       
