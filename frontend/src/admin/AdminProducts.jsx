@@ -9,6 +9,18 @@ import {
 import { getAdminThumbnail } from '../utils/image';
 import ImageUploader from '../components/ImageUploader';
 
+// DataGrid components for strict verification
+import { DataGrid } from '@mui/x-data-grid';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+
+const dataGridTheme = createTheme({
+  palette: {
+    primary: {
+      main: '#16a34a',
+    },
+  },
+});
+
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -347,6 +359,111 @@ const AdminProducts = () => {
   const currentItems = sortedProducts.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
 
+  const rows = sortedProducts.map(p => ({
+    id: p._id,
+    name: p.name,
+    description: p.description,
+    category: p.category,
+    price: p.price,
+    discount: p.discount,
+    stock: p.stock,
+    deliveryTime: p.deliveryTime,
+    isAvailable: p.isAvailable,
+    productRaw: p
+  }));
+
+  const columns = [
+    { 
+      field: 'image', 
+      headerName: 'Preview', 
+      width: 80,
+      renderCell: (params) => (
+        <div className="w-10 h-10 bg-slate-50 border border-slate-100 rounded-xl overflow-hidden flex items-center justify-center shadow-inner mt-1">
+          <img
+            src={getAdminThumbnail(params.row.productRaw)}
+            alt={params.row.name}
+            className="w-8 h-8 object-contain"
+          />
+        </div>
+      )
+    },
+    { 
+      field: 'name', 
+      headerName: 'Product Name', 
+      width: 220,
+      renderCell: (params) => (
+        <div className="min-w-0 py-1">
+          <span className="font-extrabold text-slate-800 block truncate leading-tight">{params.row.name}</span>
+          <span className="text-[9px] text-slate-400 block truncate leading-none mt-0.5">{params.row.description}</span>
+        </div>
+      )
+    },
+    { field: 'category', headerName: 'Category', width: 130 },
+    { 
+      field: 'price', 
+      headerName: 'Price', 
+      width: 90,
+      renderCell: (params) => <span className="font-bold text-slate-700">₹{params.value}</span>
+    },
+    { 
+      field: 'discount', 
+      headerName: 'Discount', 
+      width: 95,
+      renderCell: (params) => params.value > 0 ? (
+        <span className="px-1.5 py-0.5 bg-rose-50 border border-rose-100 text-rose-750 rounded-lg text-[9px] font-black">
+          {params.value}% OFF
+        </span>
+      ) : '-'
+    },
+    { 
+      field: 'stock', 
+      headerName: 'Stock', 
+      width: 100,
+      renderCell: (params) => (
+        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black border ${
+          params.value === 0 ? 'bg-rose-50 text-rose-705 border-rose-100' :
+          params.value <= 5 ? 'bg-amber-50 text-amber-700 border-amber-100' :
+          'bg-slate-50 text-slate-700 border-slate-200'
+        }`}>
+          {params.value} Units
+        </span>
+      )
+    },
+    { field: 'deliveryTime', headerName: 'Logistics', width: 120 },
+    {
+      field: 'isAvailable',
+      headerName: 'Status',
+      width: 100,
+      renderCell: (params) => params.value && params.row.stock > 0 ? (
+        <span className="text-emerald-650 font-bold text-xs">Active</span>
+      ) : (
+        <span className="text-red-505 font-bold text-xs">Sold Out</span>
+      )
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 110,
+      sortable: false,
+      renderCell: (params) => (
+        <div className="flex items-center gap-1.5 h-full">
+          <button
+            onClick={() => handleOpenEditModal(params.row.productRaw)}
+            className="p-1.5 text-blue-600 hover:bg-blue-50 border border-slate-100 rounded-lg transition-colors shadow-sm bg-white"
+          >
+            <Edit2 size={12} />
+          </button>
+          <button
+            onClick={() => handleDelete(params.row.id, params.row.name)}
+            className="p-1.5 text-red-500 hover:bg-red-50 border border-slate-100 rounded-lg transition-colors shadow-sm bg-white"
+          >
+            <Trash2 size={12} />
+          </button>
+        </div>
+      )
+    }
+  ];
+
   const toggleSort = (field) => {
     if (sortBy === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -617,177 +734,27 @@ const AdminProducts = () => {
 
           {/* Product Data Grid Table */}
           <div className="bg-white border border-slate-100 rounded-2xl shadow-premium overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse min-w-[800px]">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/50 text-slate-400 font-bold select-none">
-                    <th className="py-3.5 px-4 w-12 text-center">
-                      <input
-                        type="checkbox"
-                        checked={filteredProducts.length > 0 && selectedIds.length === filteredProducts.length}
-                        onChange={toggleSelectAll}
-                        className="rounded border-slate-350 text-primary-600 focus:ring-primary-500 cursor-pointer w-3.5 h-3.5"
-                      />
-                    </th>
-                    <th className="py-3.5 px-4">
-                      <button onClick={() => toggleSort('name')} className="flex items-center gap-1 hover:text-slate-600">
-                        <span>Product Specification</span>
-                        <ArrowUpDown size={11} />
-                      </button>
-                    </th>
-                    <th className="py-3.5 px-2">Category</th>
-                    <th className="py-3.5 px-2">
-                      <button onClick={() => toggleSort('price')} className="flex items-center gap-1 hover:text-slate-600">
-                        <span>Price</span>
-                        <ArrowUpDown size={11} />
-                      </button>
-                    </th>
-                    <th className="py-3.5 px-2 text-center">
-                      <button onClick={() => toggleSort('discount')} className="flex items-center gap-1 hover:text-slate-600">
-                        <span>Discount</span>
-                        <ArrowUpDown size={11} />
-                      </button>
-                    </th>
-                    <th className="py-3.5 px-2">
-                      <button onClick={() => toggleSort('stock')} className="flex items-center gap-1 hover:text-slate-600">
-                        <span>Stock Level</span>
-                        <ArrowUpDown size={11} />
-                      </button>
-                    </th>
-                    <th className="py-3.5 px-2">Logistics</th>
-                    <th className="py-3.5 px-2">Status</th>
-                    <th className="py-3.5 px-4 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50 font-medium text-slate-600">
-                  {loading ? (
-                    <tr>
-                      <td colSpan={9} className="py-12 text-center text-slate-400">
-                        <div className="flex flex-col items-center justify-center space-y-2 animate-pulse">
-                          <RefreshCw className="w-6 h-6 animate-spin text-primary-500" />
-                          <span className="font-bold">Syncing catalog registry...</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : currentItems.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="py-12 text-center text-slate-400 italic font-semibold">
-                        No product listings match your filters.
-                      </td>
-                    </tr>
-                  ) : (
-                    currentItems.map((p) => {
-                      const isSelected = selectedIds.includes(p._id);
-                      return (
-                        <tr key={p._id} className={`hover:bg-slate-50/50 transition-colors ${isSelected ? 'bg-primary-50/10' : ''}`}>
-                          <td className="py-3 px-4 text-center">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleSelectRow(p._id)}
-                              className="rounded border-slate-350 text-primary-600 focus:ring-primary-500 cursor-pointer w-3.5 h-3.5"
-                            />
-                          </td>
-                          <td className="py-3 px-4 flex items-center space-x-3">
-                            <div className="w-11 h-11 bg-slate-50 border border-slate-100 rounded-xl overflow-hidden shrink-0 flex items-center justify-center shadow-inner">
-                              <img
-                                src={getAdminThumbnail(p)}
-                                alt={p.name}
-                                className="w-9 h-9 object-contain"
-                              />
-                            </div>
-                            <div className="min-w-0">
-                              <span className="font-extrabold text-slate-800 block truncate max-w-[200px]">{p.name}</span>
-                              <span className="text-[10px] text-slate-400 block truncate max-w-[220px] font-bold mt-0.5 leading-none">{p.description}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-2 font-bold text-slate-700">{p.category}</td>
-                          <td className="py-3 px-2 font-extrabold text-slate-800">₹{p.price}</td>
-                          <td className="py-3 px-2 text-center">
-                            {p.discount > 0 ? (
-                              <span className="px-1.5 py-0.5 bg-rose-50 border border-rose-100 text-rose-700 rounded-lg text-[9px] font-black">
-                                {p.discount}% OFF
-                              </span>
-                            ) : (
-                              <span className="text-slate-400 text-[10px] font-bold">-</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-2">
-                            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black border ${
-                              p.stock === 0 ? 'bg-red-50 text-red-700 border-red-100' :
-                              p.stock <= 5 ? 'bg-amber-50 text-amber-700 border-amber-100 animate-pulse' :
-                              'bg-slate-50 text-slate-700 border-slate-200'
-                            }`}>
-                              {p.stock} Units
-                            </span>
-                          </td>
-                          <td className="py-3 px-2 font-bold text-[10px] text-slate-500">{p.deliveryTime || 'Instant Slot'}</td>
-                          <td className="py-3 px-2">
-                            {p.isAvailable && p.stock > 0 ? (
-                              <span className="text-emerald-600 font-bold flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>
-                                <span>Active</span>
-                              </span>
-                            ) : (
-                              <span className="text-red-500 font-bold flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 bg-red-400 rounded-full"></span>
-                                <span>Sold Out</span>
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <div className="flex items-center gap-2 justify-center">
-                              <button
-                                onClick={() => handleOpenEditModal(p)}
-                                className="p-1.5 text-blue-600 hover:bg-blue-50 border border-slate-100 rounded-lg transition-colors shadow-sm bg-white"
-                                title="Edit Specifications"
-                              >
-                                <Edit2 size={12} />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(p._id, p.name)}
-                                className="p-1.5 text-red-500 hover:bg-red-50 border border-slate-100 rounded-lg transition-colors shadow-sm bg-white"
-                                title="Remove Item"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination controls */}
-            {totalPages > 1 && (
-              <div className="flex justify-between items-center px-4 py-3 bg-slate-50 border-t border-slate-100 select-none">
-                <span className="text-[10px] font-bold text-slate-450 uppercase">
-                  Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, sortedProducts.length)} of {sortedProducts.length} Listings
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => setCurrentPage(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 disabled:opacity-40 transition-opacity"
-                  >
-                    <ChevronLeft size={12} />
-                  </button>
-                  <span className="text-xs font-black text-slate-700">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <button
-                    onClick={() => setCurrentPage(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 disabled:opacity-40 transition-opacity"
-                  >
-                    <ChevronRight size={12} />
-                  </button>
-                </div>
+            <ThemeProvider theme={dataGridTheme}>
+              <div style={{ height: 500, width: '100%' }} className="bg-white rounded-2xl overflow-hidden font-sans">
+                <DataGrid
+                  rows={rows}
+                  columns={columns}
+                  loading={loading}
+                  initialState={{
+                    pagination: {
+                      paginationModel: { page: 0, pageSize: 10 },
+                    },
+                  }}
+                  pageSizeOptions={[5, 10, 20]}
+                  checkboxSelection
+                  onRowSelectionModelChange={(newSelectionModel) => {
+                    setSelectedIds(newSelectionModel);
+                  }}
+                  rowSelectionModel={selectedIds}
+                  disableRowSelectionOnClick
+                />
               </div>
-            )}
+            </ThemeProvider>
           </div>
 
         </div>

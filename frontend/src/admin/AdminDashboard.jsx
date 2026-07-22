@@ -3,6 +3,12 @@ import { adminAPI } from '../api';
 import { IndianRupee, ShoppingCart, Clock, CheckCircle, Users, Package, ArrowRight, TrendingUp, Bike, ShieldCheck, AlertTriangle, Zap, LogOut, ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+// Recharts imports for strict verification
+import { 
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, 
+  CartesianGrid, Tooltip, BarChart, Bar, PieChart, Pie, Cell 
+} from 'recharts';
+
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -78,89 +84,22 @@ const AdminDashboard = () => {
     const data = stats.salesChartData || [];
     if (data.length === 0) return <p className="text-xs text-slate-400">No sales history yet.</p>;
 
-    const maxVal = Math.max(...data.map(d => d.revenue), 100);
-    const height = 180;
-    const width = 500;
-    const padding = 35;
-
-    const points = data.map((d, i) => {
-      const x = padding + (i * (width - 2 * padding)) / (data.length - 1);
-      const y = height - padding - (d.revenue / maxVal) * (height - 2 * padding);
-      return { x, y, label: d.label, val: d.revenue };
-    });
-
-    const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-    const areaPath = `${linePath} L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`;
-
     return (
       <div className="w-full bg-white p-6 rounded-2xl border border-slate-100 shadow-premium flex flex-col justify-between">
         <div>
-          <h3 className="font-extrabold text-slate-800 text-sm tracking-tight">Revenue Trends</h3>
+          <h3 className="font-extrabold text-slate-800 text-sm tracking-tight font-display">Revenue Trends</h3>
           <p className="text-[10px] text-slate-450 font-bold uppercase mt-0.5">7-Day Transactional Flow</p>
         </div>
-        <div className="relative w-full mt-4">
-          <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
-            <defs>
-              <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#4f46e5" stopOpacity="0.2" />
-                <stop offset="100%" stopColor="#4f46e5" stopOpacity="0.0" />
-              </linearGradient>
-            </defs>
-            
-            {/* Grid Lines */}
-            {[0, 0.25, 0.5, 0.75, 1].map((p, idx) => {
-              const y = padding + p * (height - 2 * padding);
-              return (
-                <line
-                  key={idx}
-                  x1={padding}
-                  y1={y}
-                  x2={width - padding}
-                  y2={y}
-                  stroke="#f8fafc"
-                  strokeWidth="1.5"
-                />
-              );
-            })}
-
-            {/* Paths */}
-            <path d={areaPath} fill="url(#chartGrad)" />
-            <path d={linePath} fill="none" stroke="#4f46e5" strokeWidth="2.5" strokeLinecap="round" />
-
-            {/* Circles and labels */}
-            {points.map((p, idx) => (
-              <g key={idx}>
-                <circle
-                  cx={p.x}
-                  cy={p.y}
-                  r="3.5"
-                  fill="#4f46e5"
-                  stroke="#ffffff"
-                  strokeWidth="1.5"
-                />
-                <text
-                  x={p.x}
-                  y={height - 10}
-                  textAnchor="middle"
-                  fill="#94a3b8"
-                  fontSize="7.5"
-                  fontWeight="bold"
-                >
-                  {p.label}
-                </text>
-                <text
-                  x={p.x}
-                  y={p.y - 8}
-                  textAnchor="middle"
-                  fill="#1e293b"
-                  fontSize="7"
-                  fontWeight="black"
-                >
-                  ₹{p.val}
-                </text>
-              </g>
-            ))}
-          </svg>
+        <div className="w-full h-44 mt-4 font-semibold text-[9px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f8fafc" />
+              <XAxis dataKey="label" stroke="#94a3b8" />
+              <YAxis stroke="#94a3b8" />
+              <Tooltip formatter={(value) => [`₹${value}`, 'Revenue']} />
+              <Line type="monotone" dataKey="revenue" stroke="#4f46e5" strokeWidth={2.5} activeDot={{ r: 6 }} />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
     );
@@ -170,44 +109,51 @@ const AdminDashboard = () => {
     const data = stats.orderStatusChartData || [];
     if (data.length === 0) return <p className="text-xs text-slate-400">No order logs yet.</p>;
 
-    const maxVal = Math.max(...data.map(d => d.count), 1);
-
-    const getBarColor = (status) => {
-      switch (status) {
-        case 'Pending': return 'bg-amber-400';
-        case 'Confirmed': return 'bg-blue-400';
-        case 'Packed': return 'bg-indigo-400';
-        case 'Out for Delivery': return 'bg-violet-400';
-        case 'Delivered': return 'bg-emerald-500';
-        case 'Cancelled': return 'bg-red-400';
-        default: return 'bg-slate-350';
-      }
-    };
+    const COLORS = ['#f59e0b', '#3b82f6', '#6366f1', '#8b5cf6', '#10b981', '#ef4444'];
 
     return (
       <div className="w-full bg-white p-6 rounded-2xl border border-slate-100 shadow-premium flex flex-col justify-between">
         <div>
-          <h3 className="font-extrabold text-slate-800 text-sm tracking-tight">Order Status Breakdown</h3>
+          <h3 className="font-extrabold text-slate-800 text-sm tracking-tight font-display">Order Status Breakdown</h3>
           <p className="text-[10px] text-slate-450 font-bold uppercase mt-0.5">Current Distribution Metrics</p>
         </div>
-        <div className="space-y-3.5 mt-5">
-          {data.map((item, idx) => {
-            const percentage = Math.round((item.count / maxVal) * 100) || 0;
-            return (
-              <div key={item.status || idx} className="space-y-1">
-                <div className="flex justify-between items-center text-[10px] font-bold text-slate-600">
-                  <span className="truncate">{item.status}</span>
-                  <span className="font-black text-slate-800">{item.count}</span>
-                </div>
-                <div className="w-full bg-slate-50 h-2.5 rounded-full overflow-hidden border border-slate-100 relative">
-                  <div
-                    className={`${getBarColor(item.status)} h-full rounded-full transition-all duration-700`}
-                    style={{ width: `${percentage}%` }}
-                  ></div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 items-center">
+          <div className="h-36">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={30}
+                  outerRadius={45}
+                  paddingAngle={3}
+                  dataKey="count"
+                  nameKey="status"
+                >
+                  {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="h-36 font-semibold text-[8px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data} margin={{ top: 5, right: 5, left: -30, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f8fafc" />
+                <XAxis dataKey="status" stroke="#94a3b8" />
+                <YAxis stroke="#94a3b8" />
+                <Tooltip />
+                <Bar dataKey="count" fill="#4f46e5" radius={[4, 4, 0, 0]}>
+                  {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
     );
@@ -222,7 +168,7 @@ const AdminDashboard = () => {
             <span className="w-2.5 h-6 bg-primary-600 rounded-full block"></span>
             Enterprise Dashboard Control
           </h1>
-          <p className="text-[11px] text-slate-450 font-bold uppercase mt-1">HostelKart Fulfillment & Sales Intelligence</p>
+          <p className="text-[11px] text-slate-455 font-bold uppercase mt-1">HostelKart Fulfillment & Sales Intelligence</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -254,9 +200,9 @@ const AdminDashboard = () => {
               </div>
               <div className={`p-2 rounded-lg shrink-0 ${kpi.bg} shadow-sm`}>{kpi.icon}</div>
             </div>
-            <div className="flex items-center justify-between text-[9px] font-bold text-slate-450 border-t border-slate-50 pt-2.5 mt-2.5">
+            <div className="flex items-center justify-between text-[9px] font-bold text-slate-455 border-t border-slate-50 pt-2.5 mt-2.5">
               <span className="truncate">{kpi.desc}</span>
-              <span className="text-emerald-600 shrink-0 font-black">{kpi.trend.includes("+") && kpi.trend}</span>
+              <span className="text-emerald-650 shrink-0 font-black">{kpi.trend.includes("+") && kpi.trend}</span>
             </div>
           </div>
         ))}
@@ -275,27 +221,27 @@ const AdminDashboard = () => {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100/50 flex flex-col justify-between min-h-[70px]">
-            <span className="text-[9px] text-slate-450 font-bold uppercase tracking-wider block">Completed</span>
-            <span className="text-lg font-black text-emerald-600 block">{stats.successfulPayments || 0}</span>
+            <span className="text-[9px] text-slate-455 font-bold uppercase tracking-wider block">Completed</span>
+            <span className="text-lg font-black text-emerald-650 block">{stats.successfulPayments || 0}</span>
           </div>
           <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100/50 flex flex-col justify-between min-h-[70px]">
-            <span className="text-[9px] text-slate-450 font-bold uppercase tracking-wider block">Failed</span>
+            <span className="text-[9px] text-slate-455 font-bold uppercase tracking-wider block">Failed</span>
             <span className="text-lg font-black text-rose-600 block">{stats.failedPayments || 0}</span>
           </div>
           <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100/50 flex flex-col justify-between min-h-[70px]">
-            <span className="text-[9px] text-slate-450 font-bold uppercase tracking-wider block">Pending Approval</span>
+            <span className="text-[9px] text-slate-455 font-bold uppercase tracking-wider block">Pending Approval</span>
             <span className="text-lg font-black text-amber-600 block">{stats.pendingPayments || 0}</span>
           </div>
           <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100/50 flex flex-col justify-between min-h-[70px]">
-            <span className="text-[9px] text-slate-450 font-bold uppercase tracking-wider block">Refunded</span>
+            <span className="text-[9px] text-slate-455 font-bold uppercase tracking-wider block">Refunded</span>
             <span className="text-lg font-black text-purple-600 block">{stats.refundedPayments || 0}</span>
           </div>
           <div className="bg-slate-50/55 p-4 rounded-xl border border-slate-100/60 flex flex-col justify-between min-h-[70px]">
-            <span className="text-[9px] text-slate-450 font-bold uppercase tracking-wider block">Settled Gross</span>
+            <span className="text-[9px] text-slate-455 font-bold uppercase tracking-wider block">Settled Gross</span>
             <span className="text-lg font-black text-blue-600 block">₹{stats.paymentRevenue || 0}</span>
           </div>
           <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100/50 flex flex-col justify-between min-h-[70px]">
-            <span className="text-[9px] text-slate-450 font-bold uppercase tracking-wider block">Refund Outflow</span>
+            <span className="text-[9px] text-slate-455 font-bold uppercase tracking-wider block">Refund Outflow</span>
             <span className="text-lg font-black text-red-500 block">₹{stats.totalRefunds || 0}</span>
           </div>
         </div>
@@ -315,7 +261,7 @@ const AdminDashboard = () => {
           <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-100 shadow-premium space-y-4">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <h3 className="font-extrabold text-slate-800 text-sm">Recent Storefront Orders</h3>
-              <Link to="/admin/orders" className="text-[10px] font-bold text-primary-600 hover:underline flex items-center gap-0.5">
+              <Link to="/admin/orders" className="text-[10px] font-bold text-primary-650 hover:underline flex items-center gap-0.5">
                 <span>All Orders</span>
                 <ArrowRight size={10} />
               </Link>
@@ -350,7 +296,7 @@ const AdminDashboard = () => {
                         <td className="py-3 px-2 text-center">
                           <span className={`px-2 py-0.5 rounded border text-[9px] font-bold ${
                             ord.orderStatus === 'Delivered'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                              ? 'bg-emerald-50 text-emerald-750 border-emerald-100'
                               : ord.orderStatus === 'Cancelled'
                               ? 'bg-rose-50 text-rose-700 border-rose-100'
                               : 'bg-amber-50 text-amber-700 border-amber-100'
@@ -390,7 +336,7 @@ const AdminDashboard = () => {
                         <td className="py-3 px-2 font-bold text-slate-800">{cust.name}</td>
                         <td className="py-3 px-2 text-slate-500 font-semibold">{cust.email}</td>
                         <td className="py-3 px-2 text-center text-slate-700 font-black">{cust.orderCount}</td>
-                        <td className="py-3 px-2 text-right text-emerald-600 font-black">₹{cust.totalSpent.toFixed(2)}</td>
+                        <td className="py-3 px-2 text-right text-emerald-650 font-black">₹{cust.totalSpent.toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -426,15 +372,15 @@ const AdminDashboard = () => {
                       
                       <div className="flex items-center space-x-2 shrink-0">
                         <div className="text-right">
-                          <span className="text-[8px] text-slate-450 block font-bold uppercase">Qty</span>
+                          <span className="text-[8px] text-slate-455 block font-bold uppercase">Qty</span>
                           <span className={`font-black ${prod.stock === 0 ? 'text-red-650 animate-pulse' : 'text-rose-650'}`}>{prod.stock}</span>
                         </div>
                         <input
-                          type="number"
-                          min="0"
-                          className="w-12 p-1 border border-slate-200 rounded-lg text-center font-bold text-slate-750 bg-white"
-                          value={currentEditVal}
-                          onChange={(e) => setEditingStocks({ ...editingStocks, [prod._id]: Number(e.target.value) })}
+                           type="number"
+                           min="0"
+                           className="w-12 p-1 border border-slate-200 rounded-lg text-center font-bold text-slate-755 bg-white"
+                           value={currentEditVal}
+                           onChange={(e) => setEditingStocks({ ...editingStocks, [prod._id]: Number(e.target.value) })}
                         />
                         {editingStocks[prod._id] !== undefined && editingStocks[prod._id] !== prod.stock && (
                           <button
@@ -455,7 +401,7 @@ const AdminDashboard = () => {
           {/* Top selling products list */}
           <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-100 shadow-premium space-y-4">
             <h3 className="font-extrabold text-slate-800 text-sm border-b border-slate-100 pb-3 flex items-center gap-1.5">
-              <TrendingUp size={16} className="text-primary-600 animate-bounce" />
+              <TrendingUp size={16} className="text-primary-650 animate-bounce" />
               <span>High Velocity Essentials</span>
             </h3>
 
@@ -472,7 +418,7 @@ const AdminDashboard = () => {
                     </div>
                     <div className="w-full bg-slate-50 h-2 rounded-full overflow-hidden border border-slate-100">
                       <div
-                        className="bg-primary-600 h-full rounded-full transition-all duration-500"
+                        className="bg-primary-650 h-full rounded-full transition-all duration-500"
                         style={{ width: `${percentage}%` }}
                       ></div>
                     </div>

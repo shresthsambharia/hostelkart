@@ -3,9 +3,22 @@ import { useParams, Link } from 'react-router-dom';
 import { orderAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
-import { Truck, Check, MapPin, Phone, User, Calendar, ShieldCheck, ChevronLeft, ClipboardList, Package, CheckCircle, Clock } from 'lucide-react';
+import { Truck, Check, MapPin, Phone, User, Calendar, ShieldCheck, ChevronLeft, ClipboardList, Package, CheckCircle, Clock, RefreshCw } from 'lucide-react';
 import { getThumbnail } from '../utils/image';
 import { downloadInvoice } from '../utils/invoice';
+
+// React Leaflet imports
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Resolve leaflet marker icon issues in React builds
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
 
 const OrderTracking = () => {
   const { id } = useParams();
@@ -13,55 +26,11 @@ const OrderTracking = () => {
   const [loading, setLoading] = useState(true);
   const { user: loggedInUser } = useAuth();
 
-  // Socket & Live location states
   const [riderLocation, setRiderLocation] = useState(null);
   const [distanceRemaining, setDistanceRemaining] = useState(null);
   const [eta, setEta] = useState(null);
-  const [mapInstance, setMapInstance] = useState(null);
-  const [riderMarker, setRiderMarker] = useState(null);
-  const [leafletLoaded, setLeafletLoaded] = useState(!!window.L);
 
-  // Dynamically load Leaflet assets and poll to verify
-  useEffect(() => {
-    if (window.L) {
-      setLeafletLoaded(true);
-      return;
-    }
-
-    // Dynamic inject Leaflet CSS
-    const linkId = 'leaflet-css-cdn';
-    if (!document.getElementById(linkId)) {
-      const link = document.createElement('link');
-      link.id = linkId;
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      link.crossOrigin = '';
-      document.head.appendChild(link);
-    }
-
-    // Dynamic inject Leaflet JS
-    const scriptId = 'leaflet-js-cdn';
-    if (!document.getElementById(scriptId)) {
-      const script = document.createElement('script');
-      script.id = scriptId;
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.crossOrigin = '';
-      script.onload = () => setLeafletLoaded(true);
-      document.head.appendChild(script);
-    }
-
-    // Fallback polling in case it was already injected but loading
-    const interval = setInterval(() => {
-      if (window.L) {
-        setLeafletLoaded(true);
-        clearInterval(interval);
-      }
-    }, 200);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Socket listener effect
+  // WebSockets tracker listener
   useEffect(() => {
     if (!id) return;
 
@@ -70,21 +39,18 @@ const OrderTracking = () => {
       : (import.meta.env.VITE_API_URL || 'https://hostelkart-backend.onrender.com');
     const socketServerURL = host.endsWith('/api') ? host.replace('/api', '') : host;
     
-    console.log("[Socket] Connecting student tracker to socket at:", socketServerURL);
+    console.log("[Socket] Connecting student tracker:", socketServerURL);
     const socket = io(socketServerURL);
 
     socket.emit('join_order_track', { orderId: id });
-    console.log("Joined Order", id);
 
     socket.on('location_updated', (data) => {
-      console.log("Received Location", data);
       setRiderLocation({ lat: data.lat, lng: data.lng });
       setDistanceRemaining(data.distanceRemaining);
       setEta(data.eta);
     });
 
     socket.on('status_updated', (data) => {
-      console.log('[Socket] Order status updated:', data);
       fetchOrderDetails();
     });
 
@@ -93,83 +59,19 @@ const OrderTracking = () => {
     };
   }, [id]);
 
-  // Leaflet map initialization effect
-  useEffect(() => {
-    if (!order || order.orderStatus !== 'Out for Delivery' || !window.L) return;
-
-    const container = document.getElementById('map-container');
-    if (!container) return;
-    if (container._leaflet_id) return; // Prevent double-initialization crash
-
-    // Center coordinates
-    const hostelCoords = [13.0827, 80.2707];
-    const initialRiderCoords = riderLocation ? [riderLocation.lat, riderLocation.lng] : [13.0812, 80.2681];
-
-    const map = window.L.map(container).setView(hostelCoords, 16);
-    setMapInstance(map);
-
-    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
-    // Premium styling via divIcon (no external URLs, avoiding CORS blocks)
-    const hostelIcon = window.L.divIcon({
-      html: `<div class="w-7 h-7 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center shadow-lg text-xs hover:scale-110 transition-transform">🏠</div>`,
-      className: '',
-      iconSize: [28, 28],
-      iconAnchor: [14, 14]
-    });
-
-    const riderIcon = window.L.divIcon({
-      html: `<div class="w-9 h-9 bg-amber-500 rounded-full border-2 border-white flex items-center justify-center shadow-lg text-sm animate-bounce">🚴</div>`,
-      className: '',
-      iconSize: [36, 36],
-      iconAnchor: [18, 18]
-    });
-
-    // Add marker for Hostel (Student)
-    window.L.marker(hostelCoords, { icon: hostelIcon })
-      .addTo(map)
-      .bindPopup('Your Room Location')
-      .openPopup();
-
-    // Add marker for Rider
-    const marker = window.L.marker(initialRiderCoords, { icon: riderIcon })
-      .addTo(map)
-      .bindPopup('Delivery Rider');
-    setRiderMarker(marker);
-
-    // Initial path polyline
-    window.L.polyline([initialRiderCoords, hostelCoords], { color: '#10b981', weight: 4 }).addTo(map);
-
-    return () => {
-      map.remove();
-    };
-  }, [order?.orderStatus, leafletLoaded]);
-
-  // React to rider coordinates updates
-  useEffect(() => {
-    if (riderMarker && riderLocation && mapInstance) {
-      const newCoords = [riderLocation.lat, riderLocation.lng];
-      riderMarker.setLatLng(newCoords);
-      const hostelCoords = [13.0827, 80.2707];
-      mapInstance.fitBounds([newCoords, hostelCoords], { padding: [40, 40] });
-    }
-  }, [riderLocation, riderMarker, mapInstance]);
-
   const fetchOrderDetails = async () => {
     try {
       const { data } = await orderAPI.getById(id);
       setOrder(data);
     } catch (error) {
-      console.error('Error loading order tracking:', error);
+      console.error('Error loading order details:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleCancelOrder = async () => {
-    const reason = window.prompt("Enter reason for cancellation (optional):", "Student cancelled");
+    const reason = window.prompt("Enter reason for cancellation:", "Student requested");
     if (reason === null) return;
     
     try {
@@ -187,31 +89,32 @@ const OrderTracking = () => {
 
   useEffect(() => {
     fetchOrderDetails();
-    
-    // Set up polling interval to check for status updates every 10 seconds
     const interval = setInterval(fetchOrderDetails, 10000);
     return () => clearInterval(interval);
   }, [id]);
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 bg-slate-50/50">
+        <div className="relative w-10 h-10">
+          <div className="absolute inset-0 rounded-full border-4 border-slate-200"></div>
+          <div className="absolute inset-0 rounded-full border-4 border-t-primary-600 animate-spin"></div>
+        </div>
+        <p className="text-xs font-bold text-slate-455 animate-pulse uppercase tracking-wider">Loading tracking details...</p>
       </div>
     );
   }
 
   if (!order) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-16 text-center space-y-4">
-        <h2 className="text-2xl font-bold text-slate-800">Order Not Found</h2>
-        <p className="text-slate-500">We couldn't retrieve tracking data for this Order ID.</p>
-        <Link to="/myorders" className="btn-primary py-2 px-6 inline-block">Back to My Orders</Link>
+      <div className="max-w-7xl mx-auto px-4 py-20 text-center space-y-4 select-none">
+        <h2 className="text-xl font-black text-slate-800 tracking-tight">Order Not Found</h2>
+        <p className="text-slate-500 text-xs font-bold uppercase">The order tracking details could not be found.</p>
+        <Link to="/myorders" className="btn-primary py-2.5 px-5 inline-block">Back to My Orders</Link>
       </div>
     );
   }
 
-  // Helper list of tracking steps
   const steps = [];
   if (order.paymentMethod === 'UPI') {
     steps.push(
@@ -242,7 +145,7 @@ const OrderTracking = () => {
   const currentStepIdx = getStepIndex(order.orderStatus);
 
   const getStepIcon = (name, isCompleted) => {
-    const size = 13;
+    const size = 12;
     const color = isCompleted ? "text-white stroke-[2.5]" : "text-slate-400 stroke-[2]";
     switch (name) {
       case 'Pending Payment':
@@ -264,266 +167,123 @@ const OrderTracking = () => {
     }
   };
 
+  const hostelCoords = [13.0827, 80.2707];
+  const riderCoords = riderLocation ? [riderLocation.lat, riderLocation.lng] : [13.0812, 80.2681];
+
+  const hostelIcon = L.divIcon({
+    html: `<div class="w-8 h-8 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center shadow-lg text-sm select-none">🏠</div>`,
+    className: '',
+    iconSize: [32, 32],
+    iconAnchor: [16, 16]
+  });
+
+  const riderIcon = L.divIcon({
+    html: `<div class="w-9 h-9 bg-amber-500 rounded-full border-2 border-white flex items-center justify-center shadow-lg text-base animate-bounce select-none">🚴</div>`,
+    className: '',
+    iconSize: [36, 36],
+    iconAnchor: [18, 18]
+  });
+
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-      {/* Back button */}
+    <div className="max-w-4xl mx-auto px-4 py-8 space-y-6 pb-24">
+      {/* Back link */}
       <div>
-        <Link to="/myorders" className="inline-flex items-center space-x-1.5 text-sm font-bold text-slate-500 hover:text-primary-600">
-          <ChevronLeft size={16} />
+        <Link to="/myorders" className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-primary-650 uppercase tracking-wider">
+          <ChevronLeft size={14} />
           <span>Back to My Orders</span>
         </Link>
       </div>
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-premium">
         <div className="space-y-1">
-          <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block">TRACKING ROOM DELIVERY</span>
-          <h1 className="text-xl font-extrabold text-slate-800">Order #{order._id.substring(12).toUpperCase()}</h1>
-          <p className="text-xs text-slate-500 flex items-center space-x-1.5">
-            <Calendar size={12} />
+          <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider block">TRACKING ROOM DISPATCH</span>
+          <h1 className="text-lg font-black text-slate-900">Order #{order._id.substring(12).toUpperCase()}</h1>
+          <p className="text-[10px] text-slate-550 font-bold uppercase flex items-center gap-1 mt-1 select-none">
+            <Calendar size={12} className="text-slate-400" />
             <span>Placed: {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           </p>
         </div>
 
-        <div className="text-right">
-          <span className="text-xs text-slate-400 font-bold block uppercase">Total Pay</span>
-          <span className="text-xl font-extrabold text-slate-800">₹{order.totalAmount}</span>
+        <div className="sm:text-right select-none">
+          <span className="text-[9px] text-slate-400 font-black block uppercase">Grand Total</span>
+          <span className="text-xl font-black text-slate-900">₹{order.totalAmount}</span>
         </div>
       </div>
 
-      {/* Action panel card */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-        <div className="flex items-center space-x-2">
+      {/* Action panel */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-100 shadow-premium">
+        <button
+          type="button"
+          onClick={() => handleDownloadInvoice(order)}
+          className="text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 px-4 py-2 rounded-xl border border-slate-200 transition-colors shadow-sm"
+        >
+          Download Invoice PDF
+        </button>
+
+        {(order.orderStatus === 'Pending' || order.orderStatus === 'Confirmed') && (
           <button
             type="button"
-            onClick={() => handleDownloadInvoice(order)}
-            className="text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-xl border border-slate-200 transition-colors shadow-sm"
+            onClick={handleCancelOrder}
+            className="text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 px-4 py-2 rounded-xl border border-rose-200 transition-colors shadow-sm"
           >
-            Download Invoice PDF
+            Cancel Order
           </button>
-        </div>
-
-        <div>
-          {(order.orderStatus === 'Pending' || order.orderStatus === 'Confirmed') && (
-            <button
-              type="button"
-              onClick={handleCancelOrder}
-              className="text-xs font-bold text-red-650 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-xl border border-red-200 transition-colors shadow-sm"
-            >
-              Cancel Room Order
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* WhatsApp Community Groups - Show only after successful order placement (i.e. not cancelled/failed) */}
-      {order.orderStatus !== 'Cancelled' && order.paymentStatus !== 'FAILED' && (
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-          <div className="space-y-1">
-            <h3 className="font-extrabold text-slate-800 text-sm">Join Hostel Community Groups</h3>
-            <p className="text-xs text-slate-500">Stay updated on delivery timings, stock refills, and special offers in your hostel block!</p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <a
-              href="https://chat.whatsapp.com/DW9mFovIExGBjhLOx9dQYU"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 btn-primary py-3.5 px-4 min-h-[48px] text-xs font-bold flex items-center justify-center space-x-2 rounded-xl"
-            >
-              <span>Join Boys Hostel WhatsApp Group</span>
-            </a>
-            <a
-              href="https://chat.whatsapp.com/GWDywmfUeOz2YYix89pk60"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 btn-secondary py-3.5 px-4 min-h-[48px] text-xs font-bold flex items-center justify-center space-x-2 rounded-xl border border-slate-200"
-            >
-              <span>Join Girls Hostel WhatsApp Group</span>
-            </a>
-          </div>
-        </div>
-      )}
-
-      {/* Main Track Layout Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        
-        {/* Timeline column */}
-        <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-6">
-          <h3 className="font-extrabold text-slate-800 text-base border-b border-slate-100 pb-3">
+      {/* Timeline tracker */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2 bg-white p-6 rounded-3xl border border-slate-100 shadow-premium space-y-6">
+          <h3 className="font-extrabold text-slate-800 text-sm border-b border-slate-100 pb-3">
             Live Delivery Timeline
           </h3>
 
           {order.orderStatus === 'Cancelled' || order.orderStatus === 'Delivery Failed' ? (
-            <div className="space-y-6">
-              <div className="bg-red-50 border border-red-100 text-red-700 p-6 rounded-xl text-center space-y-3">
-                <h4 className="font-bold text-base">
+            <div className="space-y-5">
+              <div className="bg-rose-50 border border-rose-100 text-rose-700 p-6 rounded-2xl text-center space-y-3">
+                <h4 className="font-black text-sm uppercase">
                   This order has been {order.orderStatus === 'Delivery Failed' ? 'marked as Delivery Failed' : 'Cancelled'}
                 </h4>
                 {order.cancellationReason && (
-                  <p className="text-xs text-slate-600 bg-white p-3 rounded-lg border border-red-100 max-w-md mx-auto italic">
+                  <p className="text-xs text-slate-600 bg-white p-3 rounded-xl border border-rose-100 max-w-md mx-auto italic font-bold">
                     Reason: "{order.cancellationReason}"
                   </p>
                 )}
                 {['ONLINE', 'CASHFREE'].includes(order.paymentMethod) && order.paymentStatus === 'Paid' && (
-                  <p className="text-xs text-blue-700 font-bold bg-blue-50 border border-blue-100 p-2.5 rounded-lg max-w-md mx-auto animate-pulse mt-2">
-                    ⚡ Online prepaid payment detected. Refund is being processed automatically.
+                  <p className="text-xs text-primary-700 font-bold bg-primary-50 border border-primary-100 p-2.5 rounded-xl max-w-md mx-auto animate-pulse">
+                    ⚡ Prepaid payment detected. Refund is being processed.
                   </p>
                 )}
               </div>
-
-              {/* Refund Tracking Timeline */}
-              {['ONLINE', 'CASHFREE'].includes(order.paymentMethod) && order.refundStatus && order.refundStatus !== 'NOT_REQUESTED' && (
-                <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 space-y-6">
-                  <h4 className="font-extrabold text-slate-800 text-sm border-b border-slate-200 pb-2">
-                    Refund Processing Tracking Timeline
-                  </h4>
-                  
-                  {/* Vertical Steps */}
-                  <div className="relative pl-8 space-y-8 before:absolute before:left-3.5 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-200">
-                    {/* Step 1: Paid */}
-                    <div className="relative flex flex-col items-start gap-1">
-                      <div className="absolute -left-[29px] top-1.5 w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
-                        ✓
-                      </div>
-                      <h5 className="text-xs font-bold text-slate-800 font-extrabold">1. Payment Verified (PAID)</h5>
-                      <p className="text-[11px] text-slate-500">Transaction ID: {order.transaction_id}</p>
-                    </div>
-
-                    {/* Step 2: Cancelled */}
-                    <div className="relative flex flex-col items-start gap-1">
-                      <div className="absolute -left-[29px] top-1.5 w-6 h-6 rounded-full bg-red-650 text-white flex items-center justify-center font-bold text-xs">
-                        ✓
-                      </div>
-                      <h5 className="text-xs font-bold text-slate-800 font-extrabold">2. Order Cancelled / Delivery Failed</h5>
-                      <p className="text-[11px] text-slate-500">
-                        Order was cancelled or delivery failed on {order.cancelledAt ? new Date(order.cancelledAt).toLocaleString() : 'N/A'}.
-                      </p>
-                    </div>
-
-                    {/* Step 3: Refund Initiated */}
-                    {(() => {
-                      const isInitiated = ['PROCESSING', 'REFUNDED'].includes(order.refundStatus);
-                      return (
-                        <div className="relative flex flex-col items-start gap-1">
-                          <div className={`absolute -left-[29px] top-1.5 w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold ${
-                            isInitiated ? 'bg-primary-600 border-primary-600 text-white' : 'bg-white border-slate-200 text-slate-350'
-                          }`}>
-                            {isInitiated ? '✓' : '3'}
-                          </div>
-                          <h5 className={`text-xs font-bold ${isInitiated ? 'text-slate-800 font-extrabold' : 'text-slate-400'}`}>3. Refund Initiated</h5>
-                          <p className={`text-[11px] ${isInitiated ? 'text-slate-500' : 'text-slate-400'}`}>
-                            Refund request generated and transmitted to Cashfree gateway.
-                          </p>
-                          {order.refundId && (
-                            <span className="text-[10px] text-slate-500 font-mono bg-white px-2 py-0.5 rounded border mt-1">
-                              ID: {order.refundId}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })()}
-
-                    {/* Step 4: Refunded */}
-                    {(() => {
-                      const isRefunded = order.refundStatus === 'REFUNDED';
-                      const isFailed = order.refundStatus === 'FAILED';
-                      return (
-                        <div className="relative flex flex-col items-start gap-1">
-                          <div className={`absolute -left-[29px] top-1.5 w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold ${
-                            isRefunded ? 'bg-emerald-600 border-emerald-600 text-white' : isFailed ? 'bg-red-650 border-red-650 text-white' : 'bg-white border-slate-200 text-slate-350'
-                          }`}>
-                            {isRefunded ? '✓' : isFailed ? '✕' : '4'}
-                          </div>
-                          <h5 className={`text-xs font-bold ${isRefunded ? 'text-emerald-700 font-extrabold' : isFailed ? 'text-red-750 font-extrabold' : 'text-slate-400'}`}>
-                            {isRefunded ? '4. Refund Completed (REFUNDED)' : isFailed ? '4. Refund Failed' : '4. Refund Credited to Bank'}
-                          </h5>
-                          <p className={`text-[11px] ${isRefunded || isFailed ? 'text-slate-550 font-semibold' : 'text-slate-450'}`}>
-                            {isRefunded 
-                              ? `Funds settled back to your original source. Settled on: ${order.refundedAt ? new Date(order.refundedAt).toLocaleDateString() : 'N/A'}`
-                              : isFailed
-                              ? `Refund failed: "${order.refundError || 'Unknown Error'}"`
-                              : 'Amount will be credited within 5-7 working days as per bank/Cashfree terms.'}
-                          </p>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-              )}
-
-              {/* UPI/General Refund History list */}
-              {order.refunds && order.refunds.length > 0 && (
-                <div className="bg-purple-50/30 p-5 rounded-2xl border border-purple-100/50 space-y-3 mt-4">
-                  <h4 className="font-extrabold text-purple-950 text-sm border-b border-purple-100 pb-2">
-                    Refund History Logs
-                  </h4>
-                  <div className="space-y-3">
-                    {order.refunds.map((refund, idx) => (
-                      <div key={idx} className="bg-white p-3 rounded-xl border border-purple-100/40 text-xs text-slate-700 flex justify-between items-start gap-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-bold text-slate-800">Refund #{idx+1}</span>
-                            <span className={`px-2 py-0.25 rounded-[4px] text-[9px] font-bold border uppercase ${
-                              refund.status === 'Refunded' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' :
-                              refund.status === 'Processing' ? 'bg-blue-50 border-blue-100 text-blue-700' :
-                              'bg-amber-50 border-amber-100 text-amber-700'
-                            }`}>
-                              {refund.status}
-                            </span>
-                          </div>
-                          <div>
-                            <strong>Reason:</strong> {refund.reason || 'None'}
-                          </div>
-                          {refund.internalNotes && loggedInUser?.role === 'admin' && (
-                            <div className="text-slate-400 italic">
-                              <strong>Private Notes:</strong> {refund.internalNotes}
-                            </div>
-                          )}
-                          <div className="text-[10px] text-slate-400">
-                            Processed: {new Date(refund.refundDate || refund.createdAt).toLocaleDateString()}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-xs text-slate-400 font-bold block">Amount</span>
-                          <span className="text-sm font-black text-purple-950">₹{refund.amount}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           ) : (
-            /* Vertical timeline steps */
-            <div className="relative pl-10 space-y-8 before:absolute before:left-4 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
+            <div className="relative pl-10 space-y-6 before:absolute before:left-4 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100 select-none">
               {steps.map((step, idx) => {
                 const isCompleted = idx <= currentStepIdx;
                 const isCurrent = idx === currentStepIdx;
 
                 return (
                   <div key={step.name} className="relative flex flex-col items-start gap-1">
-                    {/* Circle marker */}
                     <div
-                      className={`absolute -left-[35px] top-0 w-7.5 h-7.5 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                      className={`absolute -left-[35px] top-0 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
                         isCompleted
-                          ? 'bg-primary-600 border-primary-600 text-white shadow-[0_2px_8px_rgba(79,70,229,0.25)]'
-                          : 'bg-white border-slate-200 text-slate-350'
+                          ? 'bg-primary-600 border-primary-600 text-white shadow-md'
+                          : 'bg-white border-slate-200 text-slate-400'
                       } ${isCurrent ? 'ring-4 ring-primary-100 animate-pulse scale-105' : ''}`}
-                      style={{ width: '30px', height: '30px' }}
                     >
                       {getStepIcon(step.name, isCompleted)}
                     </div>
 
-                    <h4 className={`text-sm font-bold leading-none ${isCompleted ? 'text-slate-800' : 'text-slate-400'}`}>
+                    <h4 className={`text-xs font-black leading-none ${isCompleted ? 'text-slate-800' : 'text-slate-400'}`}>
                       {step.label}
                     </h4>
                     
-                    <p className={`text-xs ${isCompleted ? 'text-slate-500 font-medium' : 'text-slate-400'}`}>
+                    <p className={`text-[10px] font-bold ${isCompleted ? 'text-slate-500' : 'text-slate-400'}`}>
                       {step.desc}
                     </p>
 
-                    {/* Show time note if logged in timeline */}
                     {isCompleted && order.timeline.find(t => t.status === step.name) && (
-                      <span className="text-[10px] text-slate-400 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded mt-1">
+                      <span className="text-[9px] font-black text-slate-400 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded mt-0.5">
                         {new Date(order.timeline.find(t => t.status === step.name).timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     )}
@@ -533,188 +293,93 @@ const OrderTracking = () => {
             </div>
           )}
 
-          {/* Live Delivery Tracking Map */}
+          {/* Map layout for Out for Delivery */}
           {order.orderStatus === 'Out for Delivery' && (
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4 mt-6">
-              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-                  <span>Live Delivery Tracking</span>
+            <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-premium space-y-4 mt-6">
+              <div className="flex justify-between items-center border-b border-slate-50 pb-3">
+                <h3 className="font-extrabold text-slate-800 text-xs flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                  <span>Rider Location Dispatch</span>
                 </h3>
                 {distanceRemaining !== null && (
-                  <span className="text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full">
+                  <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-lg">
                     {distanceRemaining} km away • {eta} mins ETA
                   </span>
                 )}
               </div>
-              <div id="map-container" style={{ height: '300px', minHeight: '300px' }} className="w-full rounded-xl border border-slate-200 shadow-inner z-10"></div>
-              <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-[10px] text-slate-400 leading-normal flex items-start gap-1.5">
-                <span>💡</span>
-                <span>Coordinates update in real-time as your delivery partner navigates. Please keep your delivery OTP ready.</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Info panel column */}
-        <div className="space-y-6">
-          {/* Delivery OTP Card */}
-          {order.orderStatus !== 'Delivered' && order.orderStatus !== 'Cancelled' && order.deliveryOtp && (
-            <div className="bg-primary-50 p-6 rounded-2xl border border-primary-100 shadow-sm space-y-2 text-center animate-pulse">
-              <span className="text-[10px] font-bold text-primary-400 uppercase tracking-wider block">DELIVERY VERIFICATION OTP</span>
-              <span className="text-3xl font-black text-primary-700 tracking-widest block">{order.deliveryOtp}</span>
-              <p className="text-[10px] text-slate-500 leading-normal">
-                Give this code to the delivery rider at your room door to confirm delivery.
-              </p>
-            </div>
-          )}
-
-          {/* Delivery Address Details */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-            <h3 className="font-extrabold text-slate-800 text-sm border-b border-slate-100 pb-2 flex items-center space-x-1.5">
-              <MapPin size={16} className="text-primary-600" />
-              <span>Room Address</span>
-            </h3>
-            
-            <div className="text-xs text-slate-600 space-y-1">
-              <p className="font-bold text-slate-700">{order.deliveryDetails.hostelName}</p>
-              <p>{order.deliveryDetails.block}, {order.deliveryDetails.floor}</p>
-              <p>Room No: <span className="font-bold text-slate-800">{order.deliveryDetails.roomNumber}</span></p>
-              {order.deliveryDetails.landmark && (
-                <p>Landmark: <span className="font-medium text-slate-700">{order.deliveryDetails.landmark}</span></p>
-              )}
-              <p className="flex items-center space-x-1 pt-1.5 font-bold text-slate-700">
-                <Phone size={12} />
-                <span>{order.deliveryDetails.phone}</span>
-              </p>
-              {order.deliveryDetails.alternatePhone && (
-                <p className="flex items-center space-x-1 font-semibold text-slate-500">
-                  <Phone size={12} />
-                  <span>Alt: {order.deliveryDetails.alternatePhone}</span>
-                </p>
-              )}
-              {order.deliveryDetails.deliveryInstructions && (
-                <div className="mt-3 p-2.5 bg-slate-50 rounded-lg border border-slate-100 text-slate-500 italic">
-                  Note: {order.deliveryDetails.deliveryInstructions}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Bill Details & Slot */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-            <h3 className="font-extrabold text-slate-800 text-sm border-b border-slate-100 pb-2 flex items-center space-x-1.5">
-              <ClipboardList size={16} className="text-primary-600" />
-              <span>Bill & Slot Details</span>
-            </h3>
-            
-            <div className="text-xs space-y-2 text-slate-600">
-              <div className="flex justify-between">
-                <span>Delivery Slot:</span>
-                <span className="font-bold text-slate-800">{order.deliverySlot}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Payment Method:</span>
-                <span className="font-medium text-slate-800">{order.paymentMethod}</span>
-              </div>
-              {order.utrNumber && (
-                <div className="flex justify-between items-center">
-                  <span>UTR / Transaction ID:</span>
-                  <span className="font-mono font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">{order.utrNumber}</span>
-                </div>
-              )}
-              <div className="flex justify-between items-center">
-                <span>Payment Status:</span>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
-                  order.paymentStatus === 'Paid'
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                    : ['Verification Pending', 'Pending Verification', 'Payment Pending Verification'].includes(order.paymentStatus)
-                    ? 'bg-blue-50 text-blue-700 border-blue-100'
-                    : order.paymentStatus === 'Pending'
-                    ? 'bg-amber-50 text-amber-700 border-amber-100'
-                    : 'bg-red-50 text-red-700 border-red-100'
-                }`}>
-                  {order.paymentStatus}
-                </span>
-              </div>
-              {order.paymentMethod === 'UPI' && order.paymentStatus !== 'Paid' && (
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-4 text-center mt-3 animate-pulse">
-                  <h4 className="font-extrabold text-slate-800 text-xs">UPI Payment Instructions</h4>
-                  <img 
-                    src="/upi-qr.png" 
-                    alt="UPI QR Code" 
-                    className="w-40 h-40 mx-auto rounded-lg border border-slate-200 bg-white object-contain p-2 shadow-sm"
+              <div style={{ height: '280px', minHeight: '280px' }} className="w-full rounded-2xl border border-slate-200 overflow-hidden shadow-inner z-10">
+                <MapContainer center={hostelCoords} zoom={16} style={{ height: '100%', width: '100%' }}>
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
-                  <div className="space-y-1.5 text-left text-[11px] leading-relaxed">
-                    <p className="text-slate-655 font-semibold">
-                      <strong>UPI ID:</strong> <code className="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-700 font-bold select-all">rawlanineev@okhdfcbank</code>
-                    </p>
-                    <p className="text-slate-655 font-semibold">
-                      <strong>Merchant:</strong> Neev Rawlani
-                    </p>
-                    {order.utrNumber && (
-                      <p className="text-slate-655 font-semibold">
-                        <strong>Submitted UTR:</strong> <code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-indigo-700 font-black">{order.utrNumber}</code>
-                      </p>
-                    )}
-                  </div>
-                  <p className="text-[10px] text-slate-400 text-left leading-normal">
-                    Scan the QR code to pay ₹{order.totalAmount}. The status will change to "Paid" once our admin verifies the transfer.
-                  </p>
-                </div>
-              )}
-              <div className="border-t border-slate-100 pt-2 space-y-1 text-[11px]">
-                <div className="flex justify-between text-slate-500">
-                  <span>Platform Fee:</span>
-                  <span>₹{order.platformFee !== undefined ? order.platformFee : 5}</span>
-                </div>
-                <div className="flex justify-between text-slate-500">
-                  <span>Delivery Charge:</span>
-                  <span>{order.deliveryCharge === 0 ? 'FREE' : `₹${order.deliveryCharge !== undefined ? order.deliveryCharge : 10}`}</span>
-                </div>
-                <div className="flex justify-between font-bold text-slate-800 text-xs pt-1 border-t border-slate-50">
-                  <span>Total Amount:</span>
-                  <span>₹{order.totalAmount}</span>
-                </div>
+                  <Marker position={hostelCoords} icon={hostelIcon}>
+                    <Popup>Your Room Location</Popup>
+                  </Marker>
+                  <Marker position={riderCoords} icon={riderIcon}>
+                    <Popup>Delivery Rider</Popup>
+                  </Marker>
+                  <Polyline positions={[riderCoords, hostelCoords]} color="#10b981" weight={4} />
+                </MapContainer>
               </div>
             </div>
-          </div>
-
-          {/* Delivery partner info (Rider) */}
-          {order.deliveryPartner ? (
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-              <h3 className="font-extrabold text-slate-800 text-sm border-b border-slate-100 pb-2 flex items-center space-x-1.5">
-                <User size={16} className="text-primary-600" />
-                <span>Delivery Partner</span>
-              </h3>
-
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-primary-100 text-primary-800 font-bold flex items-center justify-center">
-                  {order.deliveryPartner.name.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800">{order.deliveryPartner.name}</h4>
-                  <p className="text-[10px] text-slate-400 font-medium">HostelKart Delivery Rider</p>
-                  <p className="text-xs text-slate-600 font-semibold flex items-center space-x-1 mt-1">
-                    <Phone size={12} />
-                    <span>{order.deliveryPartner.phone || 'N/A'}</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            order.orderStatus !== 'Cancelled' && (
-              <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm p-4 text-center space-y-2">
-                <div className="text-2xl">⚡</div>
-                <h4 className="text-xs font-bold text-slate-800">Assigning Rider</h4>
-                <p className="text-[10px] text-slate-400">
-                  Our store manager is assigning the nearest delivery partner to pick up your order.
-                </p>
-              </div>
-            )
           )}
         </div>
 
+        {/* Sidebar panels */}
+        <div className="space-y-6">
+          {/* OTP */}
+          {order.orderStatus !== 'Delivered' && order.orderStatus !== 'Cancelled' && order.deliveryOtp && (
+            <div className="bg-primary-50 p-6 rounded-3xl border border-primary-100 shadow-premium text-center space-y-2 select-none">
+              <span className="text-[9px] font-black text-primary-400 uppercase tracking-widest block">DELIVERY VERIFICATION CODE</span>
+              <span className="text-3xl font-black text-primary-700 tracking-widest block font-mono">{order.deliveryOtp}</span>
+              <p className="text-[10px] text-slate-500 font-bold leading-normal uppercase">
+                Share this security code with the rider at your room door to confirm delivery.
+              </p>
+            </div>
+          )}
+
+          {/* Address */}
+          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-premium space-y-4">
+            <h3 className="font-extrabold text-slate-800 text-xs border-b border-slate-100 pb-2 flex items-center gap-1.5 select-none">
+              <MapPin size={14} className="text-primary-600" />
+              <span>Room Destination</span>
+            </h3>
+            
+            <div className="text-xs text-slate-655 space-y-1.5 font-bold">
+              <div>
+                <span className="text-slate-400 block text-[9px] uppercase">Recipient Name</span>
+                <span>{order.deliveryDetails?.name || order.user?.name}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[9px] uppercase">Destination Room</span>
+                <span>{order.deliveryDetails?.hostelName}, Block {order.deliveryDetails?.block}, Floor {order.deliveryDetails?.floor}, Room {order.deliveryDetails?.roomNumber}</span>
+              </div>
+              {order.deliveryDetails?.landmark && (
+                <div>
+                  <span className="text-slate-400 block text-[9px] uppercase">Landmark</span>
+                  <span>{order.deliveryDetails.landmark}</span>
+                </div>
+              )}
+              <div>
+                <span className="text-slate-400 block text-[9px] uppercase">Contact Number</span>
+                <span>{order.deliveryDetails?.phone}</span>
+              </div>
+              {order.deliveryDetails?.alternatePhone && (
+                <div>
+                  <span className="text-slate-400 block text-[9px] uppercase">Alternate Number</span>
+                  <span>{order.deliveryDetails.alternatePhone}</span>
+                </div>
+              )}
+              {order.deliveryDetails?.deliveryInstructions && (
+                <div>
+                  <span className="text-slate-400 block text-[9px] uppercase">Instructions</span>
+                  <span>{order.deliveryDetails.deliveryInstructions}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

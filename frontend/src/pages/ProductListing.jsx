@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { productAPI } from '../api';
-import ProductCard, { ProductCardSkeleton } from '../components/ProductCard';
+import ProductCard from '../components/ProductCard';
+import { ProductCardSkeleton } from '../components/SkeletonLoader';
 import { SlidersHorizontal, Search, X } from 'lucide-react';
 
 const staticCategoryNames = [

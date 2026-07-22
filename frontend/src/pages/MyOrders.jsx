@@ -3,8 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { orderAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { ShoppingBag, Truck, Calendar, DollarSign, Eye } from 'lucide-react';
-
+import { ShoppingBag, Truck, Calendar, DollarSign, Eye, Award } from 'lucide-react';
 import { downloadInvoice } from '../utils/invoice';
 
 const MyOrders = () => {
@@ -77,7 +76,7 @@ const MyOrders = () => {
     switch (status) {
       case 'Pending':
       case 'Pending Payment':
-        return 'bg-slate-100 text-slate-600 border-slate-200';
+        return 'bg-slate-50 text-slate-600 border-slate-200';
       case 'Payment Pending Verification':
       case 'Pending Verification':
         return 'bg-blue-50 text-blue-700 border-blue-100';
@@ -87,16 +86,16 @@ const MyOrders = () => {
       case 'Packed':
         return 'bg-purple-50 text-purple-700 border-purple-100';
       case 'Out for Delivery':
-        return 'bg-amber-50 text-amber-700 border-amber-100';
+        return 'bg-amber-55 text-amber-700 border-amber-100';
       case 'Delivered':
         return 'bg-emerald-50 text-emerald-700 border-emerald-100';
       case 'Cancelled':
       case 'Rejected':
-        return 'bg-red-50 text-red-700 border-red-100';
+        return 'bg-rose-50 text-rose-700 border-rose-100';
       case 'Delivery Failed':
         return 'bg-rose-50 text-rose-700 border-rose-100';
       default:
-        return 'bg-slate-100 text-slate-600 border-slate-200';
+        return 'bg-slate-50 text-slate-650 border-slate-200';
     }
   };
 
@@ -117,65 +116,74 @@ const MyOrders = () => {
       case 'Refunded':
         return 'bg-blue-50 text-blue-700 border-blue-100';
       default:
-        return 'bg-slate-50 text-slate-600 border border-slate-200';
+        return 'bg-slate-50 text-slate-600 border-slate-200';
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 bg-slate-50/50">
+        <div className="relative w-10 h-10">
+          <div className="absolute inset-0 rounded-full border-4 border-slate-200"></div>
+          <div className="absolute inset-0 rounded-full border-4 border-t-primary-600 animate-spin"></div>
+        </div>
+        <p className="text-xs font-bold text-slate-450 animate-pulse uppercase tracking-wider">Syncing orders...</p>
       </div>
     );
   }
 
   if (orders.length === 0) {
     return (
-      <div className="max-w-md mx-auto px-4 py-16 text-center space-y-6 animate-slide-up">
-        <div className="w-24 h-24 bg-primary-50 rounded-full flex items-center justify-center mx-auto text-4xl">
+      <div className="max-w-md mx-auto px-4 py-24 text-center space-y-6 animate-slide-up select-none">
+        <div className="w-24 h-24 bg-primary-50 rounded-full flex items-center justify-center mx-auto text-4xl shadow-inner border border-emerald-100/50">
           📦
         </div>
-        <h2 className="text-2xl font-extrabold text-slate-800">No Orders Found</h2>
-        <p className="text-slate-500 text-sm max-w-sm mx-auto">
-          You haven't placed any room orders on HostelKart yet. Start ordering essentials now!
-        </p>
-        <Link to="/products" className="btn-primary py-3 px-6 inline-flex items-center space-x-2">
-          <ShoppingBag size={18} />
-          <span>Shop Essentials</span>
+        <div className="space-y-2">
+          <h2 className="text-xl font-black text-slate-800 tracking-tight">No Orders Yet</h2>
+          <p className="text-slate-500 text-xs max-w-sm mx-auto leading-relaxed font-bold uppercase">
+            Order soft drinks, fresh fruits, snacks & study supplies!
+          </p>
+        </div>
+        <Link to="/products" className="bg-primary-600 hover:bg-primary-750 text-white font-black px-6 py-3 rounded-xl inline-flex items-center gap-1.5 text-xs uppercase tracking-wider shadow-md hover:shadow-lg active:scale-95 transition-all">
+          <ShoppingBag size={14} />
+          <span>Browse Products</span>
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8 pb-24">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6 pb-24">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-display">My Room Orders</h1>
-          <p className="text-sm text-slate-500 mt-1">Track live delivery status and view past order history</p>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <span className="w-2.5 h-6 bg-primary-600 rounded-full block"></span>
+            My Orders
+          </h1>
+          <p className="text-[10px] text-slate-455 font-bold uppercase mt-1">Track room dispatch logs & verify OTP codes</p>
         </div>
         <Link 
           to="/products" 
-          className="inline-flex items-center justify-center bg-primary-50 text-primary-700 hover:bg-primary-100 font-bold text-xs px-4 py-2.5 rounded-xl transition-all border border-primary-100/60 w-fit"
+          className="inline-flex items-center justify-center bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs px-4 py-2 rounded-xl transition-all border border-emerald-100/50 shadow-sm"
         >
-          <ShoppingBag size={14} className="mr-1.5" />
-          Order More Essentials
+          <ShoppingBag size={12} className="mr-1.5" />
+          <span>Shop Essentials</span>
         </Link>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-5">
         {orders.map((order) => (
           <div
             key={order._id}
-            className="bg-white rounded-2xl border border-slate-100/80 shadow-premium overflow-hidden hover:shadow-premium-hover hover:border-slate-200/80 transition-all duration-300 p-5 sm:p-6 space-y-5"
+            className="bg-white rounded-3xl border border-slate-100 shadow-premium overflow-hidden hover:border-emerald-150 transition-all duration-300 p-5 sm:p-6 space-y-5"
           >
-            {/* Header info */}
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
+            {/* Header info bar */}
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-50 pb-4 select-none">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-xs">
                 <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">ORDER PLACED</span>
-                  <span className="font-bold text-slate-700 flex items-center space-x-1.5 mt-0.5">
-                    <Calendar size={13} className="text-slate-400" />
+                  <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider block">ORDER PLACED</span>
+                  <span className="font-extrabold text-slate-700 flex items-center gap-1 mt-0.5">
+                    <Calendar size={12} className="text-slate-400" />
                     <span>
                       {new Date(order.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} at {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
@@ -183,157 +191,74 @@ const MyOrders = () => {
                 </div>
                 
                 <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">TOTAL AMOUNT</span>
+                  <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider block">GRAND TOTAL</span>
                   <span className="font-black text-slate-900 text-sm mt-0.5 block">₹{order.totalAmount}</span>
                 </div>
 
                 <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">PAYMENT</span>
+                  <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider block">PAYMENT</span>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-[10px] font-extrabold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                    <span className="text-[9px] font-black text-slate-700 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
                       {order.paymentMethod}
                     </span>
-                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border ${getPaymentStatusColor(order.paymentStatus)}`}>
+                    <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase border ${getPaymentStatusColor(order.paymentStatus)}`}>
                       {order.paymentStatus}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Status styled badge */}
-              <span className={`px-3.5 py-1.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${getStatusColor(order.orderStatus)}`}>
-                {order.orderStatus}
-              </span>
-            </div>
-
-            {/* Items details list */}
-            <div className="space-y-3">
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">ITEMS ORDERED</div>
-              <div className="space-y-2.5 bg-slate-50/50 rounded-xl p-3 sm:p-4 border border-slate-100">
-                {order.items.map((item) => (
-                  <div key={item._id} className="flex justify-between items-center text-xs sm:text-sm">
-                    <div className="flex items-center space-x-2.5 truncate">
-                      <span className="font-black text-primary-700 bg-primary-50 rounded-lg px-2 py-0.5 text-xs border border-primary-100/40">
-                        {item.quantity}x
-                      </span>
-                      <span className="text-slate-700 font-semibold truncate">{item.name}</span>
-                    </div>
-                    <span className="font-extrabold text-slate-900">₹{Math.round(item.price * (1 - (item.discount || 0)/100)) * item.quantity}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Cancelled / Failed notices */}
-            {order.orderStatus === 'Cancelled' && (
-              <div className="bg-red-50 p-4 rounded-xl border border-red-100/60 text-xs text-red-700 space-y-1">
-                <p className="font-bold flex items-center">
-                  <span className="mr-1.5">✕</span> This order has been Cancelled
-                </p>
-                {order.cancellationReason && (
-                  <p className="italic text-slate-500 pl-4 mt-0.5">Reason: "{order.cancellationReason}"</p>
-                )}
-              </div>
-            )}
-
-            {order.orderStatus === 'Delivery Failed' && (
-              <div className="bg-rose-50 p-4 rounded-xl border border-rose-100/60 text-xs text-rose-700 space-y-1">
-                <p className="font-bold flex items-center">
-                  <span className="mr-1.5">⚠️</span> Delivery attempt was unsuccessful
-                </p>
-                {order.cancellationReason && (
-                  <p className="italic text-slate-500 pl-4 mt-0.5">Reason: "{order.cancellationReason}"</p>
-                )}
-              </div>
-            )}
-
-            {/* Refund status details */}
-            {order.refundStatus && order.refundStatus !== 'NOT_REQUESTED' && (
-              <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100/60 text-xs text-blue-800 space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <span className="font-extrabold flex items-center">
-                    <span className="mr-1.5">💸</span> Refund Status:
-                  </span>
-                  <span className="font-black uppercase bg-blue-100 text-blue-700 px-2 py-0.5 rounded border border-blue-200 text-[10px]">
-                    {order.refundStatus}
-                  </span>
-                </div>
-                {order.refundId && (
-                  <p className="font-mono text-[10px] text-slate-500">Refund ID: <strong className="text-slate-700 font-bold">{order.refundId}</strong></p>
-                )}
-                {order.refundReason && (
-                  <p className="italic text-slate-500">Reason: "{order.refundReason}"</p>
-                )}
-                {order.refundStatus === 'PROCESSING' && (
-                  <p className="text-[11px] text-slate-600 font-medium mt-1 leading-normal">
-                    ℹ️ Refund is being processed. It will be credited back to your original payment source.
-                  </p>
-                )}
-                {order.refundStatus === 'REFUNDED' && (
-                  <p className="text-[11px] text-emerald-700 font-extrabold mt-1">
-                    ✓ Refunded successfully!
-                  </p>
-                )}
-                {order.refundStatus === 'FAILED' && (
-                  <p className="text-[11px] text-red-650 font-bold mt-1">
-                    ✕ Refund transaction failed. Contact hostel support for manual reconciliation.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Active OTP info */}
-            {order.orderStatus !== 'Delivered' && order.orderStatus !== 'Cancelled' && order.deliveryOtp && (
-              <div className="bg-primary-50/40 p-4 rounded-xl border border-primary-100/60 flex items-center justify-between text-xs">
-                <div className="space-y-0.5">
-                  <span className="font-bold text-slate-700 block">Verification OTP</span>
-                  <span className="text-[10px] text-slate-400">Share this code with rider at your door</span>
-                </div>
-                <span className="font-black text-primary-700 tracking-wider text-sm bg-white border border-primary-100/80 px-3.5 py-1.5 rounded-lg shadow-sm">
-                  {order.deliveryOtp}
+              <div className="flex items-center gap-2">
+                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border tracking-wider shadow-sm ${getStatusColor(order.orderStatus)}`}>
+                  {order.orderStatus}
                 </span>
               </div>
-            )}
+            </div>
 
-            {/* Actions button footer */}
-            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center pt-4 border-t border-slate-100 gap-3">
-              <div>
-                {(order.orderStatus === 'Pending' || order.orderStatus === 'Confirmed') && (
-                  <button
-                    type="button"
-                    onClick={() => handleCancelOrder(order._id)}
-                    className="text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2.5 rounded-xl border border-red-200 transition-colors w-full sm:w-auto text-center"
-                  >
-                    Cancel Order
-                  </button>
-                )}
+            {/* List of items ordered */}
+            <div className="space-y-3.5">
+              {order.items.map((item, idx) => (
+                <div key={idx} className="flex justify-between items-center text-xs gap-3">
+                  <div className="flex items-center gap-2.5 truncate">
+                    <span className="w-5 h-5 rounded bg-slate-50 border border-slate-100 flex items-center justify-center font-black text-slate-750 text-[10px] select-none">
+                      {item.quantity}
+                    </span>
+                    <span className="text-slate-750 font-bold truncate max-w-sm">{item.name}</span>
+                  </div>
+                  <span className="font-black text-slate-800 shrink-0">₹{Math.round(item.price * (1 - (item.discount || 0)/100)) * item.quantity}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions panel */}
+            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-50 pt-4">
+              <div className="text-[10px] text-slate-400 font-black uppercase tracking-wider select-none">
+                SLOT: {order.deliverySlot}
               </div>
-              
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleReorder(order)}
-                  disabled={reorderingId !== null}
-                  className="text-xs font-bold text-primary-700 bg-primary-50 hover:bg-primary-100 px-4 py-2.5 rounded-xl border border-primary-200/50 transition-colors text-center flex items-center justify-center space-x-1.5 disabled:opacity-50"
+
+              <div className="flex items-center gap-2.5">
+                <Link
+                  to={`/orders/${order._id}`}
+                  className="px-3.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 text-slate-655 text-xs font-bold rounded-xl flex items-center gap-1 transition-all"
                 >
-                  <span>{reorderingId === order._id ? 'Reordering...' : 'Reorder Items'}</span>
-                </button>
+                  <Eye size={12} />
+                  <span>Track Status</span>
+                </Link>
+
                 <button
-                  type="button"
                   onClick={() => handleDownloadInvoice(order)}
-                  className="text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 px-4 py-2.5 rounded-xl border border-slate-200 transition-colors text-center"
+                  className="px-3.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 text-slate-655 text-xs font-bold rounded-xl flex items-center gap-1 transition-all"
                 >
-                  Download Invoice
+                  Invoice
                 </button>
-                {!['Delivered', 'Cancelled', 'Refunded', 'Delivery Failed', 'Payment Expired', 'Rejected'].includes(order.orderStatus) && (
-                  <Link
-                    to={`/orders/track/${order._id}`}
-                    className="btn-primary py-2.5 px-5 text-xs flex items-center justify-center space-x-1.5 font-bold shadow-sm"
-                  >
-                    <Truck size={14} />
-                    <span>Track Live Delivery</span>
-                  </Link>
-                )}
+
+                <button
+                  onClick={() => handleReorder(order)}
+                  disabled={reorderingId === order._id}
+                  className="px-3.5 py-1.5 bg-primary-600 hover:bg-primary-750 text-white text-xs font-black rounded-xl transition-all shadow-sm active:scale-95 disabled:opacity-40"
+                >
+                  {reorderingId === order._id ? 'Reordering...' : 'Reorder'}
+                </button>
               </div>
             </div>
           </div>
