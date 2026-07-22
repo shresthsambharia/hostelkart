@@ -201,7 +201,7 @@ const Home = () => {
           </div>
         ) : recs.trending?.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {recs.trending.slice(0, 5).map((product) => (
+            {recs.trending.filter(p => p && p._id).slice(0, 5).map((product) => (
               <ProductCard key={product._id} product={product} />
             ))}
           </div>
@@ -233,7 +233,7 @@ const Home = () => {
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {recs.buyAgain.slice(0, 5).map((product) => (
+              {recs.buyAgain.filter(p => p && p._id).slice(0, 5).map((product) => (
                 <ProductCard key={product._id} product={product} />
               ))}
             </div>
@@ -254,7 +254,7 @@ const Home = () => {
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {recentViews.map((product) => (
+            {recentViews.filter(p => p && typeof p === 'object' && p._id).map((product) => (
               <ProductCard key={product._id} product={product} />
             ))}
           </div>
@@ -281,7 +281,7 @@ const Home = () => {
           </div>
         ) : recs.recommendedForYou?.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {recs.recommendedForYou.slice(0, 5).map((product) => (
+            {recs.recommendedForYou.filter(p => p && p._id).slice(0, 5).map((product) => (
               <ProductCard key={product._id} product={product} />
             ))}
           </div>
@@ -312,7 +312,7 @@ const Home = () => {
           </div>
         ) : recs.studentsAlsoBought?.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {recs.studentsAlsoBought.slice(0, 5).map((product) => (
+            {recs.studentsAlsoBought.filter(p => p && p._id).slice(0, 5).map((product) => (
               <ProductCard key={product._id} product={product} />
             ))}
           </div>
@@ -343,7 +343,7 @@ const Home = () => {
           </div>
         ) : recs.frequentlyBoughtTogether?.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {recs.frequentlyBoughtTogether.slice(0, 5).map((product) => (
+            {recs.frequentlyBoughtTogether.filter(p => p && p._id).slice(0, 5).map((product) => (
               <ProductCard key={product._id} product={product} />
             ))}
           </div>

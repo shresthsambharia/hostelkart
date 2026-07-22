@@ -13,6 +13,10 @@ const ProductCard = ({ product, priority = false }) => {
   const [errorMsg, setErrorMsg] = useState('');
   const [imageLoaded, setImageLoaded] = useState(false);
 
+  if (!product || typeof product !== 'object' || !product._id) {
+    return null;
+  }
+
   const isFavorited = isInWishlist(product._id);
   const discountedPrice = Math.round(
     product.price - (product.price * (product.discount || 0)) / 100
