@@ -56,6 +56,17 @@ const ProductDetails = () => {
     try {
       const { data } = await productAPI.getById(id);
       setProduct(data);
+
+      // Track recently viewed products in localStorage
+      try {
+        const stored = localStorage.getItem('hostelkart_recent_views');
+        let views = stored ? JSON.parse(stored) : [];
+        views = views.filter((p) => p._id !== data._id);
+        views.unshift(data);
+        localStorage.setItem('hostelkart_recent_views', JSON.stringify(views.slice(0, 10)));
+      } catch (e) {
+        console.warn('Failed to save to recently viewed:', e);
+      }
     } catch (error) {
       console.error('Error fetching product details:', error);
     } finally {

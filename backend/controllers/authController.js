@@ -20,21 +20,27 @@ const generateToken = (id) => {
   });
 };
 
-// Helper to generate refresh token (7d expiry)
+// Helper to generate refresh token (30d expiry)
 const generateRefreshToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '7d',
+    expiresIn: '30d',
   });
 };
 
 // Helper to set refresh token in secure HttpOnly cookie
 const setRefreshTokenCookie = (res, token) => {
-  // Disabled - using Bearer tokens in headers
+  const isProd = process.env.NODE_ENV === 'production';
+  res.cookie('refreshToken', token, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+  });
 };
 
 // Helper to set access token in secure HttpOnly cookie
 const setAccessTokenCookie = (res, token) => {
-  // Disabled - using Bearer tokens in headers
+  // Access tokens are handled in frontend state/localStorage
 };
 
 // @desc    Register a new student
@@ -141,7 +147,7 @@ const registerUser = asyncHandler(async (req, res) => {
     await RefreshToken.create({
       user: user._id,
       token: refreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
     });
 
     // Set refresh token in HttpOnly cookie
@@ -266,7 +272,7 @@ const authUser = asyncHandler(async (req, res) => {
     RefreshToken.create({
       user: user._id,
       token: refreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
     }).catch(err => logger.error('REFRESH_TOKEN_SAVE_FAILED', err.message));
 
     // Set refresh token and access token in HttpOnly cookies
@@ -442,6 +448,12 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
   const activeToken = await RefreshToken.findOne({ token: refreshToken });
   if (!activeToken) {
+    // Detect reuse attack
+    try {
+      const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+      await RefreshToken.deleteMany({ user: decoded.id });
+      logger.warn('REFRESH_TOKEN_REUSE_DETECTED', `Potential refresh token reuse attack detected for user ${decoded.id}. Revoking all sessions.`);
+    } catch (e) {}
     res.status(401);
     throw new Error('Refresh token is invalid or expired');
   }
@@ -465,7 +477,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     await RefreshToken.create({
       user: user._id,
       token: newRefreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
     });
 
     // Set updated HttpOnly cookies
@@ -787,7 +799,7 @@ const login2FA = asyncHandler(async (req, res) => {
   await RefreshToken.create({
     user: user._id,
     token: refreshToken,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
   });
 
   // Set refresh token and access token cookies
