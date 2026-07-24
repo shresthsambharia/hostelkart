@@ -21,15 +21,13 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkLoggedIn = async () => {
       // Ensure fresh CSRF token is available
-      if (!localStorage.getItem('csrfToken')) {
-        try {
-          const csrfRes = await authAPI.getCsrfToken();
-          if (csrfRes.data?.csrfToken) {
-            localStorage.setItem('csrfToken', csrfRes.data.csrfToken);
-          }
-        } catch (e) {
-          console.warn('Failed to fetch initial CSRF token:', e.message);
+      try {
+        const csrfRes = await authAPI.getCsrfToken();
+        if (csrfRes.data?.csrfToken) {
+          localStorage.setItem('csrfToken', csrfRes.data.csrfToken);
         }
+      } catch (e) {
+        console.warn('Failed to fetch initial CSRF token:', e.message);
       }
 
       const hasCachedUser = !!localStorage.getItem('userInfo') && !!localStorage.getItem('token');
@@ -168,6 +166,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('userInfo');
+    localStorage.removeItem('csrfToken');
     setUser(null);
     navigate('/login');
   }, [navigate]);

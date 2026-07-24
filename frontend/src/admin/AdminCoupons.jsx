@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { couponAPI } from '../api';
+import { couponAPI, authAPI } from '../api';
 import { Tag, Plus, Edit2, Trash2, Save, X, ToggleLeft, ToggleRight, Calendar, Info, Percent, DollarSign, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const AdminCoupons = () => {
@@ -36,7 +36,18 @@ const AdminCoupons = () => {
   };
 
   useEffect(() => {
-    fetchCoupons();
+    const initPage = async () => {
+      try {
+        const { data } = await authAPI.getCsrfToken();
+        if (data?.csrfToken) {
+          localStorage.setItem('csrfToken', data.csrfToken);
+        }
+      } catch (err) {
+        console.warn('Failed to refresh CSRF token on coupons mount:', err);
+      }
+      fetchCoupons();
+    };
+    initPage();
   }, []);
 
   const resetForm = () => {
@@ -100,6 +111,18 @@ const AdminCoupons = () => {
     e.preventDefault();
     setSaving(true);
     setAlert({ type: '', message: '' });
+
+    // Backup check to fetch CSRF token if it is missing
+    if (!localStorage.getItem('csrfToken')) {
+      try {
+        const { data: csrfData } = await authAPI.getCsrfToken();
+        if (csrfData?.csrfToken) {
+          localStorage.setItem('csrfToken', csrfData.csrfToken);
+        }
+      } catch (csrfErr) {
+        console.error('Failed to retrieve backup CSRF token:', csrfErr);
+      }
+    }
 
     const couponData = {
       code: code.toUpperCase().trim(),
