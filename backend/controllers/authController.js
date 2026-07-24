@@ -879,6 +879,8 @@ const regenerateRecoveryCodes = asyncHandler(async (req, res) => {
     success: true,
     recoveryCodes,
   });
+});
+
 // @desc    Get fresh CSRF token
 // @route   GET /api/auth/csrf
 // @access  Public

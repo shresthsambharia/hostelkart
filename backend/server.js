@@ -38,6 +38,7 @@ import { redisClient } from './config/redis.js';
 console.log("STEP 2 Connected Redis");
 
 import { seedIfEmpty } from './seed/seedDataInline.js';
+import { syncFruitsDatabase } from './utils/syncFruits.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import helmet from 'helmet';
 import { nosqlSanitize, xssSanitize, csrfProtection } from './middleware/securityMiddleware.js';
@@ -96,6 +97,7 @@ const initializeDatabase = async () => {
   try {
     await connectDB();
     await seedIfEmpty();
+    await syncFruitsDatabase();
     logger.info('STARTUP', 'Database connection and seeding check completed.');
   } catch (error) {
     logger.error('STARTUP_DATABASE_ERROR', 'Failed to initialize database during startup', {
