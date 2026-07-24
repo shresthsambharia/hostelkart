@@ -18,10 +18,12 @@ const ProductCard = ({ product, priority = false }) => {
   }
 
   const isFavorited = isInWishlist(product._id);
+  const price = product.price || 0;
+  const discount = product.discount || 0;
   const discountedPrice = Math.round(
-    product.price - (product.price * (product.discount || 0)) / 100
+    price - (price * discount) / 100
   );
-  const saveAmount = product.discount > 0 ? Math.round((product.price * product.discount) / 100) : 0;
+  const saveAmount = discount > 0 ? Math.round((price * discount) / 100) : 0;
 
   const cartItem = cart?.items?.find((item) => item.product && item.product._id === product._id);
   const quantityInCart = cartItem ? cartItem.quantity : 0;

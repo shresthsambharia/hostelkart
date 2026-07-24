@@ -44,7 +44,10 @@ const AdminProducts = () => {
   const [itemsPerPage] = useState(10);
 
   // Bulk Operations State
-  const [selectedIds, setSelectedIds] = useState([]);
+  const [selectedIds, setSelectedIds] = useState({
+    type: 'include',
+    ids: new Set()
+  });
   const [bulkPriceChange, setBulkPriceChange] = useState('');
   const [bulkStockChange, setBulkStockChange] = useState('');
   const [showBulkActions, setShowBulkActions] = useState(false);
@@ -209,27 +212,37 @@ const AdminProducts = () => {
 
   // Bulk operations handlers
   const toggleSelectAll = () => {
-    if (selectedIds.length === filteredProducts.length) {
-      setSelectedIds([]);
+    const currentSize = selectedIds.ids?.size || 0;
+    if (currentSize === filteredProducts.length) {
+      setSelectedIds({ type: 'include', ids: new Set() });
     } else {
-      setSelectedIds(filteredProducts.map((p) => p._id));
+      setSelectedIds({ type: 'include', ids: new Set(filteredProducts.map((p) => p._id)) });
     }
   };
 
   const toggleSelectRow = (id) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
+    setSelectedIds((prev) => {
+      const nextIds = new Set(prev.ids);
+      if (nextIds.has(id)) {
+        nextIds.delete(id);
+      } else {
+        nextIds.add(id);
+      }
+      return { type: 'include', ids: nextIds };
+    });
   };
 
   const handleBulkDelete = async () => {
-    if (window.confirm(`Delete ${selectedIds.length} selected products?`)) {
+    const selectedCount = selectedIds.ids?.size || 0;
+    if (selectedCount === 0) return;
+
+    if (window.confirm(`Delete ${selectedCount} selected products?`)) {
       try {
-        for (const id of selectedIds) {
+        for (const id of selectedIds.ids) {
           await adminAPI.deleteProduct(id);
         }
-        showToastMsg('success', `Successfully deleted ${selectedIds.length} products.`);
-        setSelectedIds([]);
+        showToastMsg('success', `Successfully deleted ${selectedCount} products.`);
+        setSelectedIds({ type: 'include', ids: new Set() });
         fetchProductsAndCategories();
       } catch (err) {
         showToastMsg('error', 'Failed to delete all selected items.');
@@ -240,18 +253,20 @@ const AdminProducts = () => {
   const handleBulkPriceUpdate = async () => {
     const changePct = Number(bulkPriceChange);
     if (!changePct || isNaN(changePct)) return;
+    const selectedCount = selectedIds.ids?.size || 0;
+    if (selectedCount === 0) return;
 
     try {
-      for (const id of selectedIds) {
+      for (const id of selectedIds.ids) {
         const prod = products.find((p) => p._id === id);
         if (prod) {
           const newPrice = Math.max(1, Math.round(prod.price * (1 + changePct / 100)));
           await adminAPI.updateProduct(id, { price: newPrice });
         }
       }
-      showToastMsg('success', `Updated prices for ${selectedIds.length} products.`);
+      showToastMsg('success', `Updated prices for ${selectedCount} products.`);
       setBulkPriceChange('');
-      setSelectedIds([]);
+      setSelectedIds({ type: 'include', ids: new Set() });
       fetchProductsAndCategories();
     } catch (err) {
       showToastMsg('error', 'Failed to update prices.');
@@ -261,14 +276,16 @@ const AdminProducts = () => {
   const handleBulkStockUpdate = async () => {
     const qty = Number(bulkStockChange);
     if (isNaN(qty)) return;
+    const selectedCount = selectedIds.ids?.size || 0;
+    if (selectedCount === 0) return;
 
     try {
-      for (const id of selectedIds) {
+      for (const id of selectedIds.ids) {
         await adminAPI.updateProduct(id, { stock: qty });
       }
-      showToastMsg('success', `Updated stock levels to ${qty} for ${selectedIds.length} products.`);
+      showToastMsg('success', `Updated stock levels to ${qty} for ${selectedCount} products.`);
       setBulkStockChange('');
-      setSelectedIds([]);
+      setSelectedIds({ type: 'include', ids: new Set() });
       fetchProductsAndCategories();
     } catch (err) {
       showToastMsg('error', 'Failed to update stock levels.');
@@ -618,14 +635,14 @@ const AdminProducts = () => {
           </div>
 
           {/* Bulk Operations Overlay Control */}
-          {selectedIds.length > 0 && (
+          {(selectedIds.ids?.size || 0) > 0 && (
             <div className="bg-primary-50 border border-primary-150 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 animate-slide-up">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black text-primary-800 bg-primary-100 border border-primary-200 px-2.5 py-1 rounded-xl shadow-sm">
-                  {selectedIds.length} Selected
+                  {selectedIds.ids.size} Selected
                 </span>
                 <button
-                  onClick={() => setSelectedIds([])}
+                  onClick={() => setSelectedIds({ type: 'include', ids: new Set() })}
                   className="text-xs font-bold text-primary-650 hover:underline"
                 >
                   Deselect All
