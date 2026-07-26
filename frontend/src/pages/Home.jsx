@@ -17,7 +17,8 @@ const staticCategories = [
   { name: 'Stationery', emoji: '📚', bg: 'bg-indigo-50 hover:bg-indigo-100/80 border-indigo-100' },
   { name: 'Electronics Accessories', emoji: '🔌', bg: 'bg-amber-50 hover:bg-amber-100/80 border-amber-100' },
   { name: 'Personal Care', emoji: '🧼', bg: 'bg-teal-50 hover:bg-teal-100/80 border-teal-100' },
-  { name: 'Dairy Products', emoji: '🧀', bg: 'bg-orange-50 hover:bg-orange-100/80 border-orange-100' }
+  { name: 'Dairy Products', emoji: '🧀', bg: 'bg-orange-50 hover:bg-orange-100/80 border-orange-100' },
+  { name: 'Medicines', emoji: '💊', bg: 'bg-pink-50 hover:bg-pink-100/80 border-pink-100' }
 ];
 
 const promoBanners = [
@@ -163,7 +164,7 @@ const Home = () => {
           </Link>
         </div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-3">
           {staticCategories.map((cat) => (
             <Link
               key={cat.name}

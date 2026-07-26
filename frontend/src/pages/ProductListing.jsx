@@ -11,7 +11,8 @@ const staticCategoryNames = [
   'Stationery',
   'Electronics Accessories',
   'Personal Care',
-  'Dairy Products'
+  'Dairy Products',
+  'Medicines'
 ];
 
 const ProductListing = () => {

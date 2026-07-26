@@ -33,7 +33,8 @@ const categories = [
   { name: 'Dairy Products', description: 'Milk, cheese, butter, yogurt, and paneer', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg' },
   { name: 'Personal Care', description: 'Shampoo, soaps, toothpaste, and grooming', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000004/personal_care.jpg' },
   { name: 'Stationery', description: 'Notebooks, pens, registers, and study tools', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000005/stationery.jpg' },
-  { name: 'Electronics Accessories', description: 'OTG cables, phone stands, charging wires, and earphones', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000006/electronics.jpg' }
+  { name: 'Electronics Accessories', description: 'OTG cables, phone stands, charging wires, and earphones', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000006/electronics.jpg' },
+  { name: 'Medicines', description: 'OTC medicines, first-aid, and wellness products', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg' }
 ];
 
 const usersData = [
@@ -167,7 +168,7 @@ const seedData = async () => {
     // 3. Seed Products
     const mappedProductsData = productsData.map(p => {
       let mappedCategory = p.category;
-      if (mappedCategory === 'Snacks' || mappedCategory === 'Beverages' || mappedCategory === 'Medicines' || mappedCategory === 'Hostel Essentials' || mappedCategory === 'Custom Requests') {
+      if (mappedCategory === 'Snacks' || mappedCategory === 'Beverages' || mappedCategory === 'Hostel Essentials' || mappedCategory === 'Custom Requests') {
         mappedCategory = 'Personal Care';
       }
       return { ...p, category: mappedCategory };
