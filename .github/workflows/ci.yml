@@ -2,62 +2,107 @@ name: Continuous Integration
 
 on:
   push:
-    branches: [ main, develop ]
+    branches:
+      - main
+      - develop
+
   pull_request:
-    branches: [ main, develop ]
+    branches:
+      - main
+      - develop
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        node-version: [20]
+
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: ${{ matrix.node-version }}
+          cache: npm
           cache-dependency-path: |
             backend/package-lock.json
             frontend/package-lock.json
 
-      - name: Install backend dependencies
-        run: |
-          cd backend
-          npm ci
+      #################################################
+      # Install Backend
+      #################################################
 
-      - name: Install frontend dependencies
-        run: |
-          cd frontend
-          npm ci
+      - name: Install Backend Dependencies
+        working-directory: backend
+        run: npm ci
+
+      #################################################
+      # Install Frontend
+      #################################################
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      #################################################
+      # Backend Lint
+      #################################################
 
       - name: Lint Backend
-        run: |
-          cd backend
-          npm run lint || true
+        working-directory: backend
+        run: npm run lint --if-present
+
+      #################################################
+      # Frontend Lint
+      #################################################
 
       - name: Lint Frontend
-        run: |
-          cd frontend
-          npm run lint || true
+        working-directory: frontend
+        run: npm run lint --if-present
 
-      - name: Run Backend Tests & Coverage
-        run: |
-          node run_all_tests.mjs
+      #################################################
+      # Backend Tests
+      #################################################
+
+      - name: Run Backend Tests
+        working-directory: backend
+        run: npm test --if-present
+
+      #################################################
+      # Frontend Tests
+      #################################################
 
       - name: Run Frontend Tests
-        run: |
-          cd frontend
-          npm test || true
+        working-directory: frontend
+        run: npm test --if-present
 
-      - name: Build Frontend (Vite)
-        run: |
-          cd frontend
-          npm run build
+      #################################################
+      # Build Frontend
+      #################################################
 
-      - name: Verify Backend Server Startup
+      - name: Build Frontend
+        working-directory: frontend
+        run: npm run build
+
+      #################################################
+      # Verify Backend Loads
+      #################################################
+
+      - name: Verify Backend Startup
+        working-directory: backend
         run: |
-          cd backend
-          node -e "import('./server.js').then(() => { console.log('Server verified!'); process.exit(0); }).catch(err => { console.error(err); process.exit(1); })"
+          node -e "
+          import('./server.js')
+            .then(() => {
+              console.log('✅ Backend verified successfully');
+              process.exit(0);
+            })
+            .catch((err) => {
+              console.error(err);
+              process.exit(1);
+            });
+          "
