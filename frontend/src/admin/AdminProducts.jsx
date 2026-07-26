@@ -68,6 +68,7 @@ const AdminProducts = () => {
   const [deliveryTime, setDeliveryTime] = useState('Scheduled Delivery');
   const [isAvailable, setIsAvailable] = useState(true);
   const [imageUrls, setImageUrls] = useState([]); // array for multi-image support
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Custom Toast Notification Overlay state
   const [toast, setToast] = useState(null); // { type: 'success' | 'error' | 'warning', message: '' }
@@ -1079,6 +1080,7 @@ const AdminProducts = () => {
                   <ImageUploader 
                     images={imageUrls}
                     onChange={(urls) => setImageUrls(urls)}
+                    onUploadStateChange={(uploading) => setIsUploadingImage(uploading)}
                     maxFiles={1}
                   />
                 </div>
@@ -1138,7 +1140,7 @@ const AdminProducts = () => {
               <button
                 type="button"
                 onClick={() => setFormStep(formStep - 1)}
-                disabled={formStep === 1}
+                disabled={formStep === 1 || isUploadingImage}
                 className="btn-secondary py-2 px-4 text-xs font-bold disabled:opacity-40"
               >
                 Back
@@ -1148,7 +1150,8 @@ const AdminProducts = () => {
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-xl"
+                  disabled={isUploadingImage}
+                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-xl disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
@@ -1156,15 +1159,17 @@ const AdminProducts = () => {
                   <button
                     type="button"
                     onClick={() => setFormStep(formStep + 1)}
-                    className="btn-primary py-2 px-4 text-xs font-bold"
+                    disabled={isUploadingImage}
+                    className="btn-primary py-2 px-4 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Continue
+                    {isUploadingImage && formStep === 4 ? 'Uploading...' : 'Continue'}
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={handleStepperSubmit}
-                    className="btn-primary py-2 px-5 text-xs font-black shadow-md"
+                    disabled={isUploadingImage}
+                    className="btn-primary py-2 px-5 text-xs font-black shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {editMode ? 'Save Specs' : 'Publish Product'}
                   </button>

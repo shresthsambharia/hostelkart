@@ -1,13 +1,36 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Upload, X, AlertCircle, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { adminAPI } from '../api';
 
-const ImageUploader = ({ images, onChange, maxFiles = 5 }) => {
+const ImageUploader = ({ images, onChange, onUploadStateChange, maxFiles = 5 }) => {
   const [dragActive, setDragActive] = useState(false);
-  const [uploads, setUploads] = useState([]); // Array of { id, file, name, progress, status, error }
+  const [uploads, setUploads] = useState([]); // Array of { id, file, name, progress, status, error, controller }
   const fileInputRef = useRef(null);
 
-  // Compress image client-side using Canvas
+  const completedUrlsRef = useRef(images);
+
+  useEffect(() => {
+    completedUrlsRef.current = images;
+  }, [images]);
+
+  // Sync upload state changes back to parent component
+  useEffect(() => {
+    if (onUploadStateChange) {
+      const isUploading = uploads.some((u) => u.status === 'uploading' || u.status === 'pending');
+      onUploadStateChange(isUploading);
+    }
+  }, [uploads, onUploadStateChange]);
+
+  // Cleanup abort controllers on unmount
+  useEffect(() => {
+    return () => {
+      uploads.forEach(item => {
+        if (item.controller) item.controller.abort();
+      });
+    };
+  }, []);
+
+  // Compress image client-side to WebP using Canvas
   const compressImage = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -17,8 +40,8 @@ const ImageUploader = ({ images, onChange, maxFiles = 5 }) => {
         img.src = event.target.result;
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1200;
-          const MAX_HEIGHT = 1200;
+          const MAX_WIDTH = 1600;
+          const MAX_HEIGHT = 1600;
           let width = img.width;
           let height = img.height;
 
@@ -40,21 +63,22 @@ const ImageUploader = ({ images, onChange, maxFiles = 5 }) => {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Convert to blob
+          // Convert directly to WebP format
           canvas.toBlob(
             (blob) => {
               if (!blob) {
                 resolve(file); // fallback to original file
                 return;
               }
-              const compressedFile = new File([blob], file.name, {
-                type: 'image/jpeg',
+              const webpName = file.name.replace(/\.[^/.]+$/, "") + ".webp";
+              const compressedFile = new File([blob], webpName, {
+                type: 'image/webp',
                 lastModified: Date.now(),
               });
               resolve(compressedFile);
             },
-            'image/jpeg',
-            0.8 // Quality 0.8
+            'image/webp',
+            0.8 // WebP Quality 0.8
           );
         };
       };
@@ -62,11 +86,13 @@ const ImageUploader = ({ images, onChange, maxFiles = 5 }) => {
   };
 
   const uploadSingleFile = async (uploadItem) => {
-    // Mark as uploading
+    const controller = new AbortController();
+
+    // Mark as uploading and assign the AbortController
     setUploads((prev) =>
       prev.map((item) =>
         item.id === uploadItem.id
-          ? { ...item, status: 'uploading', progress: 0, error: '' }
+          ? { ...item, status: 'uploading', progress: 0, error: '', controller }
           : item
       )
     );
@@ -76,8 +102,9 @@ const ImageUploader = ({ images, onChange, maxFiles = 5 }) => {
       const formData = new FormData();
       formData.append('image', compressed);
 
-      // Perform upload using adminAPI but with progress config
+      // Perform upload with progress config and abort signal
       const response = await adminAPI.uploadImage(formData, {
+        signal: controller.signal,
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round(
             (progressEvent.loaded * 100) / progressEvent.total
@@ -94,20 +121,28 @@ const ImageUploader = ({ images, onChange, maxFiles = 5 }) => {
       setUploads((prev) =>
         prev.map((item) =>
           item.id === uploadItem.id
-            ? { ...item, status: 'done', progress: 100, url: response.data.image }
+            ? { ...item, status: 'done', progress: 100, controller: null }
             : item
         )
       );
 
-      // Notify parent component about new image URL
-      onChange([...images, response.data.image]);
+      // Thread-safe update of parent state to prevent parallel state overrides
+      const newUrl = response.data.image;
+      completedUrlsRef.current = [...completedUrlsRef.current, newUrl];
+      onChange(completedUrlsRef.current);
     } catch (error) {
+      if (error.name === 'CanceledError' || error.message === 'canceled') {
+        console.log('Upload cancelled');
+        return;
+      }
+
       setUploads((prev) =>
         prev.map((item) =>
           item.id === uploadItem.id
             ? {
                 ...item,
                 status: 'error',
+                controller: null,
                 error: error.response?.data?.message || 'Upload failed. Try again.',
               }
             : item
@@ -132,14 +167,30 @@ const ImageUploader = ({ images, onChange, maxFiles = 5 }) => {
       progress: 0,
       status: 'pending',
       error: '',
+      controller: null,
     }));
 
     setUploads((prev) => [...prev, ...newUploads]);
 
-    // Trigger upload sequentially
-    for (const item of newUploads) {
-      await uploadSingleFile(item);
+    // Concurrently upload files in queue with max 3 concurrent requests
+    const queue = [...newUploads];
+    const concurrencyLimit = 3;
+    const workers = [];
+
+    const runWorker = async () => {
+      while (queue.length > 0) {
+        const item = queue.shift();
+        if (item) {
+          await uploadSingleFile(item);
+        }
+      }
+    };
+
+    for (let i = 0; i < Math.min(concurrencyLimit, queue.length); i++) {
+      workers.push(runWorker());
     }
+
+    await Promise.all(workers);
   };
 
   const handleDrag = (e) => {
@@ -169,11 +220,18 @@ const ImageUploader = ({ images, onChange, maxFiles = 5 }) => {
 
   const handleRemoveImage = (indexToRemove) => {
     const updated = images.filter((_, idx) => idx !== indexToRemove);
+    completedUrlsRef.current = updated;
     onChange(updated);
   };
 
   const handleRemoveUpload = (idToRemove) => {
-    setUploads((prev) => prev.filter((item) => item.id !== idToRemove));
+    setUploads((prev) => {
+      const item = prev.find((u) => u.id === idToRemove);
+      if (item && item.controller) {
+        item.controller.abort();
+      }
+      return prev.filter((u) => u.id !== idToRemove);
+    });
   };
 
   return (

@@ -101,14 +101,23 @@ export const checkoutLimiter = rateLimit({
   handler: rateLimitHandler('CHECKOUT'),
 });
 
-// 6. Upload Rate Limiter (10 uploads per 15 minutes)
+// 6. Upload Rate Limiter (30 uploads per 15 minutes for public, 100 for admin)
 export const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 30,
   message: { message: 'Too many upload attempts, please try again after 15 minutes' },
   standardHeaders: true,
   legacyHeaders: false,
   handler: rateLimitHandler('UPLOAD'),
+});
+
+export const adminUploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { message: 'Too many administrative upload attempts, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler('ADMIN_UPLOAD'),
 });
 
 const getCookieValue = (cookieHeader, name) => {

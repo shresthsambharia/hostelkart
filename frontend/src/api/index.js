@@ -209,8 +209,9 @@ export const orderAPI = {
   getMyOrders: () => API.get('/orders/myorders'),
   getPaymentSettings: () => API.get('/orders/payment-settings'),
   cancel: (id, cancellationReason) => API.put(`/orders/${id}/cancel`, { cancellationReason }),
-  uploadScreenshot: (formData) => API.post('/upload/payment-screenshot', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+  uploadScreenshot: (formData, config = {}) => API.post('/upload/payment-screenshot', formData, {
+    ...config,
+    headers: { ...config.headers, 'Content-Type': 'multipart/form-data' }
   }),
   submitPayment: (id, paymentData) => API.put(`/orders/${id}/submit-payment`, paymentData),
 };
@@ -238,10 +239,9 @@ export const adminAPI = {
   updateCustomRequestStatus: (id, status, adminFeedback) => API.put(`/admin/custom-requests/${id}`, { status, adminFeedback }),
   getPaymentSettings: () => API.get('/admin/payment-settings'),
   updatePaymentSettings: (settings) => API.put('/admin/payment-settings', settings),
-  uploadImage: (formData) => API.post('/upload', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+  uploadImage: (formData, config = {}) => API.post('/upload', formData, {
+    ...config,
+    headers: { ...config.headers, 'Content-Type': 'multipart/form-data' }
   }),
   updateOrderPaymentStatus: (id, paymentStatus) => API.put(`/admin/orders/${id}/payment`, { paymentStatus }),
   exportProducts: () => API.get('/admin/excel/export-products', { responseType: 'blob' }),

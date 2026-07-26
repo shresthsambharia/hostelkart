@@ -7,7 +7,7 @@ import fs from 'fs';
 import { protect, admin } from '../middleware/authMiddleware.js';
 import { uploadBufferToCloudinary, getMediumUrl, getThumbUrl, getOriginalUrl } from '../config/cloudinary.js';
 import Order from '../models/Order.js';
-import { uploadLimiter } from '../middleware/securityMiddleware.js';
+import { uploadLimiter, adminUploadLimiter } from '../middleware/securityMiddleware.js';
 
 const router = express.Router();
 
@@ -40,7 +40,7 @@ const upload = multer({
 });
 
 // Admin-only upload endpoint (Uploads directly to Cloudinary)
-router.post('/', protect, admin, uploadLimiter, upload.single('image'), async (req, res) => {
+router.post('/', protect, admin, adminUploadLimiter, upload.single('image'), async (req, res) => {
   if (!req.file) {
     res.status(400);
     throw new Error('No image file uploaded');
@@ -68,9 +68,9 @@ router.post('/', protect, admin, uploadLimiter, upload.single('image'), async (r
       console.warn('[Upload Warning] Sharp compression failed for product image', sharpError);
     }
 
-    if (compressedBuffer.length > 500 * 1024) {
+    if (compressedBuffer.length > 2 * 1024 * 1024) {
       res.status(400);
-      throw new Error('Optimized image exceeds the maximum limit of 500KB. Please upload a smaller or less complex image.');
+      throw new Error('Optimized image exceeds the maximum limit of 2MB. Please upload a smaller or less complex image.');
     }
 
     console.log('[Upload] Uploading image buffer to Cloudinary...');

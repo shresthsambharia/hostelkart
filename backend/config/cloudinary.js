@@ -31,17 +31,37 @@ configureCloudinary();
  * @param {string} folder - Target folder path on Cloudinary
  * @returns {Promise<object>} Upload response from Cloudinary
  */
-export const uploadBufferToCloudinary = (buffer, folder = 'hostelkart') => {
-  return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      { folder },
-      (error, result) => {
-        if (error) return reject(error);
-        resolve(result);
+export const uploadBufferToCloudinary = async (buffer, folder = 'hostelkart') => {
+  const maxAttempts = 3;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { 
+            folder,
+            timeout: 60000 // 60 seconds connection/upload timeout
+          },
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result);
+          }
+        );
+        uploadStream.end(buffer);
+      });
+    } catch (error) {
+      console.warn(`[Cloudinary Upload] Attempt ${attempt}/${maxAttempts} failed:`, error.message || error);
+      lastError = error;
+      if (attempt < maxAttempts) {
+        const delay = Math.pow(2, attempt) * 1000; // 2s, 4s delay
+        console.log(`[Cloudinary Upload] Retrying in ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
-    );
-    uploadStream.end(buffer);
-  });
+    }
+  }
+
+  throw lastError;
 };
 
 /**
