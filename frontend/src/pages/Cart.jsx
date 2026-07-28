@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { Trash2, ShoppingBag, ArrowRight, ArrowLeft, Percent, Gift, ChevronRight, Sparkles } from 'lucide-react';
 import { getThumbnail } from '../utils/image';
+import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants';
 
 const Cart = () => {
   const {
@@ -158,16 +159,18 @@ const Cart = () => {
             </div>
             <p className="text-[10px] text-emerald-700 font-semibold leading-relaxed">Complete your cart value to unlock promo codes & free direct-to-room shipping slots!</p>
             <div className="flex gap-2 flex-wrap">
-              {['Fruits', 'Dairy Products', 'Personal Care'].map((categoryName) => (
-                <Link
-                  key={categoryName}
-                  to={`/products?category=${encodeURIComponent(categoryName)}`}
-                  className="px-3 py-1.5 bg-white border border-emerald-100 hover:border-emerald-300 rounded-xl text-[10px] font-black text-emerald-700 transition-all shadow-sm flex items-center gap-0.5"
-                >
-                  <span>Browse {categoryName}</span>
-                  <ChevronRight size={10} />
-                </Link>
-              ))}
+              {['Fruits', 'Dairy Products', 'Personal Care']
+                .filter((catName) => STUDENT_VISIBLE_CATEGORIES.includes(catName))
+                .map((categoryName) => (
+                  <Link
+                    key={categoryName}
+                    to={`/products?category=${encodeURIComponent(categoryName)}`}
+                    className="px-3 py-1.5 bg-white border border-emerald-100 hover:border-emerald-300 rounded-xl text-[10px] font-black text-emerald-700 transition-all shadow-sm flex items-center gap-0.5"
+                  >
+                    <span>Browse {categoryName}</span>
+                    <ChevronRight size={10} />
+                  </Link>
+                ))}
             </div>
           </div>
         </div>

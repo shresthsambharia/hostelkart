@@ -4,6 +4,8 @@ import { productAPI } from '../api';
 import ProductCard from '../components/ProductCard';
 import { ProductCardSkeleton } from '../components/SkeletonLoader';
 import { SlidersHorizontal, Search, X } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants';
 
 const staticCategoryNames = [
   'Fruits',
@@ -17,6 +19,11 @@ const staticCategoryNames = [
 
 const ProductListing = () => {
   const location = useLocation();
+  const { user } = useAuth();
+  const isAdmin = user && user.role === 'admin';
+  const visibleCategories = isAdmin 
+    ? staticCategoryNames 
+    : staticCategoryNames.filter(cat => STUDENT_VISIBLE_CATEGORIES.includes(cat));
   
   // Parse initial query params
   const getQueryParams = () => {
@@ -140,7 +147,7 @@ const ProductListing = () => {
               >
                 All Categories
               </button>
-              {staticCategoryNames.map((catName) => (
+              {visibleCategories.map((catName) => (
                 <button
                   key={catName}
                   onClick={() => setSelectedCategory(catName)}
@@ -270,7 +277,7 @@ const ProductListing = () => {
                   >
                     All Categories
                   </button>
-                  {staticCategoryNames.map((catName) => (
+                  {visibleCategories.map((catName) => (
                     <button
                       key={catName}
                       onClick={() => { setSelectedCategory(catName); setSidebarOpen(false); }}

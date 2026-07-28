@@ -344,7 +344,7 @@ const getDashboardAnalytics = asyncHandler(async (req, res) => {
 // @route   POST /api/admin/products
 // @access  Private/Admin
 const addProduct = asyncHandler(async (req, res) => {
-  const { name, price, discount, description, category, stock, deliveryTime, isAvailable, image, imageOriginal, imageMedium, imageThumb } = req.body;
+  const { name, price, discount, description, category, stock, deliveryTime, isAvailable, image, imageOriginal, imageMedium, imageThumb, mrp } = req.body;
 
   if (!name || !name.trim() || !category || !category.trim()) {
     res.status(400);
@@ -382,6 +382,7 @@ const addProduct = asyncHandler(async (req, res) => {
     imageOriginal,
     imageMedium,
     imageThumb,
+    mrp: mrp !== undefined ? Number(mrp) : priceNum,
   });
 
   const createdProduct = await product.save();
@@ -395,7 +396,7 @@ const addProduct = asyncHandler(async (req, res) => {
 // @route   PUT /api/admin/products/:id
 // @access  Private/Admin
 const editProduct = asyncHandler(async (req, res) => {
-  const { name, price, discount, description, category, stock, deliveryTime, isAvailable, image, imageOriginal, imageMedium, imageThumb } = req.body;
+  const { name, price, discount, description, category, stock, deliveryTime, isAvailable, image, imageOriginal, imageMedium, imageThumb, mrp } = req.body;
 
   if (price !== undefined) {
     const priceNum = Number(price);
@@ -444,6 +445,7 @@ const editProduct = asyncHandler(async (req, res) => {
     product.stock = stock !== undefined ? Number(stock) : product.stock;
     product.deliveryTime = deliveryTime || product.deliveryTime;
     product.isAvailable = isAvailable !== undefined ? isAvailable : product.isAvailable;
+    product.mrp = mrp !== undefined ? Number(mrp) : product.mrp;
     // Delete old image from Cloudinary if it's being replaced with a new one
     if (image && image !== product.image) {
       const oldPublicId = getPublicIdFromUrl(product.image);

@@ -48,6 +48,30 @@ const protect = asyncHandler(async (req, res, next) => {
   }
 });
 
+const optionalProtect = asyncHandler(async (req, res, next) => {
+  let token;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+      req.user = await User.findById(decoded.id).select('-password');
+      if (req.user) {
+        setStoreUser(req.user._id.toString());
+      }
+    } catch (error) {
+      // Ignore token failure for optional protect
+    }
+  }
+  next();
+});
+
 // Middleware for Admin role
 const admin = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
@@ -80,4 +104,4 @@ const authorize = (...roles) => {
   };
 };
 
-export { protect, admin, delivery, authorize };
+export { protect, admin, delivery, authorize, optionalProtect };

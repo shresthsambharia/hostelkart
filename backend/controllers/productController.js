@@ -2,6 +2,7 @@ import asyncHandler from 'express-async-handler';
 import Product from '../models/Product.js';
 import Category from '../models/Category.js';
 import { invalidateProductCache } from '../middleware/cacheMiddleware.js';
+import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants.js';
 
 // Helper to log search keyword frequency asynchronously
 const logSearchKeyword = async (rawKeyword) => {
@@ -38,9 +39,22 @@ const getProducts = asyncHandler(async (req, res) => {
     logSearchKeyword(keyword);
   }
 
-  // Category filter
-  if (category) {
-    query.category = category;
+  // Category filter with visibility checks
+  const isAdmin = req.user && req.user.role === 'admin';
+  if (!isAdmin) {
+    if (category) {
+      if (STUDENT_VISIBLE_CATEGORIES.includes(category)) {
+        query.category = category;
+      } else {
+        query.category = { $in: [] }; // Return nothing
+      }
+    } else {
+      query.category = { $in: STUDENT_VISIBLE_CATEGORIES };
+    }
+  } else {
+    if (category) {
+      query.category = category;
+    }
   }
 
   // Price Range filter
@@ -66,6 +80,11 @@ const getProductById = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id).lean();
 
   if (product) {
+    const isAdmin = req.user && req.user.role === 'admin';
+    if (!isAdmin && !STUDENT_VISIBLE_CATEGORIES.includes(product.category)) {
+      res.status(404);
+      throw new Error('Product not found');
+    }
     res.setHeader('Cache-Control', 'public, max-age=30');
     res.json(product);
   } else {
@@ -130,7 +149,13 @@ const createProductReview = asyncHandler(async (req, res) => {
 // @route   GET /api/products/categories
 // @access  Public
 const getCategories = asyncHandler(async (req, res) => {
-  const categories = await Category.find({}).lean();
+  const isAdmin = req.user && req.user.role === 'admin';
+  let categories;
+  if (!isAdmin) {
+    categories = await Category.find({ name: { $in: STUDENT_VISIBLE_CATEGORIES } }).lean();
+  } else {
+    categories = await Category.find({}).lean();
+  }
   res.setHeader('Cache-Control', 'public, max-age=3600');
   res.json(categories);
 });
@@ -145,21 +170,36 @@ const getSearchSuggestions = asyncHandler(async (req, res) => {
   }
 
   const queryRegex = { $regex: q, $options: 'i' };
+  const isAdmin = req.user && req.user.role === 'admin';
 
   // Find matching products
-  const products = await Product.find({
+  const productSearchQuery = {
     $or: [
       { name: queryRegex },
       { description: queryRegex },
       { category: queryRegex }
     ]
-  })
+  };
+  if (!isAdmin) {
+    productSearchQuery.category = { $in: STUDENT_VISIBLE_CATEGORIES };
+  }
+
+  const products = await Product.find(productSearchQuery)
   .select('name category image price discount')
   .limit(6)
   .lean();
 
   // Find matching categories
-  const categories = await Category.find({ name: queryRegex })
+  const categorySearchQuery = { name: queryRegex };
+  if (!isAdmin) {
+    categorySearchQuery.name = {
+      $in: STUDENT_VISIBLE_CATEGORIES,
+      $regex: q,
+      $options: 'i'
+    };
+  }
+
+  const categories = await Category.find(categorySearchQuery)
     .select('name image')
     .limit(3)
     .lean();

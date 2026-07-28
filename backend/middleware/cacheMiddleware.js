@@ -23,8 +23,9 @@ export const cache = (seconds) => {
                            req.originalUrl.includes('/wishlist') || 
                            req.originalUrl.includes('/notifications');
     
+    const rolePrefix = req.user ? `role:${req.user.role}:` : 'role:guest:';
     const userPrefix = isUserSpecific && req.user ? `user:${req.user._id}:` : '';
-    const cacheKey = `cache:${userPrefix}${req.originalUrl}`;
+    const cacheKey = `cache:${rolePrefix}${userPrefix}${req.originalUrl}`;
 
     try {
       const cachedData = await redisClient.get(cacheKey);

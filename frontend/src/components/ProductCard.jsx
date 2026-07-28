@@ -18,12 +18,10 @@ const ProductCard = ({ product, priority = false }) => {
   }
 
   const isFavorited = isInWishlist(product._id);
-  const price = product.price || 0;
-  const discount = product.discount || 0;
-  const discountedPrice = Math.round(
-    price - (price * discount) / 100
-  );
-  const saveAmount = discount > 0 ? Math.round((price * discount) / 100) : 0;
+  const mrp = Math.max(product.mrp || 0, product.price || 0);
+  const sellingPrice = Math.round((product.price || 0) * (1 - (product.discount || 0) / 100));
+  const dynamicDiscount = mrp > 0 ? Math.round(((mrp - sellingPrice) / mrp) * 100) : 0;
+  const saveAmount = Math.max(0, mrp - sellingPrice);
 
   const cartItem = cart?.items?.find((item) => item.product && item.product._id === product._id);
   const quantityInCart = cartItem ? cartItem.quantity : 0;
@@ -69,9 +67,9 @@ const ProductCard = ({ product, priority = false }) => {
     >
       {/* Top badges & actions */}
       <div className="absolute top-3 left-3 right-3 flex justify-between items-start z-10">
-        {product.discount > 0 ? (
+        {dynamicDiscount > 0 ? (
           <span className="bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-lg shadow-sm uppercase tracking-wider">
-            {product.discount}% OFF
+            {dynamicDiscount}% OFF
           </span>
         ) : (
           <span />
@@ -165,11 +163,11 @@ const ProductCard = ({ product, priority = false }) => {
         <div>
           {/* Prices */}
           <div className="flex items-baseline gap-1.5 flex-wrap">
-            <span className="text-xs sm:text-sm font-black text-slate-950">₹{discountedPrice}</span>
-            {product.discount > 0 && (
+            <span className="text-xs sm:text-sm font-black text-slate-950">₹{sellingPrice}</span>
+            {dynamicDiscount > 0 && (
               <>
-                <span className="text-[10px] text-slate-400 line-through font-semibold">₹{product.price}</span>
-                <span className="text-[9px] text-emerald-600 font-black">Save ₹{saveAmount}</span>
+                <span className="text-[10px] text-slate-450 line-through font-semibold">₹{mrp}</span>
+                <span className="text-[9.5px] text-emerald-650 font-black bg-emerald-50 px-1 py-0.5 rounded border border-emerald-100/50">Save ₹{saveAmount}</span>
               </>
             )}
           </div>

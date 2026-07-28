@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
 import User from '../models/User.js';
+import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants.js';
 
 // Helper to optionally get user from Bearer token
 const getOptionalUser = async (req) => {
@@ -22,15 +23,42 @@ const getOptionalUser = async (req) => {
   return null;
 };
 
+// Helper to restrict product queries to student-visible categories
+const productQuery = (criteria, isAdmin) => {
+  if (!isAdmin) {
+    if (criteria.category) {
+      if (typeof criteria.category === 'object' && criteria.category.$in) {
+        const visibleFavs = criteria.category.$in.filter(cat => STUDENT_VISIBLE_CATEGORIES.includes(cat));
+        criteria.category = { $in: visibleFavs };
+      } else if (typeof criteria.category === 'string') {
+        if (!STUDENT_VISIBLE_CATEGORIES.includes(criteria.category)) {
+          criteria.category = { $in: [] };
+        }
+      }
+    } else {
+      criteria.category = { $in: STUDENT_VISIBLE_CATEGORIES };
+    }
+  }
+  return criteria;
+};
+
 // Simple in-memory cache for heavy global recommendation calculations
-let cachedGlobalData = null;
-let cacheTimestamp = 0;
+let cachedGlobalDataStudent = null;
+let cacheTimestampStudent = 0;
+let cachedGlobalDataAdmin = null;
+let cacheTimestampAdmin = 0;
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutes cache
 
-const updateGlobalRecommendationCache = async (limit) => {
+const updateGlobalRecommendationCache = async (limit, isAdmin) => {
   const now = Date.now();
-  if (cachedGlobalData && (now - cacheTimestamp < CACHE_TTL)) {
-    return cachedGlobalData;
+  if (isAdmin) {
+    if (cachedGlobalDataAdmin && (now - cacheTimestampAdmin < CACHE_TTL)) {
+      return cachedGlobalDataAdmin;
+    }
+  } else {
+    if (cachedGlobalDataStudent && (now - cacheTimestampStudent < CACHE_TTL)) {
+      return cachedGlobalDataStudent;
+    }
   }
 
   // Limit to last 30 days of delivered orders to make it faster and keep it fresh!
@@ -66,14 +94,14 @@ const updateGlobalRecommendationCache = async (limit) => {
 
   let trending = [];
   if (sortedOverallIds.length > 0) {
-    trending = await Product.find({ _id: { $in: sortedOverallIds } })
+    trending = await Product.find(productQuery({ _id: { $in: sortedOverallIds } }, isAdmin))
       .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
       .lean();
     trending.sort((a, b) => sortedOverallIds.indexOf(a._id.toString()) - sortedOverallIds.indexOf(b._id.toString()));
   }
 
   if (trending.length < limit) {
-    const fallbackTrending = await Product.find({ _id: { $nin: trending.map(p => p._id) } })
+    const fallbackTrending = await Product.find(productQuery({ _id: { $nin: trending.map(p => p._id) } }, isAdmin))
       .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
       .sort({ rating: -1, numReviews: -1 })
       .limit(limit - trending.length)
@@ -82,16 +110,16 @@ const updateGlobalRecommendationCache = async (limit) => {
   }
 
   // Calculate studentsAlsoBought
-  let studentsAlsoBought = await Product.find({
+  let studentsAlsoBought = await Product.find(productQuery({
     rating: { $gte: 4 }
-  })
+  }, isAdmin))
   .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
   .sort({ numReviews: -1, rating: -1 })
   .limit(limit)
   .lean();
 
   if (studentsAlsoBought.length < limit) {
-    const fallbackAlsoBought = await Product.find({ _id: { $nin: studentsAlsoBought.map(p => p._id) } })
+    const fallbackAlsoBought = await Product.find(productQuery({ _id: { $nin: studentsAlsoBought.map(p => p._id) } }, isAdmin))
       .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
       .sort({ rating: -1 })
       .limit(limit - studentsAlsoBought.length)
@@ -141,16 +169,16 @@ const updateGlobalRecommendationCache = async (limit) => {
     candidates = [...bestPair, ...union];
   }
   if (candidates.length > 0) {
-    defaultFBT = await Product.find({ _id: { $in: candidates.slice(0, limit) } })
+    defaultFBT = await Product.find(productQuery({ _id: { $in: candidates.slice(0, limit) } }, isAdmin))
       .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
       .lean();
   }
   if (defaultFBT.length < limit) {
     const excludeIds = defaultFBT.map(p => p._id.toString());
-    const fallbackFBT = await Product.find({ 
+    const fallbackFBT = await Product.find(productQuery({ 
       _id: { $nin: excludeIds },
       discount: { $gt: 0 } 
-    })
+    }, isAdmin))
     .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
     .sort({ discount: -1, rating: -1 })
     .limit(limit - defaultFBT.length)
@@ -158,15 +186,22 @@ const updateGlobalRecommendationCache = async (limit) => {
     defaultFBT = [...defaultFBT, ...fallbackFBT];
   }
 
-  cachedGlobalData = {
+  const globalData = {
     trending,
     studentsAlsoBought,
     coOccurrences,
     defaultFBT
   };
-  cacheTimestamp = now;
 
-  return cachedGlobalData;
+  if (isAdmin) {
+    cachedGlobalDataAdmin = globalData;
+    cacheTimestampAdmin = now;
+  } else {
+    cachedGlobalDataStudent = globalData;
+    cacheTimestampStudent = now;
+  }
+
+  return globalData;
 };
 
 // @desc    Get recommendation sections
@@ -174,10 +209,11 @@ const updateGlobalRecommendationCache = async (limit) => {
 // @access  Public (Optional auth)
 const getRecommendations = asyncHandler(async (req, res) => {
   const user = await getOptionalUser(req);
+  const isAdmin = user && user.role === 'admin';
   const limit = 8; // Number of items per section
 
   // Get cached global data
-  const globalData = await updateGlobalRecommendationCache(limit);
+  const globalData = await updateGlobalRecommendationCache(limit, isAdmin);
 
   // 1. BUY AGAIN
   let buyAgain = [];
@@ -201,7 +237,7 @@ const getRecommendations = asyncHandler(async (req, res) => {
     const uniqueIds = [...new Set(productIds)].sort((a, b) => counts[b] - counts[a]).slice(0, limit);
 
     if (uniqueIds.length > 0) {
-      buyAgain = await Product.find({ _id: { $in: uniqueIds } })
+      buyAgain = await Product.find(productQuery({ _id: { $in: uniqueIds } }, isAdmin))
         .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
         .lean();
       buyAgain.sort((a, b) => uniqueIds.indexOf(a._id.toString()) - uniqueIds.indexOf(b._id.toString()));
@@ -225,7 +261,7 @@ const getRecommendations = asyncHandler(async (req, res) => {
       });
     });
 
-    const userProducts = await Product.find({ _id: { $in: userProductIds } }).select('category').lean();
+    const userProducts = await Product.find(productQuery({ _id: { $in: userProductIds } }, isAdmin)).select('category').lean();
     const categoryCounts = {};
     userProducts.forEach(p => {
       categoryCounts[p.category] = (categoryCounts[p.category] || 0) + 1;
@@ -234,20 +270,20 @@ const getRecommendations = asyncHandler(async (req, res) => {
     const favoriteCategories = Object.keys(categoryCounts).sort((a, b) => categoryCounts[b] - categoryCounts[a]);
 
     if (favoriteCategories.length > 0) {
-      recommendedForYou = await Product.find({
+      recommendedForYou = await Product.find(productQuery({
         category: { $in: favoriteCategories },
         _id: { $nin: userProductIds }
-      })
+      }, isAdmin))
       .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
       .sort({ rating: -1, numReviews: -1 })
       .limit(limit)
       .lean();
 
       if (recommendedForYou.length < limit) {
-        const extra = await Product.find({
+        const extra = await Product.find(productQuery({
           category: { $in: favoriteCategories },
           _id: { $in: userProductIds }
-        })
+        }, isAdmin))
         .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
         .sort({ rating: -1 })
         .limit(limit - recommendedForYou.length)
@@ -259,7 +295,7 @@ const getRecommendations = asyncHandler(async (req, res) => {
 
   if (recommendedForYou.length < limit) {
     const excludeIds = recommendedForYou.map(p => p._id);
-    const fallbackRec = await Product.find({ _id: { $nin: excludeIds } })
+    const fallbackRec = await Product.find(productQuery({ _id: { $nin: excludeIds } }, isAdmin))
       .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
       .sort({ rating: -1, numReviews: -1 })
       .limit(limit - recommendedForYou.length)
@@ -286,15 +322,15 @@ const getRecommendations = asyncHandler(async (req, res) => {
 
   if (targetProductId && globalData.coOccurrences[targetProductId]) {
     const candidates = Object.keys(globalData.coOccurrences[targetProductId]).sort((a, b) => globalData.coOccurrences[targetProductId][b] - globalData.coOccurrences[targetProductId][a]);
-    frequentlyBoughtTogether = await Product.find({ _id: { $in: candidates.slice(0, limit) } })
+    frequentlyBoughtTogether = await Product.find(productQuery({ _id: { $in: candidates.slice(0, limit) } }, isAdmin))
       .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
       .lean();
     if (frequentlyBoughtTogether.length < limit) {
       const excludeIds = frequentlyBoughtTogether.map(p => p._id.toString());
-      const fallbackFBT = await Product.find({ 
+      const fallbackFBT = await Product.find(productQuery({ 
         _id: { $nin: excludeIds },
         discount: { $gt: 0 } 
-      })
+      }, isAdmin))
       .select('name price discount category stock deliveryTime rating numReviews image isAvailable')
       .sort({ discount: -1, rating: -1 })
       .limit(limit - frequentlyBoughtTogether.length)

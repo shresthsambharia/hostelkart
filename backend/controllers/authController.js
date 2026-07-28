@@ -63,10 +63,9 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 
   // 3. Password strength check
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-  if (!password || !passwordRegex.test(password)) {
+  if (!password || password.length < 6) {
     res.status(400);
-    throw new Error('Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)');
+    throw new Error('Password must be at least 6 characters long');
   }
 
   // CAPTCHA verification

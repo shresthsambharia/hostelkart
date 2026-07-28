@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import Wishlist from '../models/Wishlist.js';
+import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants.js';
 
 // @desc    Get user wishlist
 // @route   GET /api/wishlist
@@ -10,6 +11,11 @@ const getWishlist = asyncHandler(async (req, res) => {
   if (!wishlist) {
     const newWishlist = await Wishlist.create({ user: req.user._id, products: [] });
     wishlist = newWishlist.toObject();
+  }
+
+  const isAdmin = req.user && req.user.role === 'admin';
+  if (!isAdmin && wishlist.products) {
+    wishlist.products = wishlist.products.filter(p => p && STUDENT_VISIBLE_CATEGORIES.includes(p.category));
   }
 
   res.json(wishlist);
@@ -39,6 +45,10 @@ const toggleWishlist = asyncHandler(async (req, res) => {
 
   await wishlist.save();
   const updatedWishlist = await Wishlist.findOne({ user: req.user._id }).populate('products').lean();
+  const isAdmin = req.user && req.user.role === 'admin';
+  if (!isAdmin && updatedWishlist.products) {
+    updatedWishlist.products = updatedWishlist.products.filter(p => p && STUDENT_VISIBLE_CATEGORIES.includes(p.category));
+  }
   res.json(updatedWishlist);
 });
 

@@ -21,6 +21,185 @@ const dataGridTheme = createTheme({
   },
 });
 
+// Inline Editing Component
+const InlineEditCell = ({ rowId, field, initialValue, onSave, numeric = true, prefix = '' }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [value, setValue] = useState(initialValue);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
+
+  const handleSave = async () => {
+    if (value === initialValue) {
+      setIsEditing(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      await onSave(rowId, field, numeric ? Number(value) : value);
+      setIsEditing(false);
+    } catch (err) {
+      setValue(initialValue);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      setValue(initialValue);
+      setIsEditing(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-1 w-full h-full" onClick={(e) => e.stopPropagation()}>
+        <input
+          type={numeric ? "number" : "text"}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="w-16 px-1.5 py-1 border border-primary-500 rounded-lg text-xs outline-none font-bold text-slate-800 focus:ring-1 focus:ring-primary-500"
+          autoFocus
+        />
+        {loading ? (
+          <span className="w-3.5 h-3.5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin shrink-0"></span>
+        ) : (
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button onClick={handleSave} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md font-bold text-xs" title="Save">✓</button>
+            <button onClick={() => { setValue(initialValue); setIsEditing(false); }} className="p-1 text-rose-600 hover:bg-rose-50 rounded-md font-bold text-xs" title="Cancel">✕</button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between group w-full h-full pr-1.5" onClick={(e) => e.stopPropagation()}>
+      <span className="font-bold text-slate-700">{prefix}{initialValue}</span>
+      <button
+        onClick={() => setIsEditing(true)}
+        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-100 rounded-md text-[10px] transition-opacity duration-150 shrink-0"
+        title="Edit inline"
+      >
+        ✏️
+      </button>
+    </div>
+  );
+};
+
+// Custom Cell for Offer Price
+const OfferPriceCell = ({ rowId, price, discount, onSave }) => {
+  const initialOfferPrice = Math.max(0, Math.round(price * (1 - discount / 100)));
+  const [isEditing, setIsEditing] = useState(false);
+  const [value, setValue] = useState(initialOfferPrice);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setValue(initialOfferPrice);
+  }, [initialOfferPrice]);
+
+  const handleSave = async () => {
+    const offerVal = Number(value);
+    if (isNaN(offerVal) || offerVal < 0 || offerVal > price) {
+      alert("Offer price must be between 0 and the base price.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const calculatedDiscount = price > 0 ? Math.round(((price - offerVal) / price) * 100) : 0;
+      await onSave(rowId, 'discount', calculatedDiscount);
+      setIsEditing(false);
+    } catch (err) {
+      setValue(initialOfferPrice);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSave();
+    else if (e.key === 'Escape') {
+      setValue(initialOfferPrice);
+      setIsEditing(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-1 w-full h-full" onClick={(e) => e.stopPropagation()}>
+        <input
+          type="number"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="w-16 px-1.5 py-1 border border-primary-500 rounded-lg text-xs outline-none font-bold text-slate-800 focus:ring-1 focus:ring-primary-500"
+          autoFocus
+        />
+        {loading ? (
+          <span className="w-3.5 h-3.5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin shrink-0"></span>
+        ) : (
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button onClick={handleSave} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md font-bold text-xs" title="Save">✓</button>
+            <button onClick={() => { setValue(initialOfferPrice); setIsEditing(false); }} className="p-1 text-rose-600 hover:bg-rose-50 rounded-md font-bold text-xs" title="Cancel">✕</button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between group w-full h-full pr-1.5" onClick={(e) => e.stopPropagation()}>
+      <span className="font-bold text-slate-700">₹{initialOfferPrice}</span>
+      <button
+        onClick={() => setIsEditing(true)}
+        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-100 rounded-md text-[10px] transition-opacity duration-150 shrink-0"
+        title="Edit inline"
+      >
+        ✏️
+      </button>
+    </div>
+  );
+};
+
+// Custom Toggle Switch Cell for Availability Toggle
+const AvailabilityToggleCell = ({ rowId, isAvailable, onToggle }) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleToggle = async (e) => {
+    setLoading(true);
+    try {
+      await onToggle(rowId, 'isAvailable', e.target.checked);
+    } catch (err) {
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2 h-full" onClick={(e) => e.stopPropagation()}>
+      {loading ? (
+        <span className="w-3.5 h-3.5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></span>
+      ) : (
+        <input
+          type="checkbox"
+          checked={isAvailable}
+          onChange={handleToggle}
+          className="w-4 h-4 rounded border-slate-300 text-primary-600 cursor-pointer focus:ring-primary-500 accent-primary-600"
+        />
+      )}
+      <span className={isAvailable ? "text-emerald-650 font-bold text-xs" : "text-rose-650 font-bold text-xs"}>
+        {isAvailable ? "Active" : "Inactive"}
+      </span>
+    </div>
+  );
+};
+
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -251,6 +430,33 @@ const AdminProducts = () => {
     }
   };
 
+  const handleBulkAvailability = async (isAvailable) => {
+    const selectedCount = selectedIds.ids?.size || 0;
+    if (selectedCount === 0) return;
+
+    try {
+      for (const id of selectedIds.ids) {
+        await adminAPI.updateProduct(id, { isAvailable });
+      }
+      showToastMsg('success', `Updated availability for ${selectedCount} products.`);
+      setSelectedIds({ type: 'include', ids: new Set() });
+      fetchProductsAndCategories();
+    } catch (err) {
+      showToastMsg('error', 'Failed to update availability.');
+    }
+  };
+
+  const handleInlineUpdate = async (id, field, value) => {
+    try {
+      await adminAPI.updateProduct(id, { [field]: value });
+      showToastMsg('success', `Updated product ${field} successfully.`);
+      fetchProductsAndCategories();
+    } catch (err) {
+      showToastMsg('error', err.response?.data?.message || `Failed to update product ${field}.`);
+      throw err;
+    }
+  };
+
   const handleBulkPriceUpdate = async () => {
     const changePct = Number(bulkPriceChange);
     if (!changePct || isNaN(changePct)) return;
@@ -385,6 +591,7 @@ const AdminProducts = () => {
     price: p.price,
     discount: p.discount,
     stock: p.stock,
+    mrp: p.mrp || p.price,
     deliveryTime: p.deliveryTime,
     isAvailable: p.isAvailable,
     productRaw: p
@@ -394,13 +601,13 @@ const AdminProducts = () => {
     { 
       field: 'image', 
       headerName: 'Preview', 
-      width: 80,
+      width: 70,
       renderCell: (params) => (
-        <div className="w-10 h-10 bg-slate-50 border border-slate-100 rounded-xl overflow-hidden flex items-center justify-center shadow-inner mt-1">
+        <div className="w-9 h-9 bg-slate-50 border border-slate-100 rounded-xl overflow-hidden flex items-center justify-center shadow-inner mt-1.5">
           <img
             src={getAdminThumbnail(params.row.productRaw)}
             alt={params.row.name}
-            className="w-8 h-8 object-contain"
+            className="w-7 h-7 object-contain"
           />
         </div>
       )
@@ -408,25 +615,60 @@ const AdminProducts = () => {
     { 
       field: 'name', 
       headerName: 'Product Name', 
-      width: 220,
+      width: 180,
       renderCell: (params) => (
         <div className="min-w-0 py-1">
           <span className="font-extrabold text-slate-800 block truncate leading-tight">{params.row.name}</span>
-          <span className="text-[9px] text-slate-400 block truncate leading-none mt-0.5">{params.row.description}</span>
+          <span className="text-[9px] text-slate-450 block truncate leading-none mt-0.5">{params.row.description}</span>
         </div>
       )
     },
-    { field: 'category', headerName: 'Category', width: 130 },
+    { field: 'category', headerName: 'Category', width: 110 },
+    { 
+      field: 'mrp', 
+      headerName: 'MRP', 
+      width: 95,
+      renderCell: (params) => (
+        <InlineEditCell
+          rowId={params.row.id}
+          field="mrp"
+          initialValue={params.row.mrp}
+          onSave={handleInlineUpdate}
+          prefix="₹"
+        />
+      )
+    },
     { 
       field: 'price', 
-      headerName: 'Price', 
-      width: 90,
-      renderCell: (params) => <span className="font-bold text-slate-700">₹{params.value}</span>
+      headerName: 'Base Price', 
+      width: 95,
+      renderCell: (params) => (
+        <InlineEditCell
+          rowId={params.row.id}
+          field="price"
+          initialValue={params.row.price}
+          onSave={handleInlineUpdate}
+          prefix="₹"
+        />
+      )
+    },
+    { 
+      field: 'offerPrice', 
+      headerName: 'Offer Price', 
+      width: 95,
+      renderCell: (params) => (
+        <OfferPriceCell
+          rowId={params.row.id}
+          price={params.row.price}
+          discount={params.row.discount}
+          onSave={handleInlineUpdate}
+        />
+      )
     },
     { 
       field: 'discount', 
       headerName: 'Discount', 
-      width: 95,
+      width: 90,
       renderCell: (params) => params.value > 0 ? (
         <span className="px-1.5 py-0.5 bg-rose-50 border border-rose-100 text-rose-750 rounded-lg text-[9px] font-black">
           {params.value}% OFF
@@ -436,32 +678,33 @@ const AdminProducts = () => {
     { 
       field: 'stock', 
       headerName: 'Stock', 
-      width: 100,
+      width: 95,
       renderCell: (params) => (
-        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black border ${
-          params.value === 0 ? 'bg-rose-50 text-rose-705 border-rose-100' :
-          params.value <= 5 ? 'bg-amber-50 text-amber-700 border-amber-100' :
-          'bg-slate-50 text-slate-700 border-slate-200'
-        }`}>
-          {params.value} Units
-        </span>
+        <InlineEditCell
+          rowId={params.row.id}
+          field="stock"
+          initialValue={params.row.stock}
+          onSave={handleInlineUpdate}
+        />
       )
     },
-    { field: 'deliveryTime', headerName: 'Logistics', width: 120 },
+    { field: 'deliveryTime', headerName: 'Logistics', width: 100 },
     {
       field: 'isAvailable',
-      headerName: 'Status',
-      width: 100,
-      renderCell: (params) => params.value && params.row.stock > 0 ? (
-        <span className="text-emerald-650 font-bold text-xs">Active</span>
-      ) : (
-        <span className="text-red-505 font-bold text-xs">Sold Out</span>
+      headerName: 'Availability',
+      width: 110,
+      renderCell: (params) => (
+        <AvailabilityToggleCell
+          rowId={params.row.id}
+          isAvailable={params.row.isAvailable}
+          onToggle={handleInlineUpdate}
+        />
       )
     },
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 110,
+      width: 85,
       sortable: false,
       renderCell: (params) => (
         <div className="flex items-center gap-1.5 h-full">
@@ -469,13 +712,13 @@ const AdminProducts = () => {
             onClick={() => handleOpenEditModal(params.row.productRaw)}
             className="p-1.5 text-blue-600 hover:bg-blue-50 border border-slate-100 rounded-lg transition-colors shadow-sm bg-white"
           >
-            <Edit2 size={12} />
+            <Edit2 size={11} />
           </button>
           <button
             onClick={() => handleDelete(params.row.id, params.row.name)}
             className="p-1.5 text-red-500 hover:bg-red-50 border border-slate-100 rounded-lg transition-colors shadow-sm bg-white"
           >
-            <Trash2 size={12} />
+            <Trash2 size={11} />
           </button>
         </div>
       )
@@ -687,6 +930,20 @@ const AdminProducts = () => {
                   </button>
                 </div>
 
+                {/* Bulk Status Enable/Disable */}
+                <button
+                  onClick={() => handleBulkAvailability(true)}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] px-3 py-1.5 rounded-xl transition-colors"
+                >
+                  Enable Selected
+                </button>
+                <button
+                  onClick={() => handleBulkAvailability(false)}
+                  className="bg-slate-500 hover:bg-slate-650 text-white font-bold text-[10px] px-3 py-1.5 rounded-xl transition-colors"
+                >
+                  Disable Selected
+                </button>
+
                 {/* Bulk Delete */}
                 <button
                   onClick={handleBulkDelete}
@@ -766,9 +1023,12 @@ const AdminProducts = () => {
                   pageSizeOptions={[5, 10, 20]}
                   checkboxSelection
                   onRowSelectionModelChange={(newSelectionModel) => {
-                    setSelectedIds(newSelectionModel);
+                    setSelectedIds({
+                      type: 'include',
+                      ids: new Set(newSelectionModel)
+                    });
                   }}
-                  rowSelectionModel={selectedIds}
+                  rowSelectionModel={Array.from(selectedIds.ids || [])}
                   disableRowSelectionOnClick
                 />
               </div>

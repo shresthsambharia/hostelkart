@@ -8,17 +8,18 @@ import { useAuth } from '../context/AuthContext';
 import { 
   Search, Sparkles, Clock, Home as HomeIcon, 
   ShieldCheck, ShoppingBag, TrendingUp, HelpCircle, Eye, ArrowRight,
-  Zap, Flame, Percent, ChevronRight, Award
+  Zap, Flame, Percent, ChevronRight, Award, MapPin
 } from 'lucide-react';
+import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants';
 
 const staticCategories = [
-  { name: 'Fruits', emoji: '🍎', bg: 'bg-red-50 hover:bg-red-100/80 border-red-100' },
-  { name: 'Vegetables', emoji: '🥦', bg: 'bg-emerald-50 hover:bg-emerald-100/80 border-emerald-100' },
-  { name: 'Stationery', emoji: '📚', bg: 'bg-indigo-50 hover:bg-indigo-100/80 border-indigo-100' },
-  { name: 'Electronics Accessories', emoji: '🔌', bg: 'bg-amber-50 hover:bg-amber-100/80 border-amber-100' },
-  { name: 'Personal Care', emoji: '🧼', bg: 'bg-teal-50 hover:bg-teal-100/80 border-teal-100' },
-  { name: 'Dairy Products', emoji: '🧀', bg: 'bg-orange-50 hover:bg-orange-100/80 border-orange-100' },
-  { name: 'Medicines', emoji: '💊', bg: 'bg-pink-50 hover:bg-pink-100/80 border-pink-100' }
+  { name: 'Fruits', emoji: '🍎', bg: 'bg-red-50 hover:bg-red-100/80 border-red-100 text-red-650' },
+  { name: 'Vegetables', emoji: '🥦', bg: 'bg-emerald-50 hover:bg-emerald-100/80 border-emerald-100 text-emerald-650' },
+  { name: 'Stationery', emoji: '📚', bg: 'bg-indigo-50 hover:bg-indigo-100/80 border-indigo-100 text-indigo-650' },
+  { name: 'Electronics Accessories', emoji: '🔌', bg: 'bg-amber-50 hover:bg-amber-100/80 border-amber-100 text-amber-650' },
+  { name: 'Personal Care', emoji: '🧼', bg: 'bg-teal-50 hover:bg-teal-100/80 border-teal-100 text-teal-650' },
+  { name: 'Dairy Products', emoji: '🧀', bg: 'bg-orange-50 hover:bg-orange-100/80 border-orange-100 text-orange-650' },
+  { name: 'Medicines', emoji: '💊', bg: 'bg-pink-50 hover:bg-pink-100/80 border-pink-100 text-pink-650' }
 ];
 
 const promoBanners = [
@@ -47,6 +48,12 @@ const promoBanners = [
 
 const Home = () => {
   const { user } = useAuth();
+  const isAdmin = user && user.role === 'admin';
+  const visibleCategories = isAdmin 
+    ? staticCategories 
+    : staticCategories.filter(cat => STUDENT_VISIBLE_CATEGORIES.includes(cat.name));
+
+  const [searchTerm, setSearchTerm] = useState('');
   const [recs, setRecs] = useState({
     buyAgain: [],
     trending: [],
@@ -115,6 +122,74 @@ const Home = () => {
     };
   }, [user]);
 
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchTerm.trim())}`);
+    }
+  };
+
+  const getGreeting = () => {
+    const hr = new Date().getHours();
+    if (hr < 12) return 'Good morning';
+    if (hr < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  // horizontal scroll helper for mobile layout
+  const renderProductSection = (title, subtitle, icon, items, loading, placeholder) => {
+    if (!loading && (!items || items.length === 0)) {
+      return placeholder ? (
+        <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-4">
+          <div className="flex justify-between items-baseline select-none">
+            <div>
+              <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                {icon}
+                <span>{title}</span>
+              </h2>
+              <p className="text-[10px] text-slate-450 font-bold uppercase mt-0.5">{subtitle}</p>
+            </div>
+          </div>
+          <div className="text-center py-8 bg-white rounded-3xl border border-slate-100 select-none">
+            <p className="text-slate-450 text-xs font-bold">{placeholder}</p>
+          </div>
+        </section>
+      ) : null;
+    }
+
+    return (
+      <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-4">
+        <div className="flex justify-between items-baseline select-none">
+          <div>
+            <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              {icon}
+              <span>{title}</span>
+            </h2>
+            <p className="text-[10px] text-slate-450 font-bold uppercase mt-0.5">{subtitle}</p>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex sm:grid sm:grid-cols-5 overflow-x-auto sm:overflow-visible gap-4 pb-4 sm:pb-0 scrollbar-none snap-x snap-mandatory">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="min-w-[170px] sm:min-w-0 snap-align-start shrink-0">
+                <ProductCardSkeleton />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex sm:grid sm:grid-cols-5 overflow-x-auto sm:overflow-visible gap-4 pb-4 sm:pb-0 scrollbar-none snap-x snap-mandatory animate-fade-in" style={{ scrollbarWidth: 'none' }}>
+            {items.filter(p => p && p._id).slice(0, 8).map((product) => (
+              <div key={product._id} className="min-w-[170px] sm:min-w-0 snap-align-start shrink-0">
+                <ProductCard product={product} />
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    );
+  };
+
   return (
     <div className="space-y-8 sm:space-y-12 pb-24 bg-slate-50/15">
       <SEO 
@@ -122,13 +197,63 @@ const Home = () => {
         description="HostelKart delivers fresh fruits, vegetables, study stationery, snacks, and room hygiene products directly to your hostel room floor."
       />
       
-      {/* 1. Header Promo Slider */}
-      <section className="px-4 sm:px-8 pt-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Mobile Sticky Search Bar Header */}
+      <div className="sticky top-0 z-45 bg-emerald-600 text-white px-4 py-3 shadow-md md:hidden flex flex-col gap-2">
+        <div className="flex items-center gap-2 select-none">
+          <div className="bg-white/10 p-1.5 rounded-full">
+            <MapPin className="w-4 h-4 text-emerald-100" />
+          </div>
+          <div>
+            <div className="text-[10px] font-bold text-emerald-100 uppercase tracking-wider">{getGreeting()}, {user?.name || 'Student'}</div>
+            <div className="text-xs font-black truncate max-w-[250px]">Hostel Block Delivery Area</div>
+          </div>
+        </div>
+        <form onSubmit={handleSearchSubmit} className="relative mt-1">
+          <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder='Search "medicines", "fruits" or "snacks"...'
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-white border-none pl-10 pr-4 py-2.5 rounded-2xl text-xs font-bold text-slate-700 placeholder-slate-400 focus:ring-2 focus:ring-emerald-300 outline-none transition-all shadow-sm"
+          />
+        </form>
+      </div>
+
+      {/* Desktop Welcome Hero / Title Banner */}
+      <div className="hidden md:block max-w-7xl mx-auto px-8 pt-8">
+        <div className="bg-emerald-50 border border-emerald-100/50 rounded-3xl p-6 flex justify-between items-center shadow-premium-sm">
+          <div className="space-y-1">
+            <h1 className="text-xl font-black text-slate-800 leading-tight">
+              {getGreeting()}, {user?.name || 'Hostelite'}! 👋
+            </h1>
+            <p className="text-xs text-slate-500 font-bold uppercase">
+              HostelKart delivers daily essentials straight to your door.
+            </p>
+          </div>
+          <form onSubmit={handleSearchSubmit} className="relative w-80">
+            <Search className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search products, brands and items..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-white border border-slate-200 pl-10 pr-4 py-3 rounded-2xl text-xs font-bold text-slate-700 focus:ring-1 focus:ring-primary-500 outline-none transition-all shadow-sm"
+            />
+          </form>
+        </div>
+      </div>
+      
+      {/* 1. Header Promo Banners - horizontal scroll snap on mobile, grid on desktop */}
+      <section className="px-4 sm:px-8">
+        <div 
+          className="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto md:overflow-visible pb-3 md:pb-0 snap-x snap-mandatory scrollbar-none"
+          style={{ scrollbarWidth: 'none' }}
+        >
           {promoBanners.map((banner, idx) => (
             <div 
               key={idx}
-              className={`relative overflow-hidden bg-gradient-to-br ${banner.bg} text-white rounded-3xl p-6 shadow-premium hover:shadow-premium-hover hover:-translate-y-0.5 transition-all duration-300 select-none flex flex-col justify-between min-h-[140px] border border-white/5`}
+              className={`relative overflow-hidden bg-gradient-to-br ${banner.bg} text-white rounded-3xl p-6 shadow-premium hover:shadow-premium-hover hover:-translate-y-0.5 transition-all duration-300 select-none flex flex-col justify-between min-h-[140px] border border-white/5 min-w-[280px] sm:min-w-0 snap-align-start shrink-0`}
             >
               <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-white/5 blur-2xl pointer-events-none"></div>
               <div className="space-y-1">
@@ -149,7 +274,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* 2. Browse Categories grid */}
+      {/* 2. Browse Categories Grid */}
       <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-4">
         <div className="flex items-baseline justify-between select-none">
           <div>
@@ -164,196 +289,94 @@ const Home = () => {
           </Link>
         </div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-3">
-          {staticCategories.map((cat) => (
+        {/* Mobile: 4x2 grid with "More" card. Desktop: 7 columns grid */}
+        <div className={`grid grid-cols-4 md:grid-cols-${isAdmin ? 7 : Math.max(visibleCategories.length, 2)} gap-3`}>
+          {visibleCategories.map((cat) => (
             <Link
               key={cat.name}
               to={`/products?category=${encodeURIComponent(cat.name)}`}
-              className={`p-4 bg-white border ${cat.bg} border-slate-100 rounded-3xl hover:shadow-premium transition-all duration-300 text-center flex flex-col items-center space-y-3 shadow-premium-sm`}
+              className={`p-3.5 bg-white border ${cat.bg} border-slate-100/50 rounded-2.5xl hover:shadow-premium-hover hover:-translate-y-0.5 transition-all duration-300 text-center flex flex-col items-center justify-between shadow-premium-sm group`}
             >
-              <div className="w-12 h-12 rounded-2xl bg-white border border-slate-150 flex items-center justify-center text-xl shadow-inner group-hover:scale-105 transition-all">
+              <div className="w-11 h-11 rounded-2xl bg-white border border-slate-150 flex items-center justify-center text-xl shadow-inner transition-transform duration-300 group-hover:scale-105">
                 {cat.emoji}
               </div>
-              <span className="text-[11px] font-black text-slate-700 block truncate w-full">
+              <span className="text-[10px] font-black text-slate-700 block truncate w-full mt-2">
                 {cat.name}
               </span>
             </Link>
           ))}
+          {/* Mobile "More" block to fill the 8th grid slot */}
+          <Link
+            to="/products"
+            className="p-3.5 bg-white border border-slate-100 rounded-2.5xl hover:shadow-premium-hover hover:-translate-y-0.5 transition-all duration-300 text-center flex flex-col items-center justify-between shadow-premium-sm md:hidden text-primary-600 bg-emerald-50 border-emerald-100 group"
+          >
+            <div className="w-11 h-11 rounded-2xl bg-white border border-slate-150 flex items-center justify-center text-lg shadow-inner transition-transform duration-300 group-hover:scale-105">
+              ✨
+            </div>
+            <span className="text-[10px] font-black block truncate w-full mt-2">
+              See All
+            </span>
+          </Link>
         </div>
       </section>
 
-      {/* 3. Flash Deals Horizontal list */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-4">
-        <div className="flex justify-between items-baseline select-none">
-          <div>
-            <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-              <Zap className="w-4 h-4 text-amber-500 animate-pulse fill-amber-500" />
-              Flash Deals
-            </h2>
-            <p className="text-[10px] text-slate-450 font-bold uppercase mt-0.5">Top price-drop items flying off shelves</p>
-          </div>
-        </div>
-
-        {recsLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <ProductCardSkeleton key={i} />
-            ))}
-          </div>
-        ) : recs.trending?.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {recs.trending.filter(p => p && p._id).slice(0, 5).map((product) => (
-              <ProductCard key={product._id} product={product} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-10 bg-white rounded-3xl border border-slate-100 select-none">
-            <p className="text-slate-450 text-xs font-bold">No active promotional deals right now.</p>
-          </div>
-        )}
-      </section>
-
-      {/* 4. Buy It Again list */}
-      {user && (recsLoading || recs.buyAgain?.length > 0) && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-4">
-          <div className="flex justify-between items-baseline select-none">
-            <div>
-              <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-emerald-600 animate-pulse" />
-                Buy It Again
-              </h2>
-              <p className="text-[10px] text-slate-450 font-bold uppercase mt-0.5">Quick purchase your favorites</p>
-            </div>
-          </div>
-
-          {recsLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, i) => (
-                <ProductCardSkeleton key={i} />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {recs.buyAgain.filter(p => p && p._id).slice(0, 5).map((product) => (
-                <ProductCard key={product._id} product={product} />
-              ))}
-            </div>
-          )}
-        </section>
+      {/* 3. Flash Deals Horizontal List */}
+      {renderProductSection(
+        "Flash Deals",
+        "Top price-drop items flying off shelves",
+        <Zap className="w-4 h-4 text-amber-500 animate-pulse fill-amber-500" />,
+        recs.trending,
+        recsLoading,
+        "No active promotional deals right now."
       )}
 
-      {/* 5. Recently Viewed list */}
-      {recentViews.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-4">
-          <div className="flex justify-between items-baseline select-none">
-            <div>
-              <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                <Eye className="w-4 h-4 text-primary-500" />
-                Recently Viewed Items
-              </h2>
-              <p className="text-[10px] text-slate-450 font-bold uppercase mt-0.5">Pick up right where you left off</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {recentViews.filter(p => p && typeof p === 'object' && p._id).map((product) => (
-              <ProductCard key={product._id} product={product} />
-            ))}
-          </div>
-        </section>
+      {/* 4. Buy It Again List */}
+      {user && (recsLoading || recs.buyAgain?.length > 0) && renderProductSection(
+        "Buy It Again",
+        "Quick purchase your favorites",
+        <Clock className="w-4 h-4 text-emerald-600 animate-pulse" />,
+        recs.buyAgain,
+        recsLoading
       )}
 
-      {/* 6. Recommended For You list */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-4">
-        <div className="flex justify-between items-baseline select-none">
-          <div>
-            <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-purple-500 animate-bounce fill-purple-500" />
-              Recommended For You
-            </h2>
-            <p className="text-[10px] text-slate-450 font-bold uppercase mt-0.5">Curated recommendations for your dorm desk</p>
-          </div>
-        </div>
+      {/* 5. Recently Viewed List */}
+      {recentViews.length > 0 && renderProductSection(
+        "Recently Viewed Items",
+        "Pick up right where you left off",
+        <Eye className="w-4 h-4 text-primary-500" />,
+        recentViews,
+        false
+      )}
 
-        {delayedRecsLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <ProductCardSkeleton key={i} />
-            ))}
-          </div>
-        ) : recs.recommendedForYou?.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {recs.recommendedForYou.filter(p => p && p._id).slice(0, 5).map((product) => (
-              <ProductCard key={product._id} product={product} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-10 bg-white rounded-3xl border border-slate-100 select-none">
-            <p className="text-slate-450 text-xs font-bold">Sign in to trigger personalized recommendations.</p>
-          </div>
-        )}
-      </section>
+      {/* 6. Recommended For You List */}
+      {renderProductSection(
+        "Recommended For You",
+        "Curated recommendations for your dorm desk",
+        <Sparkles className="w-4 h-4 text-purple-500 animate-bounce fill-purple-500" />,
+        recs.recommendedForYou,
+        delayedRecsLoading,
+        "Sign in to trigger personalized recommendations."
+      )}
 
-      {/* 7. Students Also Bought list */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-4">
-        <div className="flex justify-between items-baseline select-none">
-          <div>
-            <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-              <HomeIcon className="w-4 h-4 text-indigo-500 fill-indigo-500" />
-              Popular in Your Hostel
-            </h2>
-            <p className="text-[10px] text-slate-455 font-bold uppercase mt-0.5">Commonly ordered campus products</p>
-          </div>
-        </div>
+      {/* 7. Popular in Hostel List */}
+      {renderProductSection(
+        "Popular in Your Hostel",
+        "Commonly ordered campus products",
+        <HomeIcon className="w-4 h-4 text-indigo-500 fill-indigo-500" />,
+        recs.studentsAlsoBought,
+        delayedRecsLoading,
+        "No trending popular purchases logged."
+      )}
 
-        {delayedRecsLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <ProductCardSkeleton key={i} />
-            ))}
-          </div>
-        ) : recs.studentsAlsoBought?.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {recs.studentsAlsoBought.filter(p => p && p._id).slice(0, 5).map((product) => (
-              <ProductCard key={product._id} product={product} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-10 bg-white rounded-3xl border border-slate-100 select-none">
-            <p className="text-slate-455 text-xs font-bold">No trending popular purchases logged.</p>
-          </div>
-        )}
-      </section>
-
-      {/* 8. Frequently Bought Together list */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-4">
-        <div className="flex justify-between items-baseline select-none">
-          <div>
-            <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-              <Award className="w-4 h-4 text-emerald-500 animate-pulse fill-emerald-55" />
-              Frequently Bought Together
-            </h2>
-            <p className="text-[10px] text-slate-450 font-bold uppercase mt-0.5">Common product pack combinations</p>
-          </div>
-        </div>
-
-        {delayedRecsLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <ProductCardSkeleton key={i} />
-            ))}
-          </div>
-        ) : recs.frequentlyBoughtTogether?.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {recs.frequentlyBoughtTogether.filter(p => p && p._id).slice(0, 5).map((product) => (
-              <ProductCard key={product._id} product={product} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-10 bg-white rounded-3xl border border-slate-100 select-none">
-            <p className="text-slate-455 text-xs font-bold">No combo pairs matched right now.</p>
-          </div>
-        )}
-      </section>
+      {/* 8. Frequently Bought Together List */}
+      {renderProductSection(
+        "Frequently Bought Together",
+        "Common product pack combinations",
+        <Award className="w-4 h-4 text-emerald-500 animate-pulse fill-emerald-500" />,
+        recs.frequentlyBoughtTogether,
+        delayedRecsLoading,
+        "No combo pairs matched right now."
+      )}
     </div>
   );
 };

@@ -21,7 +21,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'Outfit', 'sans-serif'],
+        sans: ['Outfit', 'Inter', 'sans-serif'],
       },
     },
   },
