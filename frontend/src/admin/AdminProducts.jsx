@@ -879,11 +879,11 @@ const AdminProducts = () => {
           </div>
 
           {/* Bulk Operations Overlay Control */}
-          {(selectedIds.ids?.size || 0) > 0 && (
+          {(selectedIds?.ids?.size || 0) > 0 && (
             <div className="bg-primary-50 border border-primary-150 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 animate-slide-up">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black text-primary-800 bg-primary-100 border border-primary-200 px-2.5 py-1 rounded-xl shadow-sm">
-                  {selectedIds.ids.size} Selected
+                  {selectedIds?.ids?.size || 0} Selected
                 </span>
                 <button
                   onClick={() => setSelectedIds({ type: 'include', ids: new Set() })}
@@ -1012,8 +1012,8 @@ const AdminProducts = () => {
             <ThemeProvider theme={dataGridTheme}>
               <div style={{ height: 500, width: '100%' }} className="bg-white rounded-2xl overflow-hidden font-sans">
                 <DataGrid
-                  rows={rows}
-                  columns={columns}
+                  rows={Array.isArray(rows) ? rows : []}
+                  columns={Array.isArray(columns) ? columns : []}
                   loading={loading}
                   initialState={{
                     pagination: {
@@ -1025,10 +1025,10 @@ const AdminProducts = () => {
                   onRowSelectionModelChange={(newSelectionModel) => {
                     setSelectedIds({
                       type: 'include',
-                      ids: new Set(newSelectionModel)
+                      ids: new Set(newSelectionModel || [])
                     });
                   }}
-                  rowSelectionModel={Array.from(selectedIds.ids || [])}
+                  rowSelectionModel={Array.from(selectedIds?.ids || [])}
                   disableRowSelectionOnClick
                 />
               </div>

@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import {
   User, Phone, MapPin, Key, CheckCircle, ShoppingBag, ArrowRight,
   Shield, Bike, ClipboardList, Layers, ShieldCheck, ShieldAlert,
-  Copy, Check, Lock, X, Download, RefreshCw, AlertCircle
+  Copy, Check, Lock, X, Download, RefreshCw, AlertCircle,
+  Wallet, Gift, CreditCard, HelpCircle
 } from 'lucide-react';
 import { orderAPI, authAPI } from '../api';
 import { Link } from 'react-router-dom';
@@ -302,6 +303,34 @@ const Profile = () => {
                 <span className="flex items-center gap-2">
                   <Layers size={15} className="text-primary-600" />
                   <span>Custom Request</span>
+                </span>
+                <ArrowRight size={12} className="text-slate-400" />
+              </Link>
+              <Link to="/wallet" className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl shadow-premium-sm hover:border-slate-200 transition-all font-bold text-xs text-slate-700">
+                <span className="flex items-center gap-2">
+                  <Wallet size={15} className="text-primary-600" />
+                  <span>My Wallet</span>
+                </span>
+                <ArrowRight size={12} className="text-slate-400" />
+              </Link>
+              <Link to="/referrals" className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl shadow-premium-sm hover:border-slate-200 transition-all font-bold text-xs text-slate-700">
+                <span className="flex items-center gap-2">
+                  <Gift size={15} className="text-primary-600" />
+                  <span>Refer & Earn</span>
+                </span>
+                <ArrowRight size={12} className="text-slate-400" />
+              </Link>
+              <Link to="/payment-history" className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl shadow-premium-sm hover:border-slate-200 transition-all font-bold text-xs text-slate-700">
+                <span className="flex items-center gap-2">
+                  <CreditCard size={15} className="text-primary-600" />
+                  <span>Payment History</span>
+                </span>
+                <ArrowRight size={12} className="text-slate-400" />
+              </Link>
+              <Link to="/support" className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl shadow-premium-sm hover:border-slate-200 transition-all font-bold text-xs text-slate-700 col-span-1 sm:col-span-3">
+                <span className="flex items-center gap-2">
+                  <HelpCircle size={15} className="text-primary-600" />
+                  <span>Support Desk</span>
                 </span>
                 <ArrowRight size={12} className="text-slate-400" />
               </Link>

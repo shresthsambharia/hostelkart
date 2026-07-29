@@ -220,7 +220,7 @@ const DeliveryHistory = () => {
                     {/* Action */}
                     <td className="p-4 text-center">
                       <Link
-                        to={`/orders/track/${ord._id}`}
+                        to={`/orders/${ord._id}/tracking`}
                         className="inline-flex p-1.5 bg-slate-100 hover:bg-primary-50 text-slate-600 hover:text-primary-600 rounded-lg transition-colors"
                         title="View tracking status page"
                       >

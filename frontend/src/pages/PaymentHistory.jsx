@@ -170,7 +170,7 @@ const PaymentHistory = () => {
 
                 <div className="flex justify-between items-center pt-2">
                   <Link 
-                    to={`/orders/track/${order._id}`}
+                    to={`/orders/${order._id}/tracking`}
                     className="text-xs text-primary-600 hover:text-primary-700 font-bold flex items-center"
                   >
                     <span>View Track Details</span>

@@ -512,15 +512,13 @@ const Navbar = () => {
                 </div>
               )}
 
-              {/* Profile Dropdown Menu */}
+              {/* Direct Profile, My Orders, and Logout controls */}
               {user ? (
-                <div className="relative">
-                  <button
-                    onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                    className="flex items-center space-x-2 text-xs font-bold text-slate-700 hover:text-primary-600 focus:outline-none py-2"
-                    aria-label="User profile menu"
-                    aria-haspopup="true"
-                    aria-expanded={profileDropdownOpen}
+                <div className="flex items-center space-x-4 select-none">
+                  <Link
+                    to="/profile"
+                    className="flex items-center space-x-2 text-xs font-bold text-slate-700 hover:text-primary-600 transition-colors py-2"
+                    aria-label="User profile"
                   >
                     <div className="w-7 h-7 rounded-full bg-primary-100 text-primary-800 flex items-center justify-center font-black border border-primary-200">
                       {user.name.charAt(0).toUpperCase()}
@@ -533,81 +531,33 @@ const Navbar = () => {
                         </span>
                       )}
                     </span>
-                  </button>
+                  </Link>
 
-                  {profileDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-lg py-1.5 z-50 animate-slide-down">
-                      <div className="px-4 py-2 border-b border-slate-150">
-                        <p className="text-[10px] text-slate-400 font-bold uppercase">Account</p>
-                        <p className="text-xs font-bold text-slate-750 truncate">{user.email}</p>
-                        <span className="inline-block mt-1 px-2 py-0.5 text-[9px] font-black uppercase rounded bg-primary-50 text-primary-700">
-                          {user.role}
-                        </span>
-                      </div>
-
-                      <Link
-                        to="/profile"
-                        onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-primary-600"
-                      >
-                        <User size={14} className="mr-2" />
-                        My Profile
-                      </Link>
-
-                      {user.role === 'student' && (
-                        <>
-                          <Link
-                            to="/wallet"
-                            onClick={() => setProfileDropdownOpen(false)}
-                            className="flex items-center px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-primary-600"
-                          >
-                            <Wallet size={14} className="mr-2" />
-                            My Wallet
-                          </Link>
-                          <Link
-                            to="/referrals"
-                            onClick={() => setProfileDropdownOpen(false)}
-                            className="flex items-center px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-primary-600"
-                          >
-                            <Gift size={14} className="mr-2" />
-                            Refer & Earn
-                          </Link>
-                          <Link
-                            to="/payment-history"
-                            onClick={() => setProfileDropdownOpen(false)}
-                            className="flex items-center px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-primary-600"
-                          >
-                            <CreditCard size={14} className="mr-2" />
-                            Payment History
-                          </Link>
-                          <Link
-                            to="/support"
-                            onClick={() => setProfileDropdownOpen(false)}
-                            className="flex items-center px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-primary-600"
-                          >
-                            <HelpCircle size={14} className="mr-2" />
-                            Support Desk
-                          </Link>
-                        </>
-                      )}
-
-                      <button
-                        onClick={handleLogoutClick}
-                        className="flex items-center w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 border-t border-slate-50 mt-1"
-                      >
-                        <LogOut size={14} className="mr-2" />
-                        Logout
-                      </button>
-                    </div>
+                  {user.role === 'student' && (
+                    <Link
+                      to="/myorders"
+                      className="text-xs font-extrabold uppercase tracking-wider text-slate-600 hover:text-primary-600 transition-colors"
+                    >
+                      My Orders
+                    </Link>
                   )}
+
+                  <button
+                    onClick={handleLogoutClick}
+                    className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-rose-600 hover:text-rose-700 transition-colors bg-rose-50 hover:bg-rose-100/60 px-3.5 py-2 rounded-xl border border-rose-100/50"
+                  >
+                    <LogOut size={13} />
+                    <span>Logout</span>
+                  </button>
                 </div>
               ) : (
-                <div className="flex items-center space-x-3">
-                  <Link to="/login" className="text-xs font-extrabold uppercase tracking-wider text-slate-700 hover:text-primary-600 transition-colors">
-                    Sign In
+                <div className="flex items-center space-x-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-700 select-none">
+                  <Link to="/login" className="hover:text-primary-600 transition-colors">
+                    Login
                   </Link>
-                  <Link to="/register" className="btn-primary py-2 px-4 text-xs font-bold min-h-0 rounded-xl">
-                    Sign Up
+                  <span className="text-slate-300">/</span>
+                  <Link to="/register" className="hover:text-primary-600 transition-colors">
+                    Register
                   </Link>
                 </div>
               )}

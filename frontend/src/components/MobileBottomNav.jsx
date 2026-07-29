@@ -1,41 +1,58 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Search, ShoppingCart, User, ClipboardList, Settings, Users, ShoppingBag, Truck } from 'lucide-react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Home, Search, ShoppingCart, User, ClipboardList, Settings, Users, ShoppingBag, Truck, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 
 const MobileBottomNav = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { itemsCount } = useCart();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  // If user is not logged in or is student
+  // Handle mobile logout click
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  // If user is not logged in: Guest Links
+  const guestLinks = [
+    { name: 'Home', path: '/', icon: <Home size={20} /> },
+    { name: 'Shop', path: '/products', icon: <Search size={20} /> },
+    { name: 'Cart', path: '/cart', icon: <ShoppingCart size={20} />, badge: itemsCount },
+    { name: 'Login', path: '/login', icon: <User size={20} /> },
+    { name: 'Register', path: '/register', icon: <Users size={20} /> },
+  ];
+
   const studentLinks = [
     { name: 'Home', path: '/', icon: <Home size={20} /> },
     { name: 'Shop', path: '/products', icon: <Search size={20} /> },
-    { name: 'Orders', path: user ? '/myorders' : '/login', icon: <ClipboardList size={20} /> },
-    { name: 'Cart', path: user ? '/cart' : '/login', icon: <ShoppingCart size={20} />, badge: itemsCount },
-    { name: 'Profile', path: user ? '/profile' : '/login', icon: <User size={20} /> },
+    { name: 'Orders', path: '/myorders', icon: <ClipboardList size={20} /> },
+    { name: 'Profile', path: '/profile', icon: <User size={20} /> },
+    { name: 'Logout', path: '/logout', icon: <LogOut size={20} />, isLogout: true },
   ];
 
   const deliveryLinks = [
     { name: 'Dashboard', path: '/delivery/dashboard', icon: <Truck size={20} /> },
     { name: 'History', path: '/delivery/history', icon: <ClipboardList size={20} /> },
     { name: 'Profile', path: '/profile', icon: <User size={20} /> },
+    { name: 'Logout', path: '/logout', icon: <LogOut size={20} />, isLogout: true },
   ];
 
   const adminLinks = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: <Home size={20} /> },
     { name: 'Orders', path: '/admin/orders', icon: <ClipboardList size={20} /> },
     { name: 'Products', path: '/admin/products', icon: <ShoppingBag size={20} /> },
-    { name: 'Users', path: '/admin/users', icon: <Users size={20} /> },
-    { name: 'Settings', path: '/admin/settings', icon: <Settings size={20} /> },
+    { name: 'Profile', path: '/profile', icon: <User size={20} /> },
+    { name: 'Logout', path: '/logout', icon: <LogOut size={20} />, isLogout: true },
   ];
 
-  let links = studentLinks;
+  let links = guestLinks;
   if (user) {
     if (user.role === 'admin') links = adminLinks;
     else if (user.role === 'delivery') links = deliveryLinks;
+    else links = studentLinks;
   }
 
   // Helper to determine if a route is active
@@ -47,6 +64,21 @@ const MobileBottomNav = () => {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-100 px-2 py-2.5 flex items-center justify-around md:hidden shadow-[0_-4px_16px_rgba(0,0,0,0.04)] pb-[calc(10px+safe-area-inset-bottom)]">
       {links.map((link) => {
+        if (link.isLogout) {
+          return (
+            <button
+              key={link.name}
+              onClick={handleLogout}
+              className="flex flex-col items-center justify-center relative w-12 text-center transition-colors text-rose-600 font-bold"
+            >
+              <div className="relative p-1">
+                {link.icon}
+              </div>
+              <span className="text-[9px] mt-0.5 tracking-tight font-semibold block truncate w-full">{link.name}</span>
+            </button>
+          );
+        }
+
         const active = isActiveRoute(link.path);
         return (
           <NavLink

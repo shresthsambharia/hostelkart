@@ -44,7 +44,7 @@ const OrderSuccess = () => {
 
         <div className="flex flex-col sm:flex-row gap-4 pt-4">
           <Link
-            to={orderId ? `/orders/track/${orderId}` : '/myorders'}
+            to={orderId ? `/orders/${orderId}/tracking` : '/myorders'}
             className="flex-1 btn-primary py-3 flex items-center justify-center space-x-2 text-sm shadow-md hover:shadow-lg"
           >
             <Truck size={18} />

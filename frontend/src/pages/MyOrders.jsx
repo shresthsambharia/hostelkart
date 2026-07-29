@@ -238,7 +238,7 @@ const MyOrders = () => {
 
               <div className="flex items-center gap-2.5">
                 <Link
-                  to={`/orders/${order._id}`}
+                  to={`/orders/${order._id}/tracking`}
                   className="px-3.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 text-slate-655 text-xs font-bold rounded-xl flex items-center gap-1 transition-all"
                 >
                   <Eye size={12} />

@@ -18,8 +18,8 @@ import Sidebar from './components/Sidebar';
 import MobileBottomNav from './components/MobileBottomNav';
 import InstallPrompt from './components/InstallPrompt';
 
-// Keep Home page statically imported to optimize FCP/LCP of the initial lander
-import Home from './pages/Home';
+// Lazy load all pages to optimize bundle size and speed up page load
+const Home = React.lazy(() => import('./pages/Home'));
 
 // Lazy load other routes to shrink initial bundle size and speed up page load
 const Login = React.lazy(() => import('./pages/Login'));
@@ -238,7 +238,7 @@ const AppContent = () => {
             }
           />
           <Route
-            path="/orders/track/:id"
+            path="/orders/:id/tracking"
             element={
               <ProtectedRoute allowedRoles={['student']}>
                 <OrderTracking />
