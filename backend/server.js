@@ -68,6 +68,7 @@ import excelRoutes from './routes/excelRoutes.js';
 import couponRoutes from './routes/couponRoutes.js';
 import walletRoutes from './routes/walletRoutes.js';
 import recommendationRoutes from './routes/recommendationRoutes.js';
+import aiRoutes from './ai/aiRoutes.js';
 console.log("STEP 4 Routes Loaded");
 
 // Initialize Sentry Monitoring
@@ -221,6 +222,7 @@ app.use('/api/coupons', couponRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/tickets', ticketRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Serve Asset Links for Android Trusted Web Activity verification
 app.get('/.well-known/assetlinks.json', (req, res) => {
