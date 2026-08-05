@@ -41,7 +41,7 @@ export const aiService = {
    * @param {string} systemInstruction - Instructions defining the assistant's behavior/role.
    * @param {string} [modelName] - Gemini model ID (default: 'gemini-1.5-flash').
    */
-  generateResponse: async (prompt, systemInstruction = '', modelName = 'gemini-3.6-flash') => {
+  generateResponse: async (prompt, systemInstruction = '', modelName = 'gemini-3.5-flash-lite') => {
     aiService.checkConfiguration();
     
     const config = {};
@@ -63,7 +63,7 @@ export const aiService = {
    * @param {string} systemInstruction - Base system prompt rules.
    * @param {string} [modelName] - Model identifier.
    */
-  startChatSession: (history = [], systemInstruction = '', modelName = 'gemini-3.6-flash') => {
+  startChatSession: (history = [], systemInstruction = '', modelName = 'gemini-3.5-flash-lite') => {
     aiService.checkConfiguration();
 
     const config = {};
@@ -85,7 +85,7 @@ export const aiService = {
    * @param {string} systemInstruction - System instructions constraint.
    * @param {string} [modelName] - Model identifier.
    */
-  generateStreamResponse: async (prompt, onChunk, systemInstruction = '', modelName = 'gemini-3.6-flash') => {
+  generateStreamResponse: async (prompt, onChunk, systemInstruction = '', modelName = 'gemini-3.5-flash-lite') => {
     aiService.checkConfiguration();
 
     const config = {};
@@ -110,7 +110,7 @@ export const aiService = {
    * @param {string} systemInstruction - Instructions for constraint.
    * @param {string} [modelName] - Model identifier.
    */
-  getGenerativeModelWithTools: (tools = [], systemInstruction = '', modelName = 'gemini-3.6-flash') => {
+  getGenerativeModelWithTools: (tools = [], systemInstruction = '', modelName = 'gemini-3.5-flash-lite') => {
     aiService.checkConfiguration();
 
     const config = {
@@ -129,7 +129,7 @@ export const aiService = {
    * @param {string} systemInstruction - Instructions defining the assistant's behavior/role.
    * @param {string} [modelName] - Gemini model ID (default: 'gemini-1.5-flash').
    */
-  generateJsonResponse: async (prompt, systemInstruction = '', modelName = 'gemini-3.6-flash') => {
+  generateJsonResponse: async (prompt, systemInstruction = '', modelName = 'gemini-3.5-flash-lite') => {
     aiService.checkConfiguration();
 
     const config = {

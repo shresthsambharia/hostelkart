@@ -48,7 +48,7 @@ export const chatWithAI = asyncHandler(async (req, res) => {
   }
 
   // Gather system state context
-  const products = await Product.find({ isAvailable: true }).limit(50);
+  const products = await Product.find({ isAvailable: true }).limit(10);
   const categories = await Category.find();
   const coupons = await Coupon.find({ active: true });
 
@@ -83,6 +83,11 @@ export const chatWithAI = asyncHandler(async (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no'); // Bypass Nginx/Render proxy buffering
+
+  if (typeof res.flushHeaders === 'function') {
+    res.flushHeaders();
+  }
 
   const startTime = Date.now();
   let fullResponse = '';
@@ -94,6 +99,9 @@ export const chatWithAI = asyncHandler(async (req, res) => {
       (chunk) => {
         fullResponse += chunk;
         res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+        if (typeof res.flush === 'function') {
+          res.flush();
+        }
       },
       SYSTEM_PROMPT
     );
@@ -107,10 +115,16 @@ export const chatWithAI = asyncHandler(async (req, res) => {
     });
 
     res.write('data: [DONE]\n\n');
+    if (typeof res.flush === 'function') {
+      res.flush();
+    }
     res.end();
   } catch (error) {
     logger.error('AI_CHAT_STREAM_ERROR', `Failed during generative chat stream: ${error.message}`, { error: error.message });
     res.write(`data: ${JSON.stringify({ error: 'AI Assistant was disconnected. Please retry your request.' })}\n\n`);
+    if (typeof res.flush === 'function') {
+      res.flush();
+    }
     res.end();
   }
 });
