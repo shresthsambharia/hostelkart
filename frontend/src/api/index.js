@@ -325,4 +325,13 @@ export const ticketAPI = {
   adminUpdate: (id, data) => API.put(`/tickets/admin/${id}`, data),
 };
 
+export const aiAPI = {
+  getHealth: () => API.get('/ai/health'),
+  getRecommendations: () => API.get('/ai/recommend'),
+  generateProductDescription: (productData) => API.post('/ai/product-description', productData),
+  copywriter: (productData) => API.post('/ai/copywriter', productData),
+  search: (query) => API.post('/ai/search', { query }),
+  getSupportSuggestion: (supportData) => API.post('/ai/support', supportData)
+};
+
 export default API;

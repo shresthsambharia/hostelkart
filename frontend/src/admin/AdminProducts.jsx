@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { adminAPI, productAPI } from '../api';
+import { adminAPI, productAPI, aiAPI } from '../api';
 import { 
   Plus, Edit2, Trash2, CheckCircle2, XCircle, Upload, AlertCircle, 
   FileSpreadsheet, Download, RefreshCw, BarChart2, Search as SearchIcon, 
@@ -248,6 +248,45 @@ const AdminProducts = () => {
   const [isAvailable, setIsAvailable] = useState(true);
   const [imageUrls, setImageUrls] = useState([]); // array for multi-image support
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  // Gemini AI copywriter
+  const [aiGenerating, setAiGenerating] = useState(false);
+
+  const handleGenerateAIDescription = async () => {
+    if (!name || !category) {
+      showToastMsg('warning', 'Please fill out name and category first.');
+      return;
+    }
+    setAiGenerating(true);
+    try {
+      const { data } = await aiAPI.generateProductDescription({
+        name,
+        category,
+        price: price || 100
+      });
+      
+      if (data?.success) {
+        if (data.title) setName(data.title);
+        
+        let descStr = data.description || '';
+        if (data.highlights && data.highlights.length > 0) {
+          descStr += '\n\nHighlights:\n' + data.highlights.map(h => `• ${h}`).join('\n');
+        }
+        if (data.bulletPoints && data.bulletPoints.length > 0) {
+          descStr += '\n\nKey Benefits:\n' + data.bulletPoints.map(b => `• ${b}`).join('\n');
+        }
+        setDescription(descStr);
+        showToastMsg('success', 'Gemini copywriting generated successfully!');
+      } else {
+        showToastMsg('error', 'Failed to generate copywriting details.');
+      }
+    } catch (err) {
+      console.error('Failed generating copywriting:', err);
+      showToastMsg('error', 'AI copywriting service is currently offline.');
+    } finally {
+      setAiGenerating(false);
+    }
+  };
 
   // Custom Toast Notification Overlay state
   const [toast, setToast] = useState(null); // { type: 'success' | 'error' | 'warning', message: '' }
@@ -1199,6 +1238,20 @@ const AdminProducts = () => {
               {/* STEP 1: Basic Specifications */}
               {formStep === 1 && (
                 <div className="space-y-4">
+                  <div className="flex justify-between items-center bg-emerald-50/55 border border-emerald-500/10 p-3 rounded-xl shadow-premium-sm">
+                    <span className="text-[10px] text-emerald-800 font-extrabold uppercase flex items-center gap-1.5 select-none">
+                      <Sparkles size={12} className="text-emerald-500 fill-emerald-500 animate-pulse" />
+                      <span>Gemini AI Copywriter</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleGenerateAIDescription}
+                      disabled={aiGenerating || !name || !category}
+                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 text-white font-extrabold text-[9.5px] uppercase tracking-wider rounded-lg transition-all cursor-pointer"
+                    >
+                      {aiGenerating ? 'Generating...' : 'Auto-Generate Details'}
+                    </button>
+                  </div>
                   <div className="p-3 bg-primary-50/50 rounded-xl border border-primary-100/50 flex items-center gap-2.5 text-xs text-primary-800">
                     <Sparkles className="w-4 h-4 shrink-0 animate-spin-slow" />
                     <span className="font-bold">Provide clear titles and summaries for student searches.</span>

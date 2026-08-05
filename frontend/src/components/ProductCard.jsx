@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Heart, Star } from 'lucide-react';
+import { ShoppingCart, Heart, Star, Sparkles } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { getOptimizedImage, getResponsiveSrcSet, getOptimizedImageUrl, getBlurPlaceholderUrl } from '../utils/image';
 import { motion } from 'framer-motion';
 
-const ProductCard = ({ product, priority = false }) => {
+const ProductCard = ({ product, priority = false, reason = '' }) => {
   const { cart, addToCart, updateQuantity, removeFromCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const [adding, setAdding] = useState(false);
@@ -242,6 +242,12 @@ const ProductCard = ({ product, priority = false }) => {
           )}
         </div>
       </div>
+      {reason && (
+        <div className="mx-3.5 mb-3.5 p-2 bg-gradient-to-r from-emerald-50 to-teal-50/50 border border-emerald-100 rounded-xl text-[10.5px] font-medium text-emerald-800 leading-normal flex items-start gap-1.5 shadow-inner">
+          <Sparkles size={12} className="text-emerald-500 shrink-0 mt-0.5 animate-pulse" />
+          <span>{reason}</span>
+        </div>
+      )}
     </motion.div>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import SEO from '../components/SEO';
-import { productAPI, recommendationAPI } from '../api';
+import { productAPI, recommendationAPI, aiAPI } from '../api';
 import ProductCard from '../components/ProductCard';
 import { ProductCardSkeleton } from '../components/SkeletonLoader';
 import { useAuth } from '../context/AuthContext';
@@ -63,6 +63,8 @@ const Home = () => {
   });
   const [recsLoading, setRecsLoading] = useState(true);
   const [delayedRecsLoading, setDelayedRecsLoading] = useState(true);
+  const [aiRecs, setAiRecs] = useState([]);
+  const [aiRecsLoading, setAiRecsLoading] = useState(true);
   const [recentViews, setRecentViews] = useState([]);
   const navigate = useNavigate();
 
@@ -85,6 +87,7 @@ const Home = () => {
     const fetchRecommendations = async () => {
       setRecsLoading(true);
       setDelayedRecsLoading(true);
+      setAiRecsLoading(true);
       try {
         const { data } = await recommendationAPI.get();
         if (!active) return;
@@ -112,6 +115,17 @@ const Home = () => {
           setRecsLoading(false);
           setDelayedRecsLoading(false);
         }
+      }
+
+      try {
+        const { data } = await aiAPI.getRecommendations();
+        if (active && data?.success) {
+          setAiRecs(data.recommendations || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch AI recommendations:', err);
+      } finally {
+        if (active) setAiRecsLoading(false);
       }
     };
 
@@ -182,6 +196,62 @@ const Home = () => {
             {items.filter(p => p && p._id).slice(0, 8).map((product) => (
               <div key={product._id} className="min-w-[170px] sm:min-w-0 snap-align-start shrink-0">
                 <ProductCard product={product} />
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    );
+  };
+
+  const renderAIProductSection = (title, subtitle, icon, items, loading, placeholder) => {
+    if (!loading && (!items || items.length === 0)) {
+      return placeholder ? (
+        <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-4">
+          <div className="flex justify-between items-baseline select-none">
+            <div>
+              <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                {icon}
+                <span>{title}</span>
+              </h2>
+              <p className="text-[10px] text-slate-450 font-bold uppercase mt-0.5">{subtitle}</p>
+            </div>
+          </div>
+          <div className="text-center py-8 bg-white rounded-3xl border border-slate-100 select-none">
+            <p className="text-slate-450 text-xs font-bold">{placeholder}</p>
+          </div>
+        </section>
+      ) : null;
+    }
+
+    return (
+      <section className="max-w-7xl mx-auto px-4 sm:px-8 space-y-4">
+        <div className="flex justify-between items-baseline select-none">
+          <div>
+            <h2 className="text-sm font-black text-slate-850 uppercase tracking-wider flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+              {icon}
+              <span>{title}</span>
+            </h2>
+            <p className="text-[10px] text-emerald-600 font-extrabold uppercase mt-0.5 flex items-center gap-1">
+              <span>{subtitle}</span>
+              <span className="bg-emerald-100 text-emerald-750 text-[8px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-wider border border-emerald-200">Powered by Gemini AI</span>
+            </p>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex sm:grid sm:grid-cols-4 overflow-x-auto sm:overflow-visible gap-4 pb-4 sm:pb-0 scrollbar-none snap-x snap-mandatory">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="min-w-[200px] sm:min-w-0 snap-align-start shrink-0">
+                <ProductCardSkeleton />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex sm:grid sm:grid-cols-4 overflow-x-auto sm:overflow-visible gap-4 pb-4 sm:pb-0 scrollbar-none snap-x snap-mandatory animate-fade-in" style={{ scrollbarWidth: 'none' }}>
+            {items.slice(0, 4).map((item) => (
+              <div key={item.product._id} className="min-w-[200px] sm:min-w-0 snap-align-start shrink-0">
+                <ProductCard product={item.product} reason={item.reason} />
               </div>
             ))}
           </div>
@@ -356,6 +426,16 @@ const Home = () => {
         recs.recommendedForYou,
         delayedRecsLoading,
         "Sign in to trigger personalized recommendations."
+      )}
+
+      {/* Gemini AI smart recommendations */}
+      {(!user || user.role === 'student') && renderAIProductSection(
+        "Gemini AI Smart Picks",
+        "Dorm recommendations based on your preferences",
+        <Sparkles className="w-4.5 h-4.5 text-emerald-500 animate-pulse fill-emerald-500" />,
+        aiRecs,
+        aiRecsLoading,
+        "Start browsing to generate personalized Gemini suggestions."
       )}
 
       {/* 7. Popular in Hostel List */}

@@ -44,7 +44,7 @@ export const getOptimizedImageUrl = (imgUrl, width = 300, quality = 60, format =
 /**
  * Helper to generate responsive srcset string for Cloudinary images
  */
-export const getSrcSet = (imgUrl, widths = [256, 384, 512, 640, 750, 828, 1080], quality = 60, format = 'webp') => {
+export const getSrcSet = (imgUrl, widths = [150, 256, 384, 512, 640, 750, 828, 1080, 1600], quality = 60, format = 'webp') => {
   if (!imgUrl) {
     return undefined;
   }

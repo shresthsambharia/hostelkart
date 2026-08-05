@@ -41,7 +41,7 @@ export const aiService = {
    * @param {string} systemInstruction - Instructions defining the assistant's behavior/role.
    * @param {string} [modelName] - Gemini model ID (default: 'gemini-1.5-flash').
    */
-  generateResponse: async (prompt, systemInstruction = '', modelName = 'gemini-1.5-flash') => {
+  generateResponse: async (prompt, systemInstruction = '', modelName = 'gemini-3.6-flash') => {
     aiService.checkConfiguration();
     
     const config = {};
@@ -52,7 +52,9 @@ export const aiService = {
     const model = genAI.getGenerativeModel({ model: modelName }, config);
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    return response.text();
+    const rawText = response.text();
+    console.log("=== RAW GEMINI TEXT RESPONSE ===\n", rawText, "\n=================================");
+    return rawText;
   },
 
   /**
@@ -61,7 +63,7 @@ export const aiService = {
    * @param {string} systemInstruction - Base system prompt rules.
    * @param {string} [modelName] - Model identifier.
    */
-  startChatSession: (history = [], systemInstruction = '', modelName = 'gemini-1.5-flash') => {
+  startChatSession: (history = [], systemInstruction = '', modelName = 'gemini-3.6-flash') => {
     aiService.checkConfiguration();
 
     const config = {};
@@ -83,7 +85,7 @@ export const aiService = {
    * @param {string} systemInstruction - System instructions constraint.
    * @param {string} [modelName] - Model identifier.
    */
-  generateStreamResponse: async (prompt, onChunk, systemInstruction = '', modelName = 'gemini-1.5-flash') => {
+  generateStreamResponse: async (prompt, onChunk, systemInstruction = '', modelName = 'gemini-3.6-flash') => {
     aiService.checkConfiguration();
 
     const config = {};
@@ -108,7 +110,7 @@ export const aiService = {
    * @param {string} systemInstruction - Instructions for constraint.
    * @param {string} [modelName] - Model identifier.
    */
-  getGenerativeModelWithTools: (tools = [], systemInstruction = '', modelName = 'gemini-1.5-flash') => {
+  getGenerativeModelWithTools: (tools = [], systemInstruction = '', modelName = 'gemini-3.6-flash') => {
     aiService.checkConfiguration();
 
     const config = {
@@ -119,5 +121,31 @@ export const aiService = {
     }
 
     return genAI.getGenerativeModel({ model: modelName }, config);
+  },
+
+  /**
+   * Generates a structured JSON response.
+   * @param {string} prompt - User request or query context.
+   * @param {string} systemInstruction - Instructions defining the assistant's behavior/role.
+   * @param {string} [modelName] - Gemini model ID (default: 'gemini-1.5-flash').
+   */
+  generateJsonResponse: async (prompt, systemInstruction = '', modelName = 'gemini-3.6-flash') => {
+    aiService.checkConfiguration();
+
+    const config = {
+      generationConfig: {
+        responseMimeType: 'application/json'
+      }
+    };
+    if (systemInstruction) {
+      config.systemInstruction = systemInstruction;
+    }
+
+    const model = genAI.getGenerativeModel({ model: modelName }, config);
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const rawText = response.text();
+    console.log("=== RAW GEMINI JSON RESPONSE ===\n", rawText, "\n=================================");
+    return JSON.parse(rawText);
   }
 };

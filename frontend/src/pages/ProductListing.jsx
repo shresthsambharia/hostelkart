@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { productAPI } from '../api';
+import { productAPI, aiAPI } from '../api';
 import ProductCard from '../components/ProductCard';
 import { ProductCardSkeleton } from '../components/SkeletonLoader';
-import { SlidersHorizontal, Search, X } from 'lucide-react';
+import { SlidersHorizontal, Search, X, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants';
 
@@ -48,6 +48,48 @@ const ProductListing = () => {
   const [debouncedMinPrice, setDebouncedMinPrice] = useState('');
   const [debouncedMaxPrice, setDebouncedMaxPrice] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // AI Search states
+  const [aiSearchQuery, setAiSearchQuery] = useState('');
+  const [aiSearchLoading, setAiSearchLoading] = useState(false);
+  const [aiFeedback, setAiFeedback] = useState('');
+
+  const handleAISearch = async () => {
+    if (!aiSearchQuery.trim()) return;
+    setAiSearchLoading(true);
+    setAiFeedback('');
+    try {
+      const { data } = await aiAPI.search(aiSearchQuery);
+      if (data?.success && data.searchParams) {
+        const { category, searchTerms, minPrice: minP, maxPrice: maxP } = data.searchParams;
+        setSelectedCategory(category || '');
+        setKeyword(searchTerms || '');
+        setDebouncedKeyword(searchTerms || '');
+        setMinPrice(minP !== null && minP !== undefined ? String(minP) : '');
+        setDebouncedMinPrice(minP !== null && minP !== undefined ? String(minP) : '');
+        setMaxPrice(maxP !== null && maxP !== undefined ? String(maxP) : '');
+        setDebouncedMaxPrice(maxP !== null && maxP !== undefined ? String(maxP) : '');
+        
+        const feedbackMsg = [
+          category ? `Category: ${category}` : null,
+          searchTerms ? `Keyword: "${searchTerms}"` : null,
+          maxP ? `Under ₹${maxP}` : null
+        ].filter(Boolean).join(', ');
+        
+        setAiFeedback(`Gemini applied filters → ${feedbackMsg || 'No specific filters found.'}`);
+        setTimeout(() => setAiFeedback(''), 6000);
+      } else {
+        setAiFeedback('Gemini could not determine filters. Try: "Fruits under 100"');
+        setTimeout(() => setAiFeedback(''), 5000);
+      }
+    } catch (err) {
+      console.error('Failed to parse AI search:', err);
+      setAiFeedback('Failed parsing query. Please try manual filters.');
+      setTimeout(() => setAiFeedback(''), 5000);
+    } finally {
+      setAiSearchLoading(false);
+    }
+  };
 
   // Synchronize when URL change (e.g. Nav searches)
   useEffect(() => {
@@ -189,23 +231,54 @@ const ProductListing = () => {
         {/* Product Listings grid */}
         <main className="flex-1 space-y-6">
           {/* Top Actions Row */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
-            {/* Search Input inline */}
-            <div className="relative w-full sm:max-w-xs">
-              <input
-                type="text"
-                placeholder="Filter results..."
-                className="w-full border border-slate-200 rounded-lg py-2 pl-4 pr-10 outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-              />
-              {keyword ? (
-                <button onClick={() => { setKeyword(''); setDebouncedKeyword(''); }} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
-                  <X size={16} />
+          {aiFeedback && (
+            <div className="bg-emerald-50 border border-emerald-150 text-emerald-800 px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-1.5 animate-fade-in shadow-sm select-none border-l-4 border-l-emerald-500">
+              <Sparkles size={13} className="text-emerald-600 shrink-0 animate-pulse" />
+              <span>{aiFeedback}</span>
+            </div>
+          )}
+
+          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+            {/* Standard Filter input inline */}
+            <div className="flex flex-col sm:flex-row w-full gap-3 flex-1">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Filter results..."
+                  className="w-full border border-slate-200 rounded-lg py-2 pl-4 pr-10 outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                />
+                {keyword ? (
+                  <button onClick={() => { setKeyword(''); setDebouncedKeyword(''); }} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
+                    <X size={16} />
+                  </button>
+                ) : (
+                  <Search size={16} className="absolute right-3 top-2.5 text-slate-400" />
+                )}
+              </div>
+
+              {/* Gemini AI natural query search */}
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="✨ Ask Gemini (e.g. 'fever pills under 100')"
+                  className="w-full border border-emerald-250 focus:border-emerald-500 bg-emerald-50/5 rounded-lg py-2 pl-4 pr-20 outline-none focus:ring-1 focus:ring-emerald-500 text-sm font-bold placeholder-slate-400"
+                  value={aiSearchQuery}
+                  onChange={(e) => setAiSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAISearch();
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleAISearch}
+                  disabled={aiSearchLoading || !aiSearchQuery.trim()}
+                  className="absolute right-1 top-1 bottom-1 px-3 bg-emerald-600 disabled:bg-slate-300 text-white font-extrabold text-[9px] uppercase rounded-md hover:bg-emerald-700 active:scale-95 transition-all select-none"
+                >
+                  {aiSearchLoading ? 'Parsing...' : 'Ask AI'}
                 </button>
-              ) : (
-                <Search size={16} className="absolute right-3 top-2.5 text-slate-400" />
-              )}
+              </div>
             </div>
 
             <div className="text-sm text-slate-500 font-medium self-center">

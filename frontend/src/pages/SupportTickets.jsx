@@ -3,9 +3,9 @@ import { useAuth } from '../context/AuthContext';
 import io from 'socket.io-client';
 import { 
   MessageSquare, PlusCircle, ShieldAlert, CheckCircle2, 
-  Send, AlertTriangle, Star, Search, Filter, RefreshCw 
+  Send, AlertTriangle, Star, Search, Filter, RefreshCw, Sparkles 
 } from 'lucide-react';
-import { ticketAPI } from '../api';
+import { ticketAPI, aiAPI } from '../api';
 
 const faqs = [
   {
@@ -40,6 +40,37 @@ const SupportTickets = () => {
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // AI Support states
+  const [aiSuggestion, setAiSuggestion] = useState('');
+  const [aiSuggestionLoading, setAiSuggestionLoading] = useState(false);
+
+  const handleGetAiSuggestion = async () => {
+    if (!subject.trim() || !description.trim()) return;
+    setAiSuggestionLoading(true);
+    setAiSuggestion('');
+    try {
+      const { data } = await aiAPI.getSupportSuggestion({
+        subject: subject.trim(),
+        description: description.trim(),
+        category
+      });
+      if (data?.success) {
+        setAiSuggestion(data.suggestion);
+      } else {
+        setAiSuggestion('Gemini was unable to generate a recommendation. Please submit your support request.');
+      }
+    } catch (err) {
+      console.error('Failed to get troubleshooting suggestion:', err);
+      setAiSuggestion('Unable to load suggestion. Please proceed with ticket submission.');
+    } finally {
+      setAiSuggestionLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setAiSuggestion('');
+  }, [category, subject, description, creating]);
   
   // Feedback rating
   const [rating, setRating] = useState(5);
@@ -357,6 +388,48 @@ const SupportTickets = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Gemini AI Smart Assistant Panel */}
+                <div className="bg-emerald-50/40 border border-emerald-500/10 rounded-2.5xl p-4.5 space-y-3">
+                  <div className="flex justify-between items-center select-none">
+                    <span className="text-[10px] font-black text-emerald-800 uppercase flex items-center gap-1.5">
+                      <Sparkles size={14} className="text-emerald-500 animate-pulse fill-emerald-500" />
+                      <span>Gemini AI Smart Assist</span>
+                    </span>
+                    {subject.trim() && description.trim() && (
+                      <button
+                        type="button"
+                        onClick={handleGetAiSuggestion}
+                        disabled={aiSuggestionLoading}
+                        className="px-3 py-1 bg-emerald-600 text-white font-extrabold text-[9px] uppercase tracking-wider rounded-lg hover:bg-emerald-700 disabled:bg-slate-350 transition-all cursor-pointer"
+                      >
+                        {aiSuggestionLoading ? 'Thinking...' : 'Troubleshoot with AI'}
+                      </button>
+                    )}
+                  </div>
+                  
+                  {aiSuggestionLoading && (
+                    <div className="flex items-center space-x-2 py-2 text-slate-450 text-xs font-bold animate-pulse">
+                      <div className="w-4 h-4 border-2 border-slate-300 border-t-emerald-600 rounded-full animate-spin"></div>
+                      <span>Gemini is analyzing your issue details...</span>
+                    </div>
+                  )}
+
+                  {aiSuggestion && (
+                    <div className="text-xs text-slate-700 bg-white/70 backdrop-blur-sm border border-emerald-500/10 rounded-xl p-3.5 space-y-1.5 leading-relaxed font-semibold shadow-premium-sm animate-fade-in">
+                      <div className="text-[9px] font-black text-emerald-600 uppercase mb-1">Recommended Solution:</div>
+                      <p className="whitespace-pre-line text-slate-650">{aiSuggestion}</p>
+                    </div>
+                  )}
+                  
+                  {!aiSuggestion && !aiSuggestionLoading && (
+                    <p className="text-[10px] text-slate-500 font-bold italic">
+                      {subject.trim() && description.trim() 
+                        ? 'Click "Troubleshoot with AI" to get an instant solution.'
+                        : 'Describe your issue in detail to unlock Gemini smart suggestions.'}
+                    </p>
+                  )}
+                </div>
 
                 <div>
                   <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">Describe the problem</label>

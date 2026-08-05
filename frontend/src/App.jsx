@@ -17,6 +17,8 @@ import Footer from './components/Footer';
 import Sidebar from './components/Sidebar';
 import MobileBottomNav from './components/MobileBottomNav';
 import InstallPrompt from './components/InstallPrompt';
+import AIAssistant from './components/AIAssistant';
+
 
 // Lazy load all pages to optimize bundle size and speed up page load
 const Home = React.lazy(() => import('./pages/Home'));
@@ -181,6 +183,7 @@ const LayoutContainer = ({ children }) => {
       <FloatingCartButton />
       <MobileBottomNav />
       <InstallPrompt />
+      {(!user || user.role === 'student') && <AIAssistant />}
     </div>
   );
 };
