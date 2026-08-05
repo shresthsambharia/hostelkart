@@ -7,6 +7,7 @@ import {
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const hasVoiceSupport = !!SpeechRecognition;
+import { cartAPI, productAPI } from '../api';
 
 const MarkdownMessage = ({ text }) => {
   if (!text) return null;
@@ -229,6 +230,44 @@ export const AIAssistant = () => {
               // Fragment handling
             }
           }
+        }
+      }
+
+      // Check for action triggers in the completed assistant text
+      const actionMatch = assistantText.match(/ACTION:ADD_TO_CART:([a-fA-F0-9]{24})/i);
+      if (actionMatch) {
+        const productId = actionMatch[1];
+        // Strip the action command from assistantText to keep it clean
+        let cleanText = assistantText.replace(/ACTION:ADD_TO_CART:[a-fA-F0-9]{24}/gi, '').trim();
+        
+        // Show indicator that we are adding to cart
+        setChatHistory(prev =>
+          prev.map(m => m.id === assistantMsgId ? { ...m, content: cleanText ? `${cleanText}\n\n*Adding product to your cart...*` : '*Adding product to your cart...*' } : m)
+        );
+
+        try {
+          // 1. Fetch product name to provide confirmation
+          const prodRes = await productAPI.getById(productId);
+          const productName = prodRes.data?.name || prodRes.data?.product?.name || 'product';
+
+          // 2. Perform Add to Cart API call
+          await cartAPI.add(productId, 1);
+
+          // 3. Confirm success
+          const successMsg = `✅ Added **${productName}** to your cart.`;
+          setChatHistory(prev =>
+            prev.map(m => m.id === assistantMsgId ? { ...m, content: cleanText ? `${cleanText}\n\n${successMsg}` : successMsg } : m)
+          );
+        } catch (actionErr) {
+          console.error('[AIAssistant Action Error]:', actionErr);
+          const isAuthError = actionErr.response?.status === 401 || actionErr.response?.status === 403 || !localStorage.getItem('token');
+          const errorMsg = isAuthError
+            ? '🔒 Please log in to your account first so I can add this product to your cart.'
+            : '❌ Sorry, I was unable to add this product to your cart right now. Please try again or add it manually.';
+            
+          setChatHistory(prev =>
+            prev.map(m => m.id === assistantMsgId ? { ...m, content: cleanText ? `${cleanText}\n\n${errorMsg}` : errorMsg } : m)
+          );
         }
       }
     } catch (err) {

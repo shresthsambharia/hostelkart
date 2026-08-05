@@ -77,7 +77,16 @@ export const chatWithAI = asyncHandler(async (req, res) => {
   });
 
   // Prepare full prompt combining context, history, and current message
-  const fullPrompt = `${contextString}\nUser Message: ${message}`;
+  const fullPrompt = `${contextString}
+
+=== IMPORTANT ACTION PROTOCOL ===
+If the user explicitly requests to add a product to their cart, look up the product in the provided Products Catalog context. If you find it, append this command string on a new line at the very end of your response:
+ACTION:ADD_TO_CART:productId
+Replace "productId" with the exact 24-character hexadecimal ID of the product from the context. Do not include brackets, quotes, or any other text on that command line.
+Example: ACTION:ADD_TO_CART:6a5f172dd3e6ba2a2952497c
+=================================
+
+User Message: ${message}`;
 
   // Start Server Sent Events stream
   res.setHeader('Content-Type', 'text/event-stream');
