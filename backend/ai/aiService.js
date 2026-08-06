@@ -22,6 +22,11 @@ if (apiKey && apiKey.trim() !== '') {
  */
 export const aiService = {
   /**
+   * Return the raw GoogleGenerativeAI instance.
+   */
+  getGenAI: () => genAI,
+
+  /**
    * Check if Gemini API key configuration is active.
    */
   isConfigured: () => isConfigured,

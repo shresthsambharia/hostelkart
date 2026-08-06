@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node server.js",
     "server": "nodemon server.js",
-    "seed": "node seed/seed.js"
+    "seed": "node seed/seed.js",
+    "postinstall": "node patch_sdk.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
