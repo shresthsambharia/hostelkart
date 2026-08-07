@@ -29,11 +29,33 @@ export const getHealth = asyncHandler(async (req, res) => {
  * @route   POST /api/ai/chat
  * @access  Public/Private (Optional authentication)
  */
-// ==================== TOOL IMPLEMENTATIONS ====================
+const getProductsByCategoryImpl = async (category) => {
+  if (!category) return [];
+  const products = await Product.find({
+    category: { $regex: new RegExp(`^${category}$`, 'i') },
+    isAvailable: true
+  });
+  return products.map(p => ({
+    id: p._id.toString(),
+    name: p.name,
+    price: p.price,
+    stock: p.stock,
+    discount: p.discount,
+    category: p.category,
+    brand: p.brand,
+    description: p.description || '',
+    image: p.image
+  }));
+};
 
 const searchProductsImpl = async (query) => {
   if (!query || query.trim() === '') return [];
   let normalizedQuery = query.toLowerCase().trim().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").replace(/\s+/g, " ");
+  
+  if (['fruits', 'fruit', 'medicines', 'medicine'].includes(normalizedQuery)) {
+    const catName = ['fruits', 'fruit'].includes(normalizedQuery) ? 'Fruits' : 'Medicines';
+    return await getProductsByCategoryImpl(catName);
+  }
   
   const stripPlural = (str) => {
     if (str.endsWith('ies')) return str.slice(0, -3) + 'y';
@@ -235,6 +257,18 @@ const searchMedicinesImpl = async (query) => {
   let normalizedQuery = query.toLowerCase().trim();
   const allMedicines = await Product.find({ category: /Medicines/i, isAvailable: true });
   
+  if (['all', 'list', 'medicines', 'medicine'].includes(normalizedQuery)) {
+    return allMedicines.map(med => ({
+      id: med._id.toString(),
+      name: med.name,
+      price: med.price,
+      stock: med.stock,
+      category: med.category,
+      brand: med.brand,
+      description: med.description
+    }));
+  }
+  
   return allMedicines
     .filter(med => med.name.toLowerCase().includes(normalizedQuery) || (med.description && med.description.toLowerCase().includes(normalizedQuery)))
     .map(med => ({
@@ -278,6 +312,8 @@ const searchCustomRequestsImpl = async (user) => {
 const executeTool = async (name, args, user) => {
   try {
     switch (name) {
+      case 'getProductsByCategory':
+        return await getProductsByCategoryImpl(args.category);
       case 'searchProducts':
         return await searchProductsImpl(args.query);
       case 'getProduct':
@@ -345,6 +381,17 @@ export const chatWithAI = asyncHandler(async (req, res) => {
   const modelTools = [
     {
       functionDeclarations: [
+        {
+          name: 'getProductsByCategory',
+          description: 'Retrieve all products belonging to a specific category (e.g. \'Fruits\' or \'Medicines\') from the live database. Use this to count or list all products in that category.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {
+              category: { type: 'STRING', description: 'The category to retrieve, which should be \'Fruits\' or \'Medicines\'' }
+            },
+            required: ['category']
+          }
+        },
         {
           name: 'searchProducts',
           description: 'Fuzzy search products in the HostelKart catalog by name, brand, category, keywords, synonyms, and description. Returns matching products.',
