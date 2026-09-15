@@ -200,8 +200,11 @@ const apiLimiter = rateLimit({
 });
 app.use('/api', apiLimiter);
 
-// Global Request Timeout Middleware (15s)
-app.use('/api', requestTimeout(15000));
+// Request Timeout Middleware (15s default for standard CRUD, 60s for long-running AI generation endpoints)
+app.use('/api', requestTimeout(15000, {
+  '/api/ai/diet-plan': 60000,
+  '/api/ai/chat': 60000,
+}));
 
 // Timing performance middleware
 app.use('/api', requestDuration);

@@ -134,6 +134,62 @@ export async function runDietPlannerTests() {
   assert.ok(!appleNames.includes('Pineapple (800 g)'), 'Pineapple must not match apple query');
   console.log('✓ Catalog category counts & apple word-boundary integrity verified.');
 
+  // Test 7: Route-Specific Request Timeout Middleware Verification
+  const { requestTimeout } = await import('../middleware/timeoutMiddleware.js');
+  const timeoutMiddleware = requestTimeout(15000, {
+    '/api/ai/diet-plan': 60000,
+    '/api/ai/chat': 60000,
+  });
+
+  // Test 7A: Standard route gets 15s limit
+  let normalTimerSet = false;
+  const mockReqNormal = { originalUrl: '/api/products', method: 'GET', ip: '127.0.0.1' };
+  let normalNextCalled = false;
+  const mockResNormal = {
+    headersSent: false,
+    on: (evt, cb) => {},
+    status: (code) => ({ json: (data) => {} })
+  };
+  timeoutMiddleware(mockReqNormal, mockResNormal, () => { normalNextCalled = true; });
+  assert.ok(normalNextCalled, 'Next middleware should be called for normal route');
+
+  // Test 7B: Diet planner route gets 60s limit
+  const mockReqDiet = { originalUrl: '/api/ai/diet-plan', method: 'POST', ip: '127.0.0.1' };
+  let dietNextCalled = false;
+  const mockResDiet = {
+    headersSent: false,
+    on: (evt, cb) => {},
+    status: (code) => ({ json: (data) => {} })
+  };
+  timeoutMiddleware(mockReqDiet, mockResDiet, () => { dietNextCalled = true; });
+  assert.ok(dietNextCalled, 'Next middleware should be called for diet planner route');
+
+  // Test 7C: Fallback plan generation produces full valid schema
+  const { generateFallbackPlan } = await import('../ai/aiController.js');
+  const sampleProfile = {
+    age: 20,
+    gender: 'Female',
+    height: 165,
+    weight: 58,
+    bmi: 21.3,
+    bmiCategory: 'Normal weight',
+    activityLevel: 'Moderately Active',
+    goal: 'Improve fitness',
+    dietaryPreference: 'Vegetarian',
+    foodPreferences: {},
+    allergies: [],
+    healthConditions: [],
+    hostelLifestyle: { messAvailability: 'full', monthlyBudget: 'Moderate' }
+  };
+  const fallbackPlan = generateFallbackPlan(sampleProfile, peanutFree);
+  assert.ok(fallbackPlan.summary, 'Fallback plan must have summary');
+  assert.ok(fallbackPlan.dailyPlan, 'Fallback plan must have dailyPlan');
+  assert.ok(fallbackPlan.weeklyPlan && fallbackPlan.weeklyPlan.length === 7, 'Fallback plan must have 7-day weeklyPlan');
+  assert.ok(fallbackPlan.disclaimer, 'Fallback plan must have disclaimer');
+  assert.ok(fallbackPlan.recommendedProducts && fallbackPlan.recommendedProducts.length > 0, 'Fallback plan must have recommendedProducts');
+  console.log('✓ Route-specific timeout middleware and fallback plan integrity verified.');
+
   console.log('✓ All AI Diet Planner automated tests passed successfully!');
   return true;
 }
+

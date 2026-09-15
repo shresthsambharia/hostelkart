@@ -939,7 +939,7 @@ export const searchDietProducts = async (dietaryPreference = 'Vegetarian', aller
 /**
  * Generate safe, structured Fallback Diet Plan
  */
-const generateFallbackPlan = (profile, products) => {
+export const generateFallbackPlan = (profile, products) => {
   const isGain = (profile.goal || '').toLowerCase().includes('muscle') || (profile.goal || '').toLowerCase().includes('gain');
   const isLoss = (profile.goal || '').toLowerCase().includes('loss') || (profile.goal || '').toLowerCase().includes('fat');
   
@@ -1195,14 +1195,25 @@ You MUST return ONLY a valid, parseable JSON object matching this schema without
 - Monthly Food Budget: ${profileSnapshot.hostelLifestyle.monthlyBudget}
 - Sleep & Workout: ${profileSnapshot.hostelLifestyle.sleepDuration} sleep, ${profileSnapshot.hostelLifestyle.workoutFrequency} workout
 
-Generate a practical, motivating, safe, and realistic 7-day nutrition and diet plan tailored specifically for this student living in a hostel. Output ONLY valid JSON.`;
+Generate a practical, motivating, safe, and realistic 7-day nutrition and diet plan tailored specifically for this student living in a hostel. Keep all field values concise and direct. Output ONLY valid JSON matching the required schema.`;
 
-      const aiRaw = await aiService.generateResponse(userPrompt, systemPrompt);
-      const cleanJson = aiRaw.replace(/```json/gi, '').replace(/```/g, '').trim();
-      generatedPlan = JSON.parse(cleanJson);
-      generatedPlan.recommendedProducts = availableProducts;
+      try {
+        if (typeof aiService.generateJsonResponse === 'function') {
+          generatedPlan = await aiService.generateJsonResponse(userPrompt, systemPrompt);
+        } else {
+          const aiRaw = await aiService.generateResponse(userPrompt, systemPrompt);
+          const cleanJson = aiRaw.replace(/```json/gi, '').replace(/```/g, '').trim();
+          generatedPlan = JSON.parse(cleanJson);
+        }
+        if (generatedPlan && typeof generatedPlan === 'object') {
+          generatedPlan.recommendedProducts = availableProducts;
+        }
+      } catch (geminiErr) {
+        logger.error('DIET_PLAN_GEN_ERROR', `Gemini diet generation failed, falling back safely: ${geminiErr.message}`);
+        generatedPlan = generateFallbackPlan(profileSnapshot, availableProducts);
+      }
     } catch (err) {
-      logger.error('DIET_PLAN_GEN_ERROR', `Gemini diet generation failed, falling back safely: ${err.message}`);
+      logger.error('DIET_PLAN_SETUP_ERROR', `Diet setup failed, falling back safely: ${err.message}`);
       generatedPlan = generateFallbackPlan(profileSnapshot, availableProducts);
     }
   } else {
