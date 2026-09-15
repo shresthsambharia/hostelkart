@@ -827,7 +827,7 @@ const DietPlanner = () => {
             {/* Plan Summary Callout */}
             <div className="p-5 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-emerald-900 text-sm leading-relaxed">
               <strong className="text-emerald-950">Plan Summary: </strong>
-              {activePlan.plan?.summary}
+              {activePlan.plan?.summary || activePlan.summary || 'Personalized student nutrition outline tailored for hostel life with balanced room and mess meal adaptations.'}
             </div>
 
             {/* Dashboard Tabs Bar */}
@@ -866,7 +866,13 @@ const DietPlanner = () => {
                   { key: 'dinner', title: 'Hostel Mess Dinner', icon: <Utensils size={18} className="text-blue-500" /> },
                   { key: 'beforeBed', title: 'Before Bed', icon: <Moon size={18} className="text-indigo-500" /> }
                 ].map(section => {
-                  const items = activePlan.plan?.dailyPlan?.[section.key] || [];
+                  const rawSection = activePlan.plan?.dailyPlan?.[section.key];
+                  const items = Array.isArray(rawSection)
+                    ? rawSection
+                    : (rawSection && typeof rawSection === 'object'
+                      ? [rawSection]
+                      : (typeof rawSection === 'string' && rawSection.trim() ? [{ time: 'Routine', items: [rawSection] }] : []));
+                  
                   if (items.length === 0) return null;
                   return (
                     <div key={section.key} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
@@ -875,28 +881,33 @@ const DietPlanner = () => {
                         <span>{section.title}</span>
                       </div>
                       <div className="space-y-3">
-                        {items.map((item, idx) => (
-                          <div key={idx} className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-100 space-y-1.5">
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="font-bold text-slate-800">{item.time || 'Routine'}</span>
+                        {items.map((item, idx) => {
+                          const mealItems = Array.isArray(item.items)
+                            ? item.items
+                            : (item.items || item.item || item.name ? [item.items || item.item || item.name] : []);
+                          return (
+                            <div key={idx} className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-100 space-y-1.5">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-bold text-slate-800">{item.time || 'Routine'}</span>
+                              </div>
+                              <ul className="text-xs text-slate-700 list-disc list-inside space-y-0.5 font-medium">
+                                {mealItems.filter(Boolean).map((it, i) => (
+                                  <li key={i}>{typeof it === 'string' ? it : (typeof it === 'object' ? it.name || it.item || JSON.stringify(it) : String(it))}</li>
+                                ))}
+                              </ul>
+                              {item.hostelAlternative && (
+                                <div className="text-[11px] text-emerald-800 bg-emerald-50 p-2 rounded-lg mt-1">
+                                  <strong>Hostel Room / Mess Alt: </strong>{item.hostelAlternative}
+                                </div>
+                              )}
+                              {item.reason && (
+                                <div className="text-[11px] text-slate-500 italic">
+                                  💡 Why: {item.reason}
+                                </div>
+                              )}
                             </div>
-                            <ul className="text-xs text-slate-700 list-disc list-inside space-y-0.5 font-medium">
-                              {(item.items || []).map((it, i) => (
-                                <li key={i}>{it}</li>
-                              ))}
-                            </ul>
-                            {item.hostelAlternative && (
-                              <div className="text-[11px] text-emerald-800 bg-emerald-50 p-2 rounded-lg mt-1">
-                                <strong>Hostel Room / Mess Alt: </strong>{item.hostelAlternative}
-                              </div>
-                            )}
-                            {item.reason && (
-                              <div className="text-[11px] text-slate-500 italic">
-                                💡 Why: {item.reason}
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   );
@@ -912,29 +923,46 @@ const DietPlanner = () => {
                   <span className="text-xs text-slate-500">Repeated meals allowed for practical hostel cooking</span>
                 </div>
                 <div className="divide-y divide-slate-100">
-                  {(activePlan.plan?.weeklyPlan || []).map((dayPlan, idx) => (
-                    <div key={idx} className="p-4 sm:p-5 hover:bg-slate-50/50 transition-colors">
-                      <div className="font-extrabold text-sm text-emerald-700 mb-2">{dayPlan.day}</div>
-                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
-                        <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
-                          <strong className="text-slate-500 block text-[10px] uppercase">Breakfast</strong>
-                          <span className="text-slate-800">{dayPlan.breakfast}</span>
-                        </div>
-                        <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
-                          <strong className="text-slate-500 block text-[10px] uppercase">Lunch</strong>
-                          <span className="text-slate-800">{dayPlan.lunch}</span>
-                        </div>
-                        <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
-                          <strong className="text-slate-500 block text-[10px] uppercase">Evening Snack</strong>
-                          <span className="text-slate-800">{dayPlan.snack}</span>
-                        </div>
-                        <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
-                          <strong className="text-slate-500 block text-[10px] uppercase">Dinner</strong>
-                          <span className="text-slate-800">{dayPlan.dinner}</span>
+                  {(() => {
+                    const rawWeekly = activePlan.plan?.weeklyPlan || activePlan.weeklyPlan;
+                    const weeklyList = Array.isArray(rawWeekly)
+                      ? rawWeekly
+                      : (rawWeekly && typeof rawWeekly === 'object'
+                        ? Object.entries(rawWeekly).map(([day, val]) => ({ day, ...(typeof val === 'object' ? val : { breakfast: val }) }))
+                        : []);
+                    
+                    const formatMealText = (val) => {
+                      if (!val) return 'Balanced hostel meal';
+                      if (typeof val === 'string') return val;
+                      if (Array.isArray(val)) return val.join(', ');
+                      if (typeof val === 'object') return val.name || val.item || JSON.stringify(val);
+                      return String(val);
+                    };
+
+                    return weeklyList.map((dayPlan, idx) => (
+                      <div key={idx} className="p-4 sm:p-5 hover:bg-slate-50/50 transition-colors">
+                        <div className="font-extrabold text-sm text-emerald-700 mb-2">{dayPlan.day || `Day ${idx + 1}`}</div>
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                          <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                            <strong className="text-slate-500 block text-[10px] uppercase">Breakfast</strong>
+                            <span className="text-slate-800">{formatMealText(dayPlan.breakfast || dayPlan.meals?.breakfast)}</span>
+                          </div>
+                          <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                            <strong className="text-slate-500 block text-[10px] uppercase">Lunch</strong>
+                            <span className="text-slate-800">{formatMealText(dayPlan.lunch || dayPlan.meals?.lunch)}</span>
+                          </div>
+                          <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                            <strong className="text-slate-500 block text-[10px] uppercase">Evening Snack</strong>
+                            <span className="text-slate-800">{formatMealText(dayPlan.snack || dayPlan.eveningSnack || dayPlan.meals?.snack || dayPlan.meals?.mid_morning)}</span>
+                          </div>
+                          <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                            <strong className="text-slate-500 block text-[10px] uppercase">Dinner</strong>
+                            <span className="text-slate-800">{formatMealText(dayPlan.dinner || dayPlan.meals?.dinner)}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ));
+                  })()}
                 </div>
               </div>
             )}

@@ -937,87 +937,225 @@ export const searchDietProducts = async (dietaryPreference = 'Vegetarian', aller
 };
 
 /**
- * Generate safe, structured Fallback Diet Plan
+ * Generate safe, dynamic, personalized structured Fallback Diet Plan
  */
-export const generateFallbackPlan = (profile, products) => {
-  const isGain = (profile.goal || '').toLowerCase().includes('muscle') || (profile.goal || '').toLowerCase().includes('gain');
-  const isLoss = (profile.goal || '').toLowerCase().includes('loss') || (profile.goal || '').toLowerCase().includes('fat');
-  
-  let calorieRange = '2000 - 2200 kcal/day (Estimated starting target)';
-  let macros = { protein: '80 - 100g', carbs: '240 - 280g', fats: '50 - 65g' };
-  
-  if (isGain) {
-    calorieRange = '2300 - 2500 kcal/day (Estimated starting target)';
-    macros = { protein: '110 - 130g', carbs: '280 - 320g', fats: '60 - 75g' };
-  } else if (isLoss) {
-    calorieRange = '1700 - 1900 kcal/day (Estimated starting target)';
-    macros = { protein: '85 - 105g', carbs: '180 - 220g', fats: '45 - 55g' };
+export const generateFallbackPlan = (profile, products = []) => {
+  const age = Number(profile.age) || 20;
+  const height = Number(profile.height) || 175;
+  const weight = Number(profile.weight) || 70;
+  const gender = profile.gender || 'Male';
+  const goal = (profile.goal || 'General healthy eating').toLowerCase();
+  const activity = (profile.activityLevel || 'Moderately Active').toLowerCase();
+  const pref = (profile.dietaryPreference || 'Vegetarian').toLowerCase();
+  const allergies = (Array.isArray(profile.allergies) ? profile.allergies : [profile.allergies])
+    .map(a => (typeof a === 'string' ? a.toLowerCase().trim() : ''));
+  if (profile.otherAllergies && typeof profile.otherAllergies === 'string') {
+    allergies.push(profile.otherAllergies.toLowerCase().trim());
   }
 
-  const messOpt = profile.dietaryPreference === 'Non-vegetarian' || profile.dietaryPreference === 'Eggetarian' 
-    ? 'Mess breakfast + 2 boiled eggs / omelette' 
-    : 'Mess poha/upma/idli + curd/milk';
+  const hasPeanutAllergy = allergies.some(a => a.includes('peanut'));
+  const hasDairyAllergy = allergies.some(a => a.includes('dairy') || a.includes('milk') || a.includes('lactose'));
+  const hasEggAllergy = allergies.some(a => a.includes('egg'));
+  const isVegan = pref.includes('vegan');
+  const isEggetarian = pref.includes('eggetarian');
+  const isNonVeg = pref.includes('non-veg') || pref.includes('non-vegetarian');
+
+  // Mifflin-St Jeor BMR equation
+  let bmr = 10 * weight + 6.25 * height - 5 * age + (gender === 'Female' ? -161 : 5);
+  if (bmr < 1000) bmr = 1400;
+
+  // Activity Multiplier
+  let actMult = 1.55; // Default Moderately Active
+  if (activity.includes('sedentary') || activity.includes('little') || activity.includes('low')) actMult = 1.2;
+  else if (activity.includes('light')) actMult = 1.375;
+  else if (activity.includes('very') || activity.includes('heavy')) actMult = 1.725;
+
+  const tdee = Math.round(bmr * actMult);
+
+  // Goal calorie adjustment
+  let targetCalories = tdee;
+  let goalStrategy = 'balanced maintenance and consistent energy';
+  let proteinPerKg = 1.4;
+
+  if (goal.includes('muscle') || goal.includes('gain') || goal.includes('bulk')) {
+    targetCalories = Math.round(tdee + 350);
+    proteinPerKg = 1.8;
+    goalStrategy = 'lean muscle gain with high protein and clean carbohydrate surplus';
+  } else if (goal.includes('loss') || goal.includes('fat') || goal.includes('cut')) {
+    targetCalories = Math.max(1400, Math.round(tdee - 450));
+    proteinPerKg = 1.6;
+    goalStrategy = 'safe calorie deficit with high protein retention for sustainable fat loss';
+  } else if (goal.includes('fitness') || goal.includes('health')) {
+    targetCalories = tdee;
+    proteinPerKg = 1.3;
+    goalStrategy = 'metabolic vitality, academic endurance, and healthy hostel nutrition';
+  }
+
+  const targetProteinGrams = Math.round(weight * proteinPerKg);
+  const targetFatGrams = Math.round((targetCalories * 0.25) / 9);
+  const targetCarbsGrams = Math.max(100, Math.round((targetCalories - (targetProteinGrams * 4 + targetFatGrams * 9)) / 4));
+
+  const calorieMin = Math.round(targetCalories / 100) * 100 - 100;
+  const calorieMax = calorieMin + 200;
+  const calorieRange = `${calorieMin} - ${calorieMax} kcal/day (Estimated starting target)`;
+
+  const macros = {
+    protein: `${targetProteinGrams - 10} - ${targetProteinGrams + 10}g`,
+    carbs: `${targetCarbsGrams - 15} - ${targetCarbsGrams + 15}g`,
+    fats: `${targetFatGrams - 5} - ${targetFatGrams + 10}g`
+  };
+
+  // Safe snack items based on allergies
+  const nutSnack = hasPeanutAllergy 
+    ? 'Handful of roasted almonds, walnuts, and pumpkin seeds'
+    : 'Roasted chana with peanuts or 1 spoon peanut butter with fruit';
+
+  const roomAltSnack = hasPeanutAllergy
+    ? 'Roasted makhana or fresh apple with sunflower seeds'
+    : 'Fresh apple with peanut butter or roasted chana';
+
+  // Breakfast item based on diet and allergies
+  let morningDrink = '1 glass warm water with 4-5 soaked almonds';
+  if (hasDairyAllergy || isVegan) {
+    morningDrink = '1 glass warm water with lemon and handful of walnuts/seeds';
+  }
+
+  let breakfastMess = 'Hostel Mess: Poha / Upma / Idli with sambar';
+  let breakfastAlt = 'Rolled oats with sliced banana and nuts';
+  if (!isVegan && !hasDairyAllergy) {
+    if (isNonVeg || isEggetarian) {
+      breakfastMess = 'Hostel Mess Breakfast + 2 boiled eggs / omelette';
+      breakfastAlt = 'Whole wheat toast with 2 boiled eggs and 1 fresh banana';
+    } else {
+      breakfastMess = 'Hostel Mess: Stuffed Paratha / Poha + 1 cup fresh curd';
+      breakfastAlt = 'Quick rolled oats with warm milk and sliced banana';
+    }
+  } else {
+    breakfastMess = 'Hostel Mess: Idli with sambar or Poha with roasted peanuts';
+    breakfastAlt = 'Rolled oats with plant-based soy drink / warm water, chia seeds, and banana';
+  }
+
+  // Lunch & Dinner
+  let lunchMess = 'Hostel Mess: 2-3 Rotis, Double Dal, Sabzi, Curd & Salad';
+  let dinnerMess = 'Hostel Mess: Roti/Rice, Dal, Paneer/Veg Curry & Salad';
+  if (isVegan || hasDairyAllergy) {
+    lunchMess = 'Hostel Mess: 2-3 Rotis, Double portion Dal, Soya/Chana Sabzi, Fresh Salad';
+    dinnerMess = 'Hostel Mess: Rice / Roti, Rajma / Chole / Yellow Dal, Mixed Vegetables';
+  } else if (isNonVeg) {
+    dinnerMess = 'Hostel Mess: Roti/Rice, Egg/Chicken Curry (or double Dal on veg days), Salad';
+  }
+
+  // Before bed
+  let bedDrink = '1 glass warm milk with a pinch of turmeric';
+  if (isVegan || hasDairyAllergy) {
+    bedDrink = '1 cup warm chamomile or herbal tea with a pinch of cinnamon';
+  }
+
+  // Weekly meal variations
+  const weeklyPlan = [
+    {
+      day: 'Monday',
+      breakfast: isVegan ? 'Mess Poha with sprouts + 1 Banana' : (isNonVeg || isEggetarian ? 'Mess Poha + 2 Boiled Eggs + 1 Banana' : 'Mess Poha + 1 cup Curd + 1 Banana'),
+      lunch: lunchMess,
+      snack: nutSnack,
+      dinner: dinnerMess
+    },
+    {
+      day: 'Tuesday',
+      breakfast: isVegan ? 'Oats with plant-based soy drink + Apple slices' : 'Oats with warm milk + Apple slices',
+      lunch: 'Mess Rice + Rajma/Chole + Salad' + (isVegan ? '' : ' + Curd'),
+      snack: 'Fresh Seasonal Fruit bowl (Orange / Mosambi)',
+      dinner: isVegan ? 'Mess 3 Chapatis + Mixed Veg + Soya chunks' : 'Mess 3 Chapatis + Paneer/Egg Bhurji + Dal'
+    },
+    {
+      day: 'Wednesday',
+      breakfast: 'Mess Idli / Dosa with Sambar + 1 Orange',
+      lunch: 'Mess 2-3 Roti + Dal Tadka + Bhindi Sabzi + Salad',
+      snack: nutSnack,
+      dinner: 'Mess Khichdi / Roti + Dal' + (isVegan ? '' : ' + Curd')
+    },
+    {
+      day: 'Thursday',
+      breakfast: isVegan ? 'Mess Upma with sprouts + 1 Apple' : (isNonVeg || isEggetarian ? 'Mess Upma + 2 Boiled Eggs' : 'Mess Upma + Paneer chunks / Milk'),
+      lunch: 'Mess 2-3 Roti + Soya / Black Chana curry + Dal + Salad',
+      snack: 'Coconut Water + Roasted Makhana',
+      dinner: isVegan ? 'Mess 2 Roti + Yellow Lentils / Chana + Salad' : 'Mess 2 Roti + Dal Makhani / Lentils + Salad'
+    },
+    {
+      day: 'Friday',
+      breakfast: isVegan ? 'Mess Paratha (light oil) + Sprouts salad' : 'Mess Paratha (light oil) + Curd + 1 Fruit',
+      lunch: 'Mess 2-3 Roti + Double Dal + Green Veg + Salad',
+      snack: nutSnack,
+      dinner: isVegan ? 'Mess Light Dinner: Roti + Mix Dal + Tofu/Soya chunks' : (isNonVeg ? 'Mess Light Dinner: Roti + Chicken/Egg Curry + Salad' : 'Mess Light Dinner: Roti + Mix Dal + Paneer')
+    },
+    {
+      day: 'Saturday',
+      breakfast: isVegan ? 'Oats Porridge with warm water & chia seeds' : 'Oats Porridge with Warm Milk + Banana',
+      lunch: 'Mess Special Weekend Lunch (Portion controlled) + Extra Salad',
+      snack: 'Fresh Orange / Mosambi + Roasted Chana',
+      dinner: isVegan ? 'Mess Roti + Soya bhurji / Chana Dal' : 'Mess Roti + Egg Curry / Paneer / Chana Dal'
+    },
+    {
+      day: 'Sunday',
+      breakfast: 'Mess Sunday Breakfast + 1 Fresh Fruit',
+      lunch: 'Mess Lunch + Lemon Cucumber Salad' + (isVegan ? '' : ' + Curd'),
+      snack: 'Mixed Fruit Bowl (Papaya / Apple)',
+      dinner: 'Light Sunday Dinner: Roti + Simple Dal' + (isVegan ? '' : ' + Curd')
+    }
+  ];
 
   return {
-    summary: `Personalized student nutrition outline tailored for hostel life with a focus on ${profile.goal || 'healthy living'}. Built with convenient room and mess meal adaptations.`,
+    summary: `Personalized student nutrition outline tailored for hostel life with a focus on ${profile.goal || 'healthy living'}. Built with convenient room and mess meal adaptations for ${goalStrategy}.`,
     estimatedCalories: calorieRange,
     estimatedMacros: macros,
     dailyPlan: {
       earlyMorning: [
-        { time: '7:00 AM', items: ['1-2 glasses of warm water', 'Handful of soaked almonds/walnuts or fresh fruit'], hostelAlternative: 'Fresh apple/banana stored in room', reason: 'Gentle hydration and natural morning energy.' }
+        { time: '7:00 AM', items: [morningDrink], hostelAlternative: 'Fresh fruit or soaked nuts stored in room', reason: 'Gentle hydration and natural morning energy metabolism.' }
       ],
       breakfast: [
-        { time: '8:30 AM', items: [messOpt, '1 fresh banana or seasonal fruit'], hostelAlternative: 'Quick rolled oats with warm milk/curd and sliced banana', reason: 'Sustained complex carbohydrates and morning protein for lectures.' }
+        { time: '8:30 AM', items: [breakfastMess, '1 seasonal fruit'], hostelAlternative: breakfastAlt, reason: 'Complex carbohydrates and protein foundation to fuel campus lectures.' }
       ],
       midMorning: [
-        { time: '11:30 AM', items: ['Seasonal fruit (Apple / Orange / Mosambi) or coconut water'], hostelAlternative: 'Fruit ordered from HostelKart corridor delivery', reason: 'Hydration and micronutrient support between classes.' }
+        { time: '11:30 AM', items: ['Fresh seasonal fruit (Apple / Orange / Mosambi) or coconut water'], hostelAlternative: 'Fresh fruit ordered from HostelKart corridor delivery', reason: 'Micronutrient and electrolyte replenishment between classes.' }
       ],
       lunch: [
-        { time: '1:30 PM', items: ['Hostel Mess Lunch: 2-3 Rotis, Dal (double portion), Sabzi, Curd, Salad'], hostelAlternative: 'Ensure extra dal/curd for balanced protein intake', reason: 'Core balanced meal utilizing the hostel mess facility.' }
+        { time: '1:30 PM', items: [lunchMess], hostelAlternative: 'Request extra lentils/dal portion from hostel mess staff', reason: 'Core balanced meal utilizing the daily hostel mess facility.' }
       ],
       eveningSnack: [
-        { time: '5:30 PM', items: ['Roasted chana, sprouts, or peanut butter with toast/fruit', 'Green tea or lemon water'], hostelAlternative: 'Fresh fruit or roasted makhana stored in room', reason: 'Healthy pre-workout or late afternoon study snack.' }
+        { time: '5:30 PM', items: [nutSnack, 'Green tea, lemon water, or herbal infusion'], hostelAlternative: roomAltSnack, reason: 'Sustained energy for late-afternoon study cycles or evening workout.' }
       ],
       dinner: [
-        { time: '8:30 PM', items: ['Hostel Mess Dinner: Light roti/rice, paneer/egg/chicken/dal curry, salad'], hostelAlternative: 'Avoid overly oily gravies where possible; pick clear lentils and veggies', reason: 'Light, nutrient-dense evening meal for restful sleep.' }
+        { time: '8:30 PM', items: [dinnerMess], hostelAlternative: 'Choose lighter lentils and steamed veggies over overly oily gravies', reason: 'Nutrient-dense evening meal supporting cellular recovery and restful sleep.' }
       ],
       beforeBed: [
-        { time: '10:30 PM', items: ['1 glass warm milk or chamomile/herbal tea (optional)'], hostelAlternative: 'Warm water with pinch of turmeric', reason: 'Promotes relaxation and restful sleep recovery.' }
+        { time: '10:30 PM', items: [bedDrink], hostelAlternative: 'Warm water with a pinch of turmeric or herbal tea', reason: 'Promotes relaxation and uninterrupted sleep recovery.' }
       ]
     },
     hydration: {
-      generalGuidance: '2.5 to 3.5 Liters of water daily',
+      generalGuidance: `${(weight * 0.04).toFixed(1)} to ${(weight * 0.05).toFixed(1)} Liters of water daily`,
       tips: [
-        'Keep a reusable 1-Liter water bottle on your study desk and corridor backpack.',
-        'Drink 1 glass of water immediately upon waking up.',
-        'Include hydrating fruits like watermelon, oranges, and nariyal pani.'
+        'Keep a reusable 1-Liter water bottle on your study desk and hostel backpack.',
+        'Drink 1 full glass of water immediately upon waking up in the morning.',
+        'Include hydrating fruits like watermelon, oranges, and nariyal pani during study sessions.'
       ]
     },
     foodsToPrefer: [
-      { food: 'Fresh seasonal fruits (Apples, Bananas, Oranges)', why: 'Convenient room storage, rich in micronutrients and fiber.' },
-      { food: 'Lentils (Dal), Curd, and Sprouts', why: 'Essential affordable protein sources for hostel students.' },
-      { food: 'Oats, Roasted Chana, and Nuts', why: 'Non-perishable room snacks that prevent junk food cravings.' }
+      { food: 'Fresh seasonal fruits (Apples, Bananas, Oranges)', why: 'Easy room storage without refrigeration, high fiber and essential vitamins.' },
+      { food: isVegan ? 'Lentils (Dal), Soya Chunks, and Sprouts' : 'Lentils (Dal), Curd, Paneer, and Sprouts', why: 'Essential affordable protein building blocks for university students.' },
+      { food: hasPeanutAllergy ? 'Oats, Roasted Chana, and Almonds/Seeds' : 'Oats, Roasted Chana, Peanut Butter, and Nuts', why: 'Non-perishable room snacks that prevent hostel junk food cravings.' }
     ],
     foodsToLimit: [
-      { food: 'Excessively fried canteen snacks (Samosas, Pakodas)', why: 'High trans-fats causing afternoon lethargy and digestion distress.' },
-      { food: 'Late-night instant noodles with high sodium', why: 'Can cause bloating and disrupt sleep quality.' },
-      { food: 'Sugary energy drinks and soda', why: 'Temporary glucose spikes followed by sharp study fatigue.' }
+      { food: 'Deep-fried canteen snacks (Samosas, Pakodas, French Fries)', why: 'High trans-fats causing afternoon brain fog and digestive sluggishness.' },
+      { food: 'Late-night instant noodles with high sodium seasoning', why: 'High sodium causes water retention and disrupts restorative sleep.' },
+      { food: 'Sugary energy drinks and commercial sodas', why: 'Sudden glucose spikes followed by sharp study fatigue and crashes.' }
     ],
     hostelTips: [
-      'Store whole fruits (Apples, Oranges) in open bowls in your room; they stay fresh for days without a fridge.',
-      'Ask the mess staff for double dal or extra curd to meet daily protein goals easily.',
+      'Store whole fruits (Apples, Oranges) in breathable open bowls in your room; they stay fresh for days.',
+      'Ask mess workers for double dal or extra sprouts to meet daily protein goals easily.',
       'Keep roasted seeds or chana in airtight containers near your study table for evening hunger.',
       'Coordinate with corridor mates to order fresh fruit batches from HostelKart.'
     ],
-    weeklyPlan: [
-      { day: 'Monday', breakfast: 'Mess Poha + Curd + 1 Banana', lunch: 'Mess Thali: 2 Roti, Double Dal, Sabzi, Salad', snack: 'Roasted Chana + Apple', dinner: 'Mess Roti + Paneer/Egg Bhurji + Dal' },
-      { day: 'Tuesday', breakfast: 'Oats + Milk + Apple slices', lunch: 'Mess Rice + Rajma/Chole + Curd + Cucumber', snack: 'Fruit bowl + Green tea', dinner: 'Mess Roti + Mixed Veg + Dal' },
-      { day: 'Wednesday', breakfast: 'Mess Idli/Dosa + Sambar + 1 Orange', lunch: 'Mess 2 Roti + Dal Tadka + Bhindi Sabzi + Salad', snack: 'Handful of Nuts + Banana', dinner: 'Mess Khichdi / Roti + Dal + Curd' },
-      { day: 'Thursday', breakfast: 'Mess Upma + Boiled Egg/Sprouts', lunch: 'Mess 2-3 Roti + Soya/Paneer curry + Dal + Salad', snack: 'Coconut Water + Roasted Makhana', dinner: 'Mess 2 Roti + Dal Makhani/Lentils + Salad' },
-      { day: 'Friday', breakfast: 'Mess Paratha (light oil) + Curd + 1 Fruit', lunch: 'Mess 2 Roti + Double Dal + Green Veg + Salad', snack: 'Apple + Peanut Butter (if no allergy)', dinner: 'Mess Light Dinner: Roti + Mix Dal + Salad' },
-      { day: 'Saturday', breakfast: 'Oats with Warm Milk + Banana', lunch: 'Mess Special Lunch (balanced portions) + Extra Salad', snack: 'Fresh Orange/Mosambi + Chana', dinner: 'Mess Roti + Egg Curry / Paneer / Chana Dal' },
-      { day: 'Sunday', breakfast: 'Mess Sunday Breakfast + Fresh Fruit', lunch: 'Mess Lunch + Curd + Lemon Salad', snack: 'Mixed Fruit Bowl', dinner: 'Light Dinner: Roti + Simple Dal + Curd' }
-    ],
+    weeklyPlan,
     safetyNotes: [
       'This guidance adapts to your self-reported dietary preferences and activity level.',
       'If you have any diagnosed medical condition, discuss specific carbohydrate, sodium, and mineral limits with your physician.',
@@ -1025,6 +1163,203 @@ export const generateFallbackPlan = (profile, products) => {
     ],
     disclaimer: 'This is an educational student nutrition guide designed for hostel living and is NOT medical advice, diagnosis, or prescription. For clinical conditions, allergies, or therapeutic diets, consult a registered dietitian or doctor.',
     recommendedProducts: products
+  };
+};
+
+/**
+ * Universal Diet Plan Schema Normalizer
+ * Guarantees that regardless of whether the plan came from Gemini AI or Fallback,
+ * the returned JSON strictly adheres to the exact schema expected by the Frontend and Database.
+ */
+export const normalizeDietPlan = (rawPlan, profileSnapshot, availableProducts = []) => {
+  const fallback = generateFallbackPlan(profileSnapshot, availableProducts);
+  if (!rawPlan || typeof rawPlan !== 'object') {
+    return fallback;
+  }
+
+  // 1. Normalize Summary
+  let summary = '';
+  if (typeof rawPlan.summary === 'string' && rawPlan.summary.trim()) {
+    summary = rawPlan.summary.trim();
+  } else if (typeof rawPlan.planSummary === 'string' && rawPlan.planSummary.trim()) {
+    summary = rawPlan.planSummary.trim();
+  } else if (typeof rawPlan.overview === 'string' && rawPlan.overview.trim()) {
+    summary = rawPlan.overview.trim();
+  } else if (rawPlan.student_profile_summary && typeof rawPlan.student_profile_summary === 'object') {
+    summary = `Personalized student nutrition outline tailored for hostel life with a focus on ${profileSnapshot.goal || 'healthy living'}. Built with convenient room and mess meal adaptations.`;
+  } else {
+    summary = fallback.summary;
+  }
+
+  // 2. Normalize Estimated Calories
+  let estimatedCalories = '';
+  if (typeof rawPlan.estimatedCalories === 'string' && rawPlan.estimatedCalories.trim()) {
+    estimatedCalories = rawPlan.estimatedCalories.trim();
+  } else if (rawPlan.nutritional_targets?.daily_calories) {
+    estimatedCalories = `${rawPlan.nutritional_targets.daily_calories} kcal/day (Estimated starting target)`;
+  } else {
+    estimatedCalories = fallback.estimatedCalories;
+  }
+
+  // 3. Normalize Estimated Macros
+  const macros = {
+    protein: rawPlan.estimatedMacros?.protein || (rawPlan.nutritional_targets?.protein_grams ? `${rawPlan.nutritional_targets.protein_grams}g` : fallback.estimatedMacros.protein),
+    carbs: rawPlan.estimatedMacros?.carbs || (rawPlan.nutritional_targets?.carbs_grams ? `${rawPlan.nutritional_targets.carbs_grams}g` : fallback.estimatedMacros.carbs),
+    fats: rawPlan.estimatedMacros?.fats || (rawPlan.nutritional_targets?.fats_grams ? `${rawPlan.nutritional_targets.fats_grams}g` : fallback.estimatedMacros.fats)
+  };
+
+  // 4. Normalize Daily Plan
+  const dailyPlanSections = ['earlyMorning', 'breakfast', 'midMorning', 'lunch', 'eveningSnack', 'dinner', 'beforeBed'];
+  const dailyPlan = {};
+
+  dailyPlanSections.forEach(sectionKey => {
+    let sectionData = rawPlan.dailyPlan?.[sectionKey];
+
+    // Handle alternative keys if Gemini returned different meal names
+    if (!sectionData) {
+      if (sectionKey === 'midMorning') sectionData = rawPlan.dailyPlan?.mid_morning || rawPlan.dailyPlan?.snack1;
+      if (sectionKey === 'eveningSnack') sectionData = rawPlan.dailyPlan?.evening_snack || rawPlan.dailyPlan?.snack || rawPlan.dailyPlan?.pre_workout;
+      if (sectionKey === 'beforeBed') sectionData = rawPlan.dailyPlan?.before_bed || rawPlan.dailyPlan?.post_workout || rawPlan.dailyPlan?.night;
+    }
+
+    if (Array.isArray(sectionData) && sectionData.length > 0) {
+      dailyPlan[sectionKey] = sectionData.map(item => {
+        if (typeof item === 'string') {
+          return { time: 'Routine', items: [item], hostelAlternative: '', reason: '' };
+        }
+        return {
+          time: item.time || item.mealTime || 'Routine',
+          items: Array.isArray(item.items) ? item.items : [item.items || item.item || item.name || 'Balanced meal portion'],
+          hostelAlternative: item.hostelAlternative || item.alternative || '',
+          reason: item.reason || item.why || ''
+        };
+      });
+    } else if (sectionData && typeof sectionData === 'object') {
+      dailyPlan[sectionKey] = [{
+        time: sectionData.time || 'Routine',
+        items: Array.isArray(sectionData.items) ? sectionData.items : [sectionData.items || sectionData.meal || 'Balanced meal portion'],
+        hostelAlternative: sectionData.hostelAlternative || '',
+        reason: sectionData.reason || ''
+      }];
+    } else if (typeof sectionData === 'string' && sectionData.trim()) {
+      dailyPlan[sectionKey] = [{
+        time: 'Routine',
+        items: [sectionData.trim()],
+        hostelAlternative: '',
+        reason: ''
+      }];
+    } else {
+      dailyPlan[sectionKey] = fallback.dailyPlan[sectionKey];
+    }
+  });
+
+  // 5. Normalize Weekly Plan (7 Days Array)
+  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  let rawWeekly = rawPlan.weeklyPlan || rawPlan.weekly_meal_plan || rawPlan.weeklySchedule;
+  let weeklyPlan = [];
+
+  if (Array.isArray(rawWeekly) && rawWeekly.length > 0) {
+    weeklyPlan = rawWeekly.map((dayItem, idx) => {
+      const dayName = dayItem.day || daysOfWeek[idx] || `Day ${idx + 1}`;
+      const mealsObj = dayItem.meals || dayItem;
+
+      const formatMeal = (val) => {
+        if (typeof val === 'string' && val.trim()) return val.trim();
+        if (Array.isArray(val)) return val.join(', ');
+        if (val && typeof val === 'object') return val.name || val.item || JSON.stringify(val);
+        return 'Balanced hostel meal';
+      };
+
+      return {
+        day: dayName,
+        breakfast: formatMeal(mealsObj.breakfast),
+        lunch: formatMeal(mealsObj.lunch),
+        snack: formatMeal(mealsObj.snack || mealsObj.eveningSnack || mealsObj.mid_morning || mealsObj.pre_workout),
+        dinner: formatMeal(mealsObj.dinner)
+      };
+    });
+  } else if (rawWeekly && typeof rawWeekly === 'object') {
+    weeklyPlan = Object.entries(rawWeekly).map(([dayKey, dayItem]) => {
+      const formatMeal = (val) => {
+        if (typeof val === 'string' && val.trim()) return val.trim();
+        if (Array.isArray(val)) return val.join(', ');
+        if (val && typeof val === 'object') return val.name || val.item || JSON.stringify(val);
+        return 'Balanced hostel meal';
+      };
+      return {
+        day: dayKey,
+        breakfast: formatMeal(dayItem.breakfast),
+        lunch: formatMeal(dayItem.lunch),
+        snack: formatMeal(dayItem.snack || dayItem.eveningSnack),
+        dinner: formatMeal(dayItem.dinner)
+      };
+    });
+  }
+
+  // Ensure all 7 days exist
+  if (weeklyPlan.length < 7) {
+    daysOfWeek.forEach((dayName, idx) => {
+      if (!weeklyPlan.some(d => d.day.toLowerCase() === dayName.toLowerCase())) {
+        weeklyPlan.push(fallback.weeklyPlan[idx] || {
+          day: dayName,
+          breakfast: 'Mess Breakfast + Fruit',
+          lunch: 'Mess Lunch: Roti, Dal, Sabzi & Salad',
+          snack: 'Roasted Chana + Fruit',
+          dinner: 'Mess Dinner: Roti, Dal & Sabzi'
+        });
+      }
+    });
+  }
+
+  // 6. Hydration
+  const hydration = {
+    generalGuidance: rawPlan.hydration?.generalGuidance || fallback.hydration.generalGuidance,
+    tips: Array.isArray(rawPlan.hydration?.tips) && rawPlan.hydration.tips.length > 0
+      ? rawPlan.hydration.tips
+      : fallback.hydration.tips
+  };
+
+  // 7. Foods to Prefer & Foods to Limit
+  const foodsToPrefer = Array.isArray(rawPlan.foodsToPrefer) && rawPlan.foodsToPrefer.length > 0
+    ? rawPlan.foodsToPrefer
+    : fallback.foodsToPrefer;
+
+  const foodsToLimit = Array.isArray(rawPlan.foodsToLimit) && rawPlan.foodsToLimit.length > 0
+    ? rawPlan.foodsToLimit
+    : fallback.foodsToLimit;
+
+  // 8. Hostel Tips & Safety Notes
+  const hostelTips = Array.isArray(rawPlan.hostelTips) && rawPlan.hostelTips.length > 0
+    ? rawPlan.hostelTips
+    : (Array.isArray(rawPlan.hostel_grocery_list) ? rawPlan.hostel_grocery_list : fallback.hostelTips);
+
+  const safetyNotes = Array.isArray(rawPlan.safetyNotes) && rawPlan.safetyNotes.length > 0
+    ? rawPlan.safetyNotes
+    : fallback.safetyNotes;
+
+  // 9. Disclaimer
+  const disclaimer = rawPlan.disclaimer && typeof rawPlan.disclaimer === 'string'
+    ? rawPlan.disclaimer
+    : fallback.disclaimer;
+
+  // 10. Recommended Products
+  const recommendedProducts = Array.isArray(rawPlan.recommendedProducts) && rawPlan.recommendedProducts.length > 0
+    ? rawPlan.recommendedProducts
+    : availableProducts;
+
+  return {
+    summary,
+    estimatedCalories,
+    estimatedMacros: macros,
+    dailyPlan,
+    hydration,
+    foodsToPrefer,
+    foodsToLimit,
+    hostelTips,
+    weeklyPlan,
+    safetyNotes,
+    disclaimer,
+    recommendedProducts
   };
 };
 
@@ -1220,19 +1555,14 @@ Generate a practical, motivating, safe, and realistic 7-day nutrition and diet p
     generatedPlan = generateFallbackPlan(profileSnapshot, availableProducts);
   }
 
-  // Ensure mandatory disclaimer & recommended products are present
-  if (!generatedPlan.disclaimer) {
-    generatedPlan.disclaimer = 'This is a general student nutrition guide and not medical advice. For clinical, metabolic, or therapeutic dietary management, please consult a qualified healthcare professional or registered dietitian.';
-  }
-  if (!generatedPlan.recommendedProducts || generatedPlan.recommendedProducts.length === 0) {
-    generatedPlan.recommendedProducts = availableProducts;
-  }
+  // Normalize plan structure to guarantee complete consistency
+  const finalPlan = normalizeDietPlan(generatedPlan, profileSnapshot, availableProducts);
 
   // Save plan in MongoDB
   const dietDoc = new DietPlan({
     user: user._id,
     profileSnapshot,
-    plan: generatedPlan
+    plan: finalPlan
   });
   await dietDoc.save();
 
@@ -1240,7 +1570,7 @@ Generate a practical, motivating, safe, and realistic 7-day nutrition and diet p
     success: true,
     dietPlanId: dietDoc._id.toString(),
     profile: profileSnapshot,
-    plan: generatedPlan
+    plan: finalPlan
   });
 });
 
@@ -1263,15 +1593,18 @@ export const getDietPlans = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     count: plans.length,
-    plans: plans.map(p => ({
-      _id: p._id.toString(),
-      goal: p.profileSnapshot?.goal,
-      bmi: p.profileSnapshot?.bmi,
-      bmiCategory: p.profileSnapshot?.bmiCategory,
-      dietaryPreference: p.profileSnapshot?.dietaryPreference,
-      createdAt: p.createdAt,
-      summary: p.plan?.summary
-    }))
+    plans: plans.map(p => {
+      const norm = normalizeDietPlan(p.plan, p.profileSnapshot);
+      return {
+        _id: p._id.toString(),
+        goal: p.profileSnapshot?.goal,
+        bmi: p.profileSnapshot?.bmi,
+        bmiCategory: p.profileSnapshot?.bmiCategory,
+        dietaryPreference: p.profileSnapshot?.dietaryPreference,
+        createdAt: p.createdAt,
+        summary: norm?.summary || p.plan?.summary
+      };
+    })
   });
 });
 
@@ -1292,11 +1625,13 @@ export const getDietPlanById = asyncHandler(async (req, res) => {
     throw new Error('Diet plan not found or access denied.');
   }
 
+  const normalizedPlan = normalizeDietPlan(plan.plan, plan.profileSnapshot);
+
   res.json({
     success: true,
     dietPlanId: plan._id.toString(),
     profile: plan.profileSnapshot,
-    plan: plan.plan,
+    plan: normalizedPlan,
     createdAt: plan.createdAt
   });
 });

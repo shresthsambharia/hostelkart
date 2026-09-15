@@ -165,7 +165,7 @@ export async function runDietPlannerTests() {
   assert.ok(dietNextCalled, 'Next middleware should be called for diet planner route');
 
   // Test 7C: Fallback plan generation produces full valid schema
-  const { generateFallbackPlan } = await import('../ai/aiController.js');
+  const { generateFallbackPlan, normalizeDietPlan } = await import('../ai/aiController.js');
   const sampleProfile = {
     age: 20,
     gender: 'Female',
@@ -188,6 +188,105 @@ export async function runDietPlannerTests() {
   assert.ok(fallbackPlan.disclaimer, 'Fallback plan must have disclaimer');
   assert.ok(fallbackPlan.recommendedProducts && fallbackPlan.recommendedProducts.length > 0, 'Fallback plan must have recommendedProducts');
   console.log('✓ Route-specific timeout middleware and fallback plan integrity verified.');
+
+  // Test 8: Comprehensive Personalization Suite (Profiles A through H)
+  const profiles = [
+    { id: 'A', name: 'Profile A (Weight/Muscle Gain 50kg)', age: 20, height: 175, weight: 50, goal: 'Weight Gain / Muscle Gain', dietaryPreference: 'Vegetarian', allergies: [], activityLevel: 'Moderately Active' },
+    { id: 'B', name: 'Profile B (Improve Fitness 60kg)', age: 20, height: 175, weight: 60, goal: 'Improve Fitness', dietaryPreference: 'Vegetarian', allergies: [], activityLevel: 'Moderately Active' },
+    { id: 'C', name: 'Profile C (Muscle Gain 70kg)', age: 20, height: 175, weight: 70, goal: 'Muscle Gain', dietaryPreference: 'Vegetarian', allergies: [], activityLevel: 'Moderately Active' },
+    { id: 'D', name: 'Profile D (Fat Loss 85kg)', age: 20, height: 175, weight: 85, goal: 'Fat Loss', dietaryPreference: 'Vegetarian', allergies: [], activityLevel: 'Moderately Active' },
+    { id: 'E', name: 'Profile E (Fat Loss 100kg)', age: 20, height: 175, weight: 100, goal: 'Fat Loss', dietaryPreference: 'Vegetarian', allergies: [], activityLevel: 'Moderately Active' },
+    { id: 'F', name: 'Profile F (Maintenance Vegan 70kg)', age: 20, height: 175, weight: 70, goal: 'Maintenance', dietaryPreference: 'Vegan', allergies: [], activityLevel: 'Moderately Active' },
+    { id: 'G', name: 'Profile G (Muscle Gain Peanut Allergy 70kg)', age: 20, height: 175, weight: 70, goal: 'Muscle Gain', dietaryPreference: 'Vegetarian', allergies: ['Peanuts'], activityLevel: 'Moderately Active' },
+    { id: 'H', name: 'Profile H (Muscle Gain Low Activity 70kg)', age: 20, height: 175, weight: 70, goal: 'Muscle Gain', dietaryPreference: 'Vegetarian', allergies: [], activityLevel: 'Sedentary' }
+  ];
+
+  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const dailyKeys = ['earlyMorning', 'breakfast', 'midMorning', 'lunch', 'eveningSnack', 'dinner', 'beforeBed'];
+
+  const generatedResults = {};
+
+  for (const prof of profiles) {
+    const products = await searchDietProducts(prof.dietaryPreference, prof.allergies, prof.goal);
+    const plan = generateFallbackPlan(prof, products);
+    const normalized = normalizeDietPlan(plan, prof, products);
+    generatedResults[prof.id] = normalized;
+
+    // Verify Summary
+    assert.ok(normalized.summary && normalized.summary.length > 20, `Profile ${prof.id} must have a rich summary`);
+
+    // Verify Targets
+    assert.ok(normalized.estimatedCalories, `Profile ${prof.id} must have calories target`);
+    assert.ok(normalized.estimatedMacros.protein, `Profile ${prof.id} must have protein target`);
+    assert.ok(normalized.estimatedMacros.carbs, `Profile ${prof.id} must have carbs target`);
+    assert.ok(normalized.estimatedMacros.fats, `Profile ${prof.id} must have fats target`);
+
+    // Verify Daily Meals (all 7 sections)
+    for (const dk of dailyKeys) {
+      assert.ok(Array.isArray(normalized.dailyPlan[dk]) && normalized.dailyPlan[dk].length > 0, `Profile ${prof.id} must have dailyPlan.${dk}`);
+      const item = normalized.dailyPlan[dk][0];
+      assert.ok(item.time, `Profile ${prof.id} dailyPlan.${dk} must have time`);
+      assert.ok(Array.isArray(item.items) && item.items.length > 0, `Profile ${prof.id} dailyPlan.${dk} must have items`);
+    }
+
+    // Verify 7-Day Weekly Plan
+    assert.equal(normalized.weeklyPlan.length, 7, `Profile ${prof.id} weeklyPlan must have exactly 7 days`);
+    for (let i = 0; i < 7; i++) {
+      const dayPlan = normalized.weeklyPlan[i];
+      assert.equal(dayPlan.day.toLowerCase(), daysOfWeek[i].toLowerCase(), `Profile ${prof.id} Day ${i+1} must be ${daysOfWeek[i]}`);
+      assert.ok(dayPlan.breakfast, `Profile ${prof.id} ${daysOfWeek[i]} must have breakfast`);
+      assert.ok(dayPlan.lunch, `Profile ${prof.id} ${daysOfWeek[i]} must have lunch`);
+      assert.ok(dayPlan.snack, `Profile ${prof.id} ${daysOfWeek[i]} must have snack`);
+      assert.ok(dayPlan.dinner, `Profile ${prof.id} ${daysOfWeek[i]} must have dinner`);
+    }
+
+    // Verify Allergen & Dietary restrictions
+    if (prof.id === 'F') {
+      // Vegan: no dairy, meat, fish, or eggs
+      const fullText = JSON.stringify(normalized);
+      // Ensure no dairy milk, cheese, curd, paneer, eggs, meat, ghee (ignore plant-based peanut butter)
+      const hasForbiddenAnimalProducts = /\b(milk|paneer|curd|egg|eggs|dairy|meat|chicken|fish|ghee|cheese)\b/i.test(fullText) || /(?<!peanut\s)\bbutter\b/i.test(fullText);
+      assert.ok(!hasForbiddenAnimalProducts, 'Vegan plan F must strictly exclude dairy, meat, and eggs');
+    }
+    if (prof.id === 'G') {
+      // Peanut allergy: no peanuts
+      const fullText = JSON.stringify(normalized);
+      const hasPeanut = /\b(peanut|peanuts)\b/i.test(fullText);
+      assert.ok(!hasPeanut, 'Peanut allergy plan G must strictly exclude peanuts');
+    }
+  }
+
+  // Verify Personalization Targets Differ Between Profiles
+  const calsA = parseInt(generatedResults['A'].estimatedCalories, 10);
+  const calsD = parseInt(generatedResults['D'].estimatedCalories, 10);
+  const calsC = parseInt(generatedResults['C'].estimatedCalories, 10);
+  const calsH = parseInt(generatedResults['H'].estimatedCalories, 10);
+
+  assert.ok(calsC > calsH, `Profile C (Moderately Active) calories (${calsC}) must exceed Profile H (Sedentary) calories (${calsH})`);
+  assert.ok(calsC > calsD, `Profile C (Muscle Gain 70kg) calories (${calsC}) must exceed Profile D (Fat Loss 85kg) calories (${calsD})`);
+  console.log('✓ All 8 Profiles (A through H) passed personalization, target differentiation, and restriction tests.');
+
+  // Test 9: Schema Normalizer handles diverse / raw / malformed LLM shapes
+  const malformedLLMResponse = {
+    student_profile_summary: { age: 20, goal: 'Muscle gain' },
+    nutritional_targets: { daily_calories: 2550, protein_grams: 130, carbs_grams: 310, fats_grams: 75 },
+    daily_plan: {
+      breakfast: 'Oats with banana',
+      lunch: { time: '1:30 PM', item: 'Rice and Dal', hostelAlternative: 'Extra dal' }
+    },
+    weekly_meal_plan: [
+      { day: 'Monday', meals: { breakfast: 'Poha', lunch: 'Thali', snack: 'Chana', dinner: 'Roti Dal' } },
+      { day: 'Tuesday', meals: { breakfast: 'Idli', lunch: 'Rajma', snack: 'Fruit', dinner: 'Khichdi' } }
+    ]
+  };
+
+  const normalizedMalformed = normalizeDietPlan(malformedLLMResponse, profiles[2], peanutFree);
+  assert.ok(normalizedMalformed.summary, 'Normalized malformed must have summary');
+  assert.equal(normalizedMalformed.weeklyPlan.length, 7, 'Normalized malformed weeklyPlan must be expanded to 7 days');
+  assert.ok(Array.isArray(normalizedMalformed.dailyPlan.breakfast), 'Normalized dailyPlan.breakfast must be array');
+  assert.ok(Array.isArray(normalizedMalformed.dailyPlan.lunch), 'Normalized dailyPlan.lunch must be array');
+  assert.equal(normalizedMalformed.dailyPlan.lunch[0].time, '1:30 PM');
+  console.log('✓ Schema Normalizer handles raw/malformed LLM shapes and enforces complete 7-day structure.');
 
   console.log('✓ All AI Diet Planner automated tests passed successfully!');
   return true;
