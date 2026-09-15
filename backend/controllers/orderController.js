@@ -80,22 +80,48 @@ const createOrder = asyncHandler(async (req, res) => {
     productMap[p._id.toString()] = p;
   });
 
+  // Validate products, availability, and enforce authoritative server prices/discounts
+  const validatedItems = [];
+  let serverSubtotal = 0;
+
   for (const item of orderItems) {
     const product = productMap[item.product.toString()];
     if (!product) {
       res.status(404);
-      throw new Error(`Product ${item.name} not found`);
+      throw new Error(`Product ${item.name || item.product} not found`);
     }
-    if (product.stock < item.quantity) {
+    if (product.isAvailable === false) {
+      res.status(400);
+      throw new Error(`Product "${product.name}" is currently unavailable`);
+    }
+    const qty = Number(item.quantity);
+    if (!qty || qty < 1) {
+      res.status(400);
+      throw new Error(`Invalid quantity for product "${product.name}"`);
+    }
+    if (product.stock < qty) {
       res.status(400);
       throw new Error(`Insufficient stock for product: ${product.name}. Available: ${product.stock}`);
     }
+
+    const itemPrice = Number(product.price);
+    const itemDiscount = Number(product.discount || 0);
+    const effectivePrice = Math.max(0, itemPrice - (itemPrice * itemDiscount / 100));
+    serverSubtotal += effectivePrice * qty;
+
+    validatedItems.push({
+      product: product._id,
+      name: product.name,
+      quantity: qty,
+      price: itemPrice,
+      discount: itemDiscount,
+    });
   }
 
   // Calculate calculations
   const feeVal = platformFee !== undefined ? Number(platformFee) : 15;
   const deliveryVal = deliveryCharge !== undefined ? Number(deliveryCharge) : 0;
-  const subtotal = orderItems.reduce((acc, item) => acc + (item.price - (item.discount || 0)) * item.quantity, 0);
+  const subtotal = serverSubtotal;
   const calculatedTotal = subtotal + feeVal + deliveryVal;
 
   // Validate and apply Coupon code
@@ -204,13 +230,7 @@ const createOrder = asyncHandler(async (req, res) => {
   const order = new Order({
     user: req.user._id,
     paymentReference,
-    items: orderItems.map((x) => ({
-      product: x.product,
-      name: x.name,
-      quantity: Number(x.quantity),
-      price: Number(x.price),
-      discount: Number(x.discount || 0),
-    })),
+    items: validatedItems,
     deliveryDetails,
     deliverySlot,
     paymentMethod,

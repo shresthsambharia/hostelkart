@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import WalletTransaction from './WalletTransaction.js';
 
 const orderItemSchema = new mongoose.Schema({
   product: {

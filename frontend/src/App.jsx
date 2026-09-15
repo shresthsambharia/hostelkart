@@ -35,6 +35,7 @@ const MyOrders = React.lazy(() => import('./pages/MyOrders'));
 const OrderTracking = React.lazy(() => import('./pages/OrderTracking'));
 const Profile = React.lazy(() => import('./pages/Profile'));
 const CustomRequest = React.lazy(() => import('./pages/CustomRequest'));
+const DietPlanner = React.lazy(() => import('./pages/DietPlanner'));
 const Wishlist = React.lazy(() => import('./pages/Wishlist'));
 const PaymentDebug = React.lazy(() => import('./pages/PaymentDebug'));
 const PaymentTest = React.lazy(() => import('./pages/PaymentTest'));
@@ -253,6 +254,14 @@ const AppContent = () => {
             element={
               <ProtectedRoute allowedRoles={['student']}>
                 <CustomRequest />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/diet-planner"
+            element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <DietPlanner />
               </ProtectedRoute>
             }
           />

@@ -138,13 +138,19 @@ app.use((req, res, next) => {
 app.use(requestIdMiddleware);
 
 const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? ['https://hostelkart.online', 'https://www.hostelkart.online']
+  ? [
+      process.env.FRONTEND_URL,
+      'https://hostelkart.online',
+      'https://www.hostelkart.online',
+      'https://hostelkart.vercel.app'
+    ].filter(Boolean)
   : [
       'http://localhost:4173',
       'http://localhost:5173',
       'http://localhost:3000',
       'https://hostelkart.online',
-      'https://www.hostelkart.online'
+      'https://www.hostelkart.online',
+      'https://hostelkart.vercel.app'
     ];
 
 app.use(cors({

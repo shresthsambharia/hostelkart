@@ -4,7 +4,7 @@ import {
   ShoppingCart, Heart, User, LogOut, Search, Menu, X, 
   PlusCircle, LayoutDashboard, ClipboardList, Bell, Wallet, 
   Gift, Clock, TrendingUp, Trash2, Mic, MicOff, CreditCard, 
-  HelpCircle, Home as HomeIcon, MapPin, Grid
+  HelpCircle, Home as HomeIcon, MapPin, Grid, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -534,12 +534,21 @@ const Navbar = () => {
                   </Link>
 
                   {user.role === 'student' && (
-                    <Link
-                      to="/myorders"
-                      className="text-xs font-extrabold uppercase tracking-wider text-slate-600 hover:text-primary-600 transition-colors"
-                    >
-                      My Orders
-                    </Link>
+                    <>
+                      <Link
+                        to="/diet-planner"
+                        className="text-xs font-extrabold uppercase tracking-wider text-emerald-600 hover:text-emerald-700 transition-colors flex items-center gap-1 bg-emerald-50 px-2.5 py-1.5 rounded-xl border border-emerald-200"
+                      >
+                        <Sparkles size={13} className="text-emerald-500" />
+                        <span>Diet Plan</span>
+                      </Link>
+                      <Link
+                        to="/myorders"
+                        className="text-xs font-extrabold uppercase tracking-wider text-slate-600 hover:text-primary-600 transition-colors"
+                      >
+                        My Orders
+                      </Link>
+                    </>
                   )}
 
                   <button

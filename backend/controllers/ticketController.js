@@ -99,7 +99,12 @@ export const getTicketById = asyncHandler(async (req, res) => {
     throw new Error('Not authorized to view this ticket');
   }
 
-  res.json(ticket);
+  const ticketObj = ticket.toObject();
+  if (req.user.role !== 'admin' && ticketObj.messages) {
+    ticketObj.messages = ticketObj.messages.filter(m => !m.isInternalNote);
+  }
+
+  res.json(ticketObj);
 });
 
 // @desc    Add a message/reply to a ticket

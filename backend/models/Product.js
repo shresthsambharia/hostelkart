@@ -133,7 +133,6 @@ productSchema.index({ price: 1 });
 productSchema.index({ category: 1, price: 1 });
 productSchema.index({ rating: -1, numReviews: -1 });
 productSchema.index({ name: 'text' });
-productSchema.index({ normalizedName: 1 }, { unique: true, sparse: true });
 
 const Product = mongoose.model('Product', productSchema);
 

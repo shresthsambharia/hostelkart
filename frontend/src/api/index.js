@@ -334,4 +334,12 @@ export const aiAPI = {
   getSupportSuggestion: (supportData) => API.post('/ai/support', supportData)
 };
 
+export const dietAPI = {
+  generate: (data) => API.post('/ai/diet-plan', data),
+  getAll: () => API.get('/ai/diet-plan'),
+  getById: (id) => API.get(`/ai/diet-plan/${id}`),
+  delete: (id) => API.delete(`/ai/diet-plan/${id}`),
+  chat: (data) => API.post('/ai/diet-plan/chat', data),
+};
+
 export default API;

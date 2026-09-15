@@ -666,6 +666,18 @@ const assignDeliveryPartner = asyncHandler(async (req, res) => {
       throw new Error('Invalid delivery partner ID');
     }
 
+    // If order was previously assigned to a different partner, unassign from previous partner
+    if (order.deliveryPartner && order.deliveryPartner.toString() !== deliveryPartnerId.toString()) {
+      const prevPartner = await DeliveryPartner.findOne({ user: order.deliveryPartner });
+      if (prevPartner) {
+        prevPartner.currentOrders = prevPartner.currentOrders.filter(
+          (oId) => oId.toString() !== order._id.toString()
+        );
+        prevPartner.status = prevPartner.currentOrders.length > 0 ? 'On Delivery' : 'Active';
+        await prevPartner.save();
+      }
+    }
+
     order.deliveryPartner = deliveryPartnerId;
     order.orderStatus = 'Confirmed';
     order.timeline.push({
@@ -718,7 +730,9 @@ const assignDeliveryPartner = asyncHandler(async (req, res) => {
 // @route   GET /api/admin/users
 // @access  Private/Admin
 const getAllUsers = asyncHandler(async (req, res) => {
-  const users = await User.find({}).select('-password').sort({ createdAt: -1 });
+  const users = await User.find({})
+    .select('-password -twoFactorSecret -twoFactorTempSecret -twoFactorRecoveryCodes')
+    .sort({ createdAt: -1 });
   res.json(users);
 });
 

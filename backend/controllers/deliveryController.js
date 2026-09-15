@@ -28,10 +28,23 @@ const updateDeliveryStatus = asyncHandler(async (req, res) => {
   const order = await Order.findById(req.params.id);
 
   if (order) {
-    // Check authorization
-    if (order.deliveryPartner.toString() !== req.user._id.toString()) {
+    // Check authorization & IDOR protection
+    if (!order.deliveryPartner || order.deliveryPartner.toString() !== req.user._id.toString()) {
       res.status(403);
       throw new Error('Not authorized to update this order');
+    }
+
+    // Validate status transition workflow
+    const validTransitions = {
+      'Confirmed': ['Packed', 'Cancelled', 'Delivery Failed'],
+      'Packed': ['Out for Delivery', 'Cancelled', 'Delivery Failed'],
+      'Out for Delivery': ['Delivered', 'Delivery Failed', 'Cancelled'],
+    };
+
+    const allowed = validTransitions[order.orderStatus];
+    if (!allowed || !allowed.includes(status)) {
+      res.status(400);
+      throw new Error(`Invalid status transition from "${order.orderStatus}" to "${status}"`);
     }
 
     order.orderStatus = status;

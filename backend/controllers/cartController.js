@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import Cart from '../models/Cart.js';
+import Product from '../models/Product.js';
 
 // @desc    Get current user's cart
 // @route   GET /api/cart
@@ -22,6 +23,27 @@ const addToCart = asyncHandler(async (req, res) => {
   const { productId, quantity } = req.body;
   const qty = Number(quantity) || 1;
 
+  if (qty < 1) {
+    res.status(400);
+    throw new Error('Quantity must be at least 1');
+  }
+
+  const product = await Product.findById(productId);
+  if (!product) {
+    res.status(404);
+    throw new Error('Product not found');
+  }
+
+  if (product.isAvailable === false) {
+    res.status(400);
+    throw new Error(`Product "${product.name}" is currently unavailable`);
+  }
+
+  if (product.stock < qty) {
+    res.status(400);
+    throw new Error(`Only ${product.stock} units available in stock`);
+  }
+
   let cart = await Cart.findOne({ user: req.user._id });
 
   if (!cart) {
@@ -31,8 +53,12 @@ const addToCart = asyncHandler(async (req, res) => {
   const itemIndex = cart.items.findIndex((item) => item.product.toString() === productId);
 
   if (itemIndex > -1) {
-    // Product exists, update quantity
-    cart.items[itemIndex].quantity += qty;
+    const newTotalQty = cart.items[itemIndex].quantity + qty;
+    if (product.stock < newTotalQty) {
+      res.status(400);
+      throw new Error(`Cannot add ${qty} more. Only ${product.stock} units available in stock (you already have ${cart.items[itemIndex].quantity} in cart)`);
+    }
+    cart.items[itemIndex].quantity = newTotalQty;
   } else {
     // Add new product item
     cart.items.push({ product: productId, quantity: qty });
@@ -53,6 +79,22 @@ const updateCartQuantity = asyncHandler(async (req, res) => {
   if (qty < 1) {
     res.status(400);
     throw new Error('Quantity must be at least 1');
+  }
+
+  const product = await Product.findById(productId);
+  if (!product) {
+    res.status(404);
+    throw new Error('Product not found');
+  }
+
+  if (product.isAvailable === false) {
+    res.status(400);
+    throw new Error(`Product "${product.name}" is currently unavailable`);
+  }
+
+  if (product.stock < qty) {
+    res.status(400);
+    throw new Error(`Only ${product.stock} units available in stock`);
   }
 
   const cart = await Cart.findOne({ user: req.user._id });

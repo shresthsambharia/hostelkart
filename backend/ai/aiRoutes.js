@@ -6,9 +6,14 @@ import {
   getRecommendations,
   generateProductDescription,
   searchProductsAI,
-  getSupportSuggestion
+  getSupportSuggestion,
+  generateDietPlan,
+  getDietPlans,
+  getDietPlanById,
+  deleteDietPlan,
+  chatDietPlanFollowUp
 } from './aiController.js';
-import { protect, admin, optionalProtect } from '../middleware/authMiddleware.js';
+import { protect, admin, authorize, optionalProtect } from '../middleware/authMiddleware.js';
 import { logger } from '../utils/logger.js';
 import { cache } from '../middleware/cacheMiddleware.js';
 
@@ -55,5 +60,21 @@ router.post('/search', aiLimiter, searchProductsAI);
 
 // POST /api/ai/support
 router.post('/support', aiLimiter, optionalProtect, getSupportSuggestion);
+
+// === AI DIET PLANNER ROUTES ===
+// POST /api/ai/diet-plan (Generate and save diet plan)
+router.post('/diet-plan', aiLimiter, protect, authorize('student'), generateDietPlan);
+
+// GET /api/ai/diet-plan (List saved diet plans for student)
+router.get('/diet-plan', aiLimiter, protect, authorize('student'), getDietPlans);
+
+// GET /api/ai/diet-plan/:id (Get single diet plan by ID)
+router.get('/diet-plan/:id', aiLimiter, protect, authorize('student'), getDietPlanById);
+
+// DELETE /api/ai/diet-plan/:id (Delete saved diet plan)
+router.delete('/diet-plan/:id', aiLimiter, protect, authorize('student'), deleteDietPlan);
+
+// POST /api/ai/diet-plan/chat (Diet follow-up Q&A and smart substitutions)
+router.post('/diet-plan/chat', aiLimiter, protect, authorize('student'), chatDietPlanFollowUp);
 
 export default router;
