@@ -15,6 +15,12 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+
     strategy:
       matrix:
         node-version: [20]
@@ -94,12 +100,17 @@ jobs:
 
       - name: Verify Backend Startup
         working-directory: backend
+        env:
+          NODE_ENV: test
+          PORT: 5001
+          MONGO_URI: mongodb://127.0.0.1:27017/hostelkart_ci_test
+          JWT_SECRET: ci_test_jwt_secret_12345
         run: |
           node -e "
           import('./server.js')
             .then(() => {
               console.log('✅ Backend verified successfully');
-              process.exit(0);
+              setTimeout(() => process.exit(0), 1500);
             })
             .catch((err) => {
               console.error(err);
