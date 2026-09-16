@@ -90,8 +90,8 @@ const AdminDashboard = () => {
           <h3 className="font-extrabold text-slate-800 text-sm tracking-tight font-display">Revenue Trends</h3>
           <p className="text-[10px] text-slate-450 font-bold uppercase mt-0.5">7-Day Transactional Flow</p>
         </div>
-        <div className="w-full h-44 mt-4 font-semibold text-[9px]">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="w-full h-44 min-h-[176px] mt-4 font-semibold text-[9px]">
+          <ResponsiveContainer width="100%" height="100%" minHeight={170} minWidth={100}>
             <LineChart data={data} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f8fafc" />
               <XAxis dataKey="label" stroke="#94a3b8" />
@@ -118,8 +118,8 @@ const AdminDashboard = () => {
           <p className="text-[10px] text-slate-450 font-bold uppercase mt-0.5">Current Distribution Metrics</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 items-center">
-          <div className="h-36">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-36 min-h-[144px]">
+            <ResponsiveContainer width="100%" height="100%" minHeight={140} minWidth={100}>
               <PieChart>
                 <Pie
                   data={data}
@@ -139,8 +139,8 @@ const AdminDashboard = () => {
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="h-36 font-semibold text-[8px]">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-36 min-h-[144px] font-semibold text-[8px]">
+            <ResponsiveContainer width="100%" height="100%" minHeight={140} minWidth={100}>
               <BarChart data={data} margin={{ top: 5, right: 5, left: -30, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f8fafc" />
                 <XAxis dataKey="status" stroke="#94a3b8" />

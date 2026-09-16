@@ -21,20 +21,46 @@ const dataGridTheme = createTheme({
   },
 });
 
-// Safe helper functions for DataGrid row selection
+// Safe helper functions for DataGrid row selection (GridRowSelectionModel in @mui/x-data-grid v9 is { type: 'include' | 'exclude', ids: Set })
 const getSelectedIdArray = (sel) => {
   if (!sel) return [];
-  if (sel instanceof Set) return Array.from(sel);
-  if (Array.isArray(sel)) return sel;
   if (sel.ids instanceof Set) return Array.from(sel.ids);
   if (Array.isArray(sel.ids)) return sel.ids;
+  if (sel instanceof Set) return Array.from(sel);
+  if (Array.isArray(sel)) return sel;
   if (typeof sel === 'object' && sel !== null && sel.ids) {
     return getSelectedIdArray(sel.ids);
   }
   return [];
 };
 
-const getSelectedCount = (sel) => getSelectedIdArray(sel).length;
+const getSelectedCount = (sel) => {
+  if (!sel) return 0;
+  if (sel.ids instanceof Set) return sel.ids.size;
+  if (Array.isArray(sel.ids)) return sel.ids.length;
+  if (sel instanceof Set) return sel.size;
+  if (Array.isArray(sel)) return sel.length;
+  return 0;
+};
+
+const ensureRowSelectionModel = (sel) => {
+  if (sel && typeof sel === 'object' && sel.ids instanceof Set && (sel.type === 'include' || sel.type === 'exclude')) {
+    return sel;
+  }
+  if (sel && typeof sel === 'object' && Array.isArray(sel.ids)) {
+    return {
+      type: sel.type === 'exclude' ? 'exclude' : 'include',
+      ids: new Set(sel.ids)
+    };
+  }
+  if (sel instanceof Set) {
+    return { type: 'include', ids: sel };
+  }
+  if (Array.isArray(sel)) {
+    return { type: 'include', ids: new Set(sel) };
+  }
+  return { type: 'include', ids: new Set() };
+};
 
 // Inline Editing Component
 const InlineEditCell = ({ rowId, field, initialValue, onSave, numeric = true, prefix = '' }) => {
@@ -1082,15 +1108,9 @@ const AdminProducts = () => {
                   pageSizeOptions={[5, 10, 20]}
                   checkboxSelection
                   onRowSelectionModelChange={(newSelectionModel) => {
-                    const idList = Array.isArray(newSelectionModel)
-                      ? newSelectionModel
-                      : (newSelectionModel instanceof Set ? Array.from(newSelectionModel) : []);
-                    setSelectedIds({
-                      type: 'include',
-                      ids: new Set(idList)
-                    });
+                    setSelectedIds(ensureRowSelectionModel(newSelectionModel));
                   }}
-                  rowSelectionModel={getSelectedIdArray(selectedIds)}
+                  rowSelectionModel={ensureRowSelectionModel(selectedIds)}
                   disableRowSelectionOnClick
                 />
               </div>
