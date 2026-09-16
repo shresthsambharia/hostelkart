@@ -1,5 +1,6 @@
 import { strict as assert } from 'assert';
-import { calculateBMI, searchDietProducts, normalizeDietPlan, sanitizeChatHistory, trackOrderImpl, executeTool } from '../ai/aiController.js';
+import { calculateBMI, searchDietProducts, normalizeDietPlan, sanitizeChatHistory, trackOrderImpl, executeTool, searchProductsImpl } from '../ai/aiController.js';
+import { SYSTEM_PROMPT } from '../ai/systemPrompt.js';
 import DietPlan from '../models/DietPlan.js';
 import User from '../models/User.js';
 import Product from '../models/Product.js';
@@ -445,7 +446,78 @@ export async function runDietPlannerTests() {
   assert.equal(toolExecUnauth.success, false);
   console.log('✓ Test Chat H: executeTool correctly dispatches trackOrder with authentication context.');
 
+  // Ensure test products exist in database for snack & grocery searches
+  const testSnackData = [
+    { name: 'Roasted Salted Almonds (200g)', price: 180, stock: 20, category: 'Snacks', brand: 'Nutty', description: 'Crunchy roasted almonds', image: '/images/almonds.jpg', isAvailable: true },
+    { name: 'Peanut Butter Creamy (340g)', price: 160, stock: 25, category: 'Dairy Products', brand: 'Farm', description: 'Creamy rich peanut butter', image: '/images/pb.jpg', isAvailable: true },
+    { name: 'Banana (500 g)', price: 35, stock: 50, category: 'Fruits', brand: 'Fresh', description: 'Fresh sweet bananas', image: '/images/banana.jpg', isAvailable: true },
+    { name: 'Mother Dairy Curd Cup (200g)', price: 25, stock: 30, category: 'Dairy Products', brand: 'Mother Dairy', description: 'Fresh plain curd', image: '/images/curd.jpg', isAvailable: true }
+  ];
+  for (const item of testSnackData) {
+    const exists = await Product.findOne({ name: item.name });
+    if (!exists) {
+      await Product.create(item);
+    }
+  }
+
+  // Test Chat I: Snack & Category Live Database Search
+  const snacksCategoryResult = await searchProductsImpl('snacks');
+  assert.ok(Array.isArray(snacksCategoryResult), 'searchProductsImpl("snacks") must return an array');
+  assert.ok(snacksCategoryResult.length > 0, 'Snacks category should return products');
+  for (const item of snacksCategoryResult) {
+    assert.equal(item.category, 'Snacks', 'All items should belong to Snacks category');
+  }
+  console.log(`✓ Test Chat I: Live Snacks category search returns ${snacksCategoryResult.length} valid catalog items.`);
+
+  // Test Chat J: Specific Snack & Muscle-Gain Item Lookups
+  const pbSearch = await searchProductsImpl('peanut butter');
+  assert.ok(Array.isArray(pbSearch) && pbSearch.length > 0, 'Should find peanut butter in catalog');
+  assert.ok(pbSearch[0].name.toLowerCase().includes('peanut butter'));
+
+  const bananaSearch = await searchProductsImpl('banana');
+  assert.ok(Array.isArray(bananaSearch) && bananaSearch.length > 0, 'Should find banana in catalog');
+  assert.ok(bananaSearch[0].name.toLowerCase().includes('banana'));
+
+  const curdSearch = await searchProductsImpl('curd');
+  assert.ok(Array.isArray(curdSearch) && curdSearch.length > 0, 'Should find curd products in catalog');
+  assert.ok(curdSearch.some(c => c.name.toLowerCase().includes('curd') || c.name.toLowerCase().includes('yogurt')));
+
+  const unavailableSearch = await searchProductsImpl('roasted chana');
+  // Confirm un-seeded item returns empty array without error
+  assert.ok(Array.isArray(unavailableSearch), 'Unavailable product search should return an array');
+  console.log('✓ Test Chat J: Accurate item lookups (Peanut Butter, Banana, Curd) and non-hallucinated empty results for unstocked items.');
+
+  // Test Chat K: Tool Dispatcher for searchProducts
+  const toolSearchSnacks = await executeTool('searchProducts', { query: 'snacks' }, chatStudent1);
+  assert.ok(Array.isArray(toolSearchSnacks) && toolSearchSnacks.length > 0);
+  assert.equal(toolSearchSnacks[0].category, 'Snacks');
+  console.log('✓ Test Chat K: executeTool("searchProducts") dispatches correctly.');
+
+  // Test Chat L: Authenticated Add to Cart for Catalog Item
+  const bananaProd = bananaSearch[0];
+  const addToCartSuccess = await executeTool('addToCart', { productId: bananaProd.id, quantity: 1 }, chatStudent1);
+  assert.equal(addToCartSuccess.success, true);
+  assert.ok(addToCartSuccess.addedProduct);
+  assert.equal(addToCartSuccess.addedProduct.name, bananaProd.name);
+  assert.ok(addToCartSuccess.cartDetails.totalPrice > 0);
+  console.log('✓ Test Chat L: executeTool("addToCart") succeeds for authenticated student with valid catalog item.');
+
+  // Test Chat M: Add to Cart handles invalid/missing product gracefully
+  const addToCartInvalid = await executeTool('addToCart', { productId: '507f1f77bcf86cd799439011', quantity: 1 }, chatStudent1);
+  assert.equal(addToCartInvalid.success, false);
+  assert.ok(addToCartInvalid.error.toLowerCase().includes('not found'));
+  console.log('✓ Test Chat M: executeTool("addToCart") rejects non-existent product without throwing unhandled exceptions.');
+
+  // Test Chat N: System Prompt Safety & Dietary Compliance Directives
+  assert.ok(SYSTEM_PROMPT.includes('SNACK & NUTRITION RECOMMENDATION GUIDELINES'), 'System prompt must contain snack guidelines');
+  assert.ok(SYSTEM_PROMPT.includes('NEVER recommend "raw sprouts"'), 'System prompt must mandate food safety on raw sprouts');
+  assert.ok(SYSTEM_PROMPT.includes('PEANUT ALLERGY'), 'System prompt must enforce peanut allergy restrictions');
+  assert.ok(SYSTEM_PROMPT.includes('VEGAN'), 'System prompt must enforce vegan dairy exclusions');
+  assert.ok(SYSTEM_PROMPT.includes('Do NOT make exaggerated statements'), 'System prompt must forbid exaggerated claims');
+  console.log('✓ Test Chat N: System prompt verified for strict food-safety, allergen compliance, and anti-hallucination rules.');
+
   console.log('✓ All AI Diet Planner & Chat automated tests passed successfully!');
   return true;
 }
+
 

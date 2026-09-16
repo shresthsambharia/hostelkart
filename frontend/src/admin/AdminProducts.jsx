@@ -21,6 +21,21 @@ const dataGridTheme = createTheme({
   },
 });
 
+// Safe helper functions for DataGrid row selection
+const getSelectedIdArray = (sel) => {
+  if (!sel) return [];
+  if (sel instanceof Set) return Array.from(sel);
+  if (Array.isArray(sel)) return sel;
+  if (sel.ids instanceof Set) return Array.from(sel.ids);
+  if (Array.isArray(sel.ids)) return sel.ids;
+  if (typeof sel === 'object' && sel !== null && sel.ids) {
+    return getSelectedIdArray(sel.ids);
+  }
+  return [];
+};
+
+const getSelectedCount = (sel) => getSelectedIdArray(sel).length;
+
 // Inline Editing Component
 const InlineEditCell = ({ rowId, field, initialValue, onSave, numeric = true, prefix = '' }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -431,7 +446,7 @@ const AdminProducts = () => {
 
   // Bulk operations handlers
   const toggleSelectAll = () => {
-    const currentSize = selectedIds.ids?.size || 0;
+    const currentSize = getSelectedCount(selectedIds);
     if (currentSize === filteredProducts.length) {
       setSelectedIds({ type: 'include', ids: new Set() });
     } else {
@@ -441,7 +456,8 @@ const AdminProducts = () => {
 
   const toggleSelectRow = (id) => {
     setSelectedIds((prev) => {
-      const nextIds = new Set(prev.ids);
+      const currentArray = getSelectedIdArray(prev);
+      const nextIds = new Set(currentArray);
       if (nextIds.has(id)) {
         nextIds.delete(id);
       } else {
@@ -452,12 +468,13 @@ const AdminProducts = () => {
   };
 
   const handleBulkDelete = async () => {
-    const selectedCount = selectedIds.ids?.size || 0;
+    const selectedCount = getSelectedCount(selectedIds);
     if (selectedCount === 0) return;
 
     if (window.confirm(`Delete ${selectedCount} selected products?`)) {
       try {
-        for (const id of selectedIds.ids) {
+        const idList = getSelectedIdArray(selectedIds);
+        for (const id of idList) {
           await adminAPI.deleteProduct(id);
         }
         showToastMsg('success', `Successfully deleted ${selectedCount} products.`);
@@ -470,11 +487,12 @@ const AdminProducts = () => {
   };
 
   const handleBulkAvailability = async (isAvailable) => {
-    const selectedCount = selectedIds.ids?.size || 0;
+    const selectedCount = getSelectedCount(selectedIds);
     if (selectedCount === 0) return;
 
     try {
-      for (const id of selectedIds.ids) {
+      const idList = getSelectedIdArray(selectedIds);
+      for (const id of idList) {
         await adminAPI.updateProduct(id, { isAvailable });
       }
       showToastMsg('success', `Updated availability for ${selectedCount} products.`);
@@ -499,11 +517,12 @@ const AdminProducts = () => {
   const handleBulkPriceUpdate = async () => {
     const changePct = Number(bulkPriceChange);
     if (!changePct || isNaN(changePct)) return;
-    const selectedCount = selectedIds.ids?.size || 0;
+    const selectedCount = getSelectedCount(selectedIds);
     if (selectedCount === 0) return;
 
     try {
-      for (const id of selectedIds.ids) {
+      const idList = getSelectedIdArray(selectedIds);
+      for (const id of idList) {
         const prod = products.find((p) => p._id === id);
         if (prod) {
           const newPrice = Math.max(1, Math.round(prod.price * (1 + changePct / 100)));
@@ -522,11 +541,12 @@ const AdminProducts = () => {
   const handleBulkStockUpdate = async () => {
     const qty = Number(bulkStockChange);
     if (isNaN(qty)) return;
-    const selectedCount = selectedIds.ids?.size || 0;
+    const selectedCount = getSelectedCount(selectedIds);
     if (selectedCount === 0) return;
 
     try {
-      for (const id of selectedIds.ids) {
+      const idList = getSelectedIdArray(selectedIds);
+      for (const id of idList) {
         await adminAPI.updateProduct(id, { stock: qty });
       }
       showToastMsg('success', `Updated stock levels to ${qty} for ${selectedCount} products.`);
@@ -918,11 +938,11 @@ const AdminProducts = () => {
           </div>
 
           {/* Bulk Operations Overlay Control */}
-          {(selectedIds?.ids?.size || 0) > 0 && (
+          {getSelectedCount(selectedIds) > 0 && (
             <div className="bg-primary-50 border border-primary-150 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 animate-slide-up">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black text-primary-800 bg-primary-100 border border-primary-200 px-2.5 py-1 rounded-xl shadow-sm">
-                  {selectedIds?.ids?.size || 0} Selected
+                  {getSelectedCount(selectedIds)} Selected
                 </span>
                 <button
                   onClick={() => setSelectedIds({ type: 'include', ids: new Set() })}
@@ -1062,12 +1082,15 @@ const AdminProducts = () => {
                   pageSizeOptions={[5, 10, 20]}
                   checkboxSelection
                   onRowSelectionModelChange={(newSelectionModel) => {
+                    const idList = Array.isArray(newSelectionModel)
+                      ? newSelectionModel
+                      : (newSelectionModel instanceof Set ? Array.from(newSelectionModel) : []);
                     setSelectedIds({
                       type: 'include',
-                      ids: new Set(newSelectionModel || [])
+                      ids: new Set(idList)
                     });
                   }}
-                  rowSelectionModel={Array.from(selectedIds?.ids || [])}
+                  rowSelectionModel={getSelectedIdArray(selectedIds)}
                   disableRowSelectionOnClick
                 />
               </div>

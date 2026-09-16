@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import SEO from '../components/SEO';
-import { productAPI, recommendationAPI, aiAPI } from '../api';
+import { productAPI, recommendationAPI, aiAPI, dietAPI } from '../api';
 import ProductCard from '../components/ProductCard';
 import { ProductCardSkeleton } from '../components/SkeletonLoader';
 import HostelKartVideo from '../components/HostelKartVideo';
@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { 
   Search, Sparkles, Clock, Home as HomeIcon, 
   ShieldCheck, ShoppingBag, TrendingUp, HelpCircle, Eye, ArrowRight,
-  Zap, Flame, Percent, ChevronRight, Award, MapPin, ChevronDown
+  Zap, Flame, Percent, ChevronRight, Award, MapPin, ChevronDown, Utensils
 } from 'lucide-react';
 import DeliveryLocationModal from '../components/DeliveryLocationModal';
 import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants';
@@ -38,13 +38,6 @@ const promoBanners = [
     tag: 'Daily Slots',
     bg: 'from-emerald-900 to-emerald-950',
     emoji: '🍎'
-  },
-  {
-    title: 'Room Desk Upgrades',
-    subtitle: 'Notebooks, desk organizers & pens',
-    tag: 'Buy 1 Get 1 Free',
-    bg: 'from-amber-900 to-orange-950',
-    emoji: '📝'
   }
 ];
 
@@ -67,6 +60,8 @@ const Home = () => {
   const [delayedRecsLoading, setDelayedRecsLoading] = useState(true);
   const [aiRecs, setAiRecs] = useState([]);
   const [aiRecsLoading, setAiRecsLoading] = useState(true);
+  const [latestDietPlan, setLatestDietPlan] = useState(null);
+  const [dietPlanLoading, setDietPlanLoading] = useState(false);
   const [recentViews, setRecentViews] = useState([]);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const navigate = useNavigate();
@@ -91,7 +86,7 @@ const Home = () => {
         }
       }
     } catch {}
-    return 'Hostel Block Delivery Area';
+    return 'Select Location';
   };
 
   // Load recently viewed products
@@ -157,6 +152,34 @@ const Home = () => {
 
     fetchRecommendations();
     
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  // Fetch latest diet plan for quick-access hero banner
+  useEffect(() => {
+    let active = true;
+    if (!user) {
+      setLatestDietPlan(null);
+      return;
+    }
+
+    const loadUserDietPlan = async () => {
+      setDietPlanLoading(true);
+      try {
+        const { data } = await dietAPI.getAll();
+        if (active && data && data.plans && data.plans.length > 0) {
+          setLatestDietPlan(data.plans[0]);
+        }
+      } catch (err) {
+        console.warn('Could not load user diet plans for homepage card:', err);
+      } finally {
+        if (active) setDietPlanLoading(false);
+      }
+    };
+
+    loadUserDietPlan();
     return () => {
       active = false;
     };
@@ -350,7 +373,7 @@ const Home = () => {
         </div>
       </div>
       
-      {/* 1. Header Promo Banners - horizontal scroll snap on mobile, grid on desktop */}
+      {/* 1. Header Promo Banners - horizontal scroll snap on mobile, 3-column grid on desktop */}
       <section className="px-4 sm:px-8">
         <div 
           className="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto md:overflow-visible pb-3 md:pb-0 snap-x snap-mandatory scrollbar-none"
@@ -377,6 +400,49 @@ const Home = () => {
               </div>
             </div>
           ))}
+
+          {/* 3rd Item in Grid: My Diet Plan Card */}
+          <div 
+            className="relative overflow-hidden bg-gradient-to-br from-emerald-900 via-teal-950 to-slate-950 text-white rounded-3xl p-6 shadow-premium hover:shadow-premium-hover hover:-translate-y-0.5 transition-all duration-300 select-none flex flex-col justify-between min-h-[140px] border border-emerald-500/20 min-w-[280px] sm:min-w-0 snap-align-start shrink-0"
+          >
+            <div className="absolute top-0 right-0 w-36 h-36 rounded-full bg-emerald-500/10 blur-2xl pointer-events-none"></div>
+            <div className="space-y-1">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/20 border border-emerald-400/30 backdrop-blur-md rounded-md text-[9px] font-black uppercase tracking-wider text-emerald-300">
+                <Sparkles size={10} className="text-emerald-300" />
+                {latestDietPlan ? `Plan: ${latestDietPlan.profile?.goal || 'Active Plan'}` : 'AI Nutrition Co-Pilot'}
+              </span>
+              <h3 className="text-lg font-black leading-tight tracking-tight mt-1.5 flex items-center gap-1.5">
+                <span>My Diet Plan</span>
+              </h3>
+              {latestDietPlan ? (
+                <p className="text-xs text-emerald-100/90 font-medium line-clamp-2">
+                  <span className="font-extrabold text-white">
+                    {latestDietPlan.plan?.planSummary?.targetCalories || latestDietPlan.plan?.estimatedDailyCalories?.totalCalories || 2200} kcal
+                  </span>
+                  {' • '}
+                  <span>P: {latestDietPlan.plan?.estimatedDailyMacros?.protein || latestDietPlan.plan?.planSummary?.estimatedMacros?.protein || '120g'}</span>
+                  {' • '}
+                  <span>C: {latestDietPlan.plan?.estimatedDailyMacros?.carbs || latestDietPlan.plan?.planSummary?.estimatedMacros?.carbs || '240g'}</span>
+                  {' • '}
+                  <span>F: {latestDietPlan.plan?.estimatedDailyMacros?.fats || latestDietPlan.plan?.planSummary?.estimatedMacros?.fats || '60g'}</span>
+                </p>
+              ) : (
+                <p className="text-xs text-slate-350 font-bold">
+                  Personalized hostel mess & fitness nutrition
+                </p>
+              )}
+            </div>
+            <div className="flex justify-between items-center pt-4">
+              <Link 
+                to="/diet-planner"
+                className="text-xs font-black text-emerald-300 hover:text-emerald-200 underline cursor-pointer flex items-center gap-0.5"
+              >
+                <span>{latestDietPlan ? 'View My Diet Plan' : 'Create Diet Plan'}</span>
+                <ChevronRight size={12} />
+              </Link>
+              <span className="text-3xl filter drop-shadow-sm">🥗</span>
+            </div>
+          </div>
         </div>
       </section>
 

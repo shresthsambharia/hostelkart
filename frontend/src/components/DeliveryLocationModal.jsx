@@ -15,7 +15,7 @@ const POPULAR_HOSTELS = [
   'Dhansiri',
   'Subansiri',
   'Disang',
-  'IIT Hostel'
+  'Hostel Block H'
 ];
 
 const POPULAR_BLOCKS = ['A', 'B', 'C', 'D', 'E', 'Core'];

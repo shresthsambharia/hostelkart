@@ -53,9 +53,27 @@ export const searchProductsImpl = async (query) => {
   if (!query || query.trim() === '') return [];
   let normalizedQuery = query.toLowerCase().trim().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").replace(/\s+/g, " ");
   
-  if (['fruits', 'fruit', 'medicines', 'medicine'].includes(normalizedQuery)) {
-    const catName = ['fruits', 'fruit'].includes(normalizedQuery) ? 'Fruits' : 'Medicines';
-    return await getProductsByCategoryImpl(catName);
+  const categoryAliases = {
+    fruits: 'Fruits',
+    fruit: 'Fruits',
+    medicines: 'Medicines',
+    medicine: 'Medicines',
+    snacks: 'Snacks',
+    snack: 'Snacks',
+    dairy: 'Dairy Products',
+    'dairy products': 'Dairy Products',
+    vegetables: 'Vegetables',
+    vegetable: 'Vegetables',
+    beverages: 'Beverages',
+    beverage: 'Beverages',
+    stationery: 'Stationery',
+    'hostel essentials': 'Hostel Essentials',
+    'personal care': 'Personal Care',
+    'electronics accessories': 'Electronics Accessories'
+  };
+
+  if (categoryAliases[normalizedQuery]) {
+    return await getProductsByCategoryImpl(categoryAliases[normalizedQuery]);
   }
   
   const stripPlural = (str) => {
@@ -69,6 +87,27 @@ export const searchProductsImpl = async (query) => {
   const baseQueryWord = stripPlural(normalizedQuery);
 
   const allProducts = await Product.find({ isAvailable: true });
+
+  const synonyms = {
+    dahi: ['curd', 'yogurt'],
+    curd: ['yogurt', 'dahi'],
+    yogurt: ['curd', 'dahi'],
+    badam: ['almond', 'almonds'],
+    kaju: ['cashew', 'cashews'],
+    mung: ['moong', 'sprouts'],
+    moong: ['mung', 'sprouts'],
+    peanut: ['peanuts', 'butter'],
+    peanuts: ['peanut', 'butter'],
+    almond: ['almonds', 'nuts'],
+    almonds: ['almond', 'nuts'],
+    cashew: ['cashews', 'kaju'],
+    cashews: ['cashew', 'kaju'],
+    snack: ['snacks', 'biscuits', 'chips', 'nuts', 'almonds', 'cashews', 'popcorn'],
+    snacks: ['snack', 'biscuits', 'chips', 'nuts', 'almonds', 'cashews', 'popcorn'],
+    protein: ['paneer', 'curd', 'yogurt', 'peanut', 'almond', 'cashew', 'milk', 'soya'],
+    gym: ['banana', 'peanut', 'almond', 'paneer', 'curd', 'yogurt', 'milk'],
+    workout: ['banana', 'peanut', 'almond', 'paneer', 'curd', 'yogurt', 'milk']
+  };
 
   const scoredProducts = allProducts.map(product => {
     const rawName = product.name.toLowerCase();
@@ -102,6 +141,17 @@ export const searchProductsImpl = async (query) => {
         score += 10;
       } else if (word.length >= 4 && rawName.includes(word) && !rawName.includes('pineapple') && word !== 'apple') {
         score += 5;
+      }
+
+      // Check synonyms
+      if (synonyms[word]) {
+        synonyms[word].forEach(syn => {
+          if (nameWords.includes(syn)) {
+            score += 35;
+          } else if (descWords.includes(syn) || category.includes(syn)) {
+            score += 15;
+          }
+        });
       }
     });
 
@@ -428,11 +478,11 @@ export const chatWithAI = asyncHandler(async (req, res) => {
       functionDeclarations: [
         {
           name: 'getProductsByCategory',
-          description: 'Retrieve all products belonging to a specific category (e.g. \'Fruits\' or \'Medicines\') from the live database. Use this to count or list all products in that category.',
+          description: 'Retrieve all products belonging to a specific category (e.g. \'Fruits\', \'Snacks\', \'Dairy Products\', \'Medicines\', \'Vegetables\', \'Beverages\', \'Stationery\') from the live database. Use this to count or list all products in that category.',
           parameters: {
             type: 'OBJECT',
             properties: {
-              category: { type: 'STRING', description: 'The category to retrieve, which should be \'Fruits\' or \'Medicines\'' }
+              category: { type: 'STRING', description: 'The category to retrieve (e.g. \'Fruits\', \'Snacks\', \'Dairy Products\', \'Medicines\', \'Vegetables\', \'Beverages\')' }
             },
             required: ['category']
           }
@@ -553,12 +603,36 @@ export const chatWithAI = asyncHandler(async (req, res) => {
     }
   ];
 
-  // 2. Initialize Gemini Chat Session with Tools
+  // 2. Build User Dietary & Profile Context if authenticated
+  let userContext = '';
+  if (req.user) {
+    try {
+      const latestPlan = await DietPlan.findOne({ user: req.user._id }).sort({ createdAt: -1 });
+      if (latestPlan && latestPlan.profileSnapshot) {
+        const snap = latestPlan.profileSnapshot;
+        userContext = `\n\n=== USER DIETARY PROFILE CONTEXT ===
+- User Name: ${req.user.name || 'Student'}
+- Fitness Goal: ${snap.goal || 'General Fitness'}
+- Dietary Preference: ${snap.dietaryPreference || 'Vegetarian'}
+- Allergies: ${Array.isArray(snap.allergies) && snap.allergies.length > 0 ? snap.allergies.join(', ') : 'None'} ${snap.otherAllergies ? `(${snap.otherAllergies})` : ''}
+- Disliked Foods: ${snap.foodPreferences?.dislikedFoods || 'None'}
+- Monthly Budget: ${snap.hostelLifestyle?.monthlyBudget || 'Moderate'}
+- Workout Frequency: ${snap.hostelLifestyle?.workoutFrequency || 'Regular'}
+Strictly respect this student's dietary preferences and allergies in all snack and nutrition recommendations!`;
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  const effectiveSystemPrompt = `${SYSTEM_PROMPT}${userContext}`;
+
+  // 3. Initialize Gemini Chat Session with Tools
   const genAI = aiService.getGenAI();
   const model = genAI.getGenerativeModel({
     model: 'gemini-3.5-flash-lite',
     tools: modelTools,
-    systemInstruction: SYSTEM_PROMPT
+    systemInstruction: effectiveSystemPrompt
   });
 
   const chat = model.startChat({

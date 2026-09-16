@@ -13,10 +13,10 @@ const Footer = () => {
               Hostel<span className="text-primary-500">Kart</span>
             </span>
             <p className="text-xs text-slate-400 max-w-sm leading-relaxed font-semibold">
-              IIT Corridor room-door dispatch logs. Order soft drinks, fresh apples, stationery packs, and hygiene essentials in customizable time slots.
+              HostelKart delivery updates and room-door dispatch services. Order soft drinks, fresh apples, stationery packs, and hygiene essentials in customizable time slots.
             </p>
             <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider space-y-1">
-              <p>HostelKart Delivery Service &copy; {new Date().getFullYear()}</p>
+              <p>HOSTELKART &copy; 2026 / HOSTEL ESSENTIALS &amp; DELIVERY</p>
               <p>Fulfilling campus demands 24/7</p>
             </div>
           </div>

@@ -58,8 +58,8 @@ const Contact = () => {
             <div>
               <h4 className="font-bold text-slate-800 text-sm">Call/WhatsApp</h4>
               <p className="text-xs text-slate-400 mt-0.5">Direct hotline</p>
-              <a href="tel:+919876543210" className="text-xs font-semibold text-emerald-600 hover:underline block mt-1.5">
-                +91 98765 43210
+              <a href="tel:+918529218502" className="text-xs font-semibold text-emerald-600 hover:underline block mt-1.5">
+                +91 85292 18502
               </a>
             </div>
           </div>
@@ -72,7 +72,7 @@ const Contact = () => {
               <h4 className="font-bold text-slate-800 text-sm">Our Hub</h4>
               <p className="text-xs text-slate-400 mt-0.5">Store & rider depot</p>
               <span className="text-xs font-semibold text-slate-600 block mt-1.5 leading-normal">
-                Hostel Complex Block A, Room 101, University Campus
+                Indore, Madhya Pradesh, India
               </span>
             </div>
           </div>

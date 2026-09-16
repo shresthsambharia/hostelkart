@@ -42,7 +42,7 @@ const Navbar = () => {
         }
       }
     } catch {}
-    return 'IIT Hostel Corridors';
+    return 'Select Location';
   };
 
   // Advanced Search Overlay States
@@ -453,14 +453,9 @@ const Navbar = () => {
                     Custom Request
                   </Link>
                   {user && (
-                    <>
-                      <Link to="/wishlist" className="relative text-slate-600 hover:text-primary-600 transition-colors p-1" title="Wishlist" aria-label="Wishlist">
-                        <Heart size={18} />
-                      </Link>
-                      <Link to="/myorders" className="text-xs font-extrabold uppercase tracking-wider text-slate-600 hover:text-primary-600 transition-colors">
-                        My Orders
-                      </Link>
-                    </>
+                    <Link to="/wishlist" className="relative text-slate-600 hover:text-primary-600 transition-colors p-1" title="Wishlist" aria-label="Wishlist">
+                      <Heart size={18} />
+                    </Link>
                   )}
                   <Link to="/cart" className="relative text-slate-650 hover:text-primary-600 transition-all p-2 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100 flex items-center gap-1.5 shadow-sm hover:shadow-md" title="Cart" aria-label="Cart">
                     <ShoppingCart size={16} />
