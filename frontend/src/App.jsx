@@ -146,7 +146,7 @@ const LayoutContainer = ({ children }) => {
             <span className="text-xs font-bold uppercase tracking-wider">Portal Menu</span>
           </button>
           <span className="text-xs font-extrabold text-primary-400 capitalize bg-slate-800 px-2.5 py-1 rounded-md border border-slate-700">
-            {user.role} View
+            {user?.role || 'Portal'} View
           </span>
         </div>
 

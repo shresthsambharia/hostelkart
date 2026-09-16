@@ -46,12 +46,12 @@ const Sidebar = ({ isOpen, onClose }) => {
         {/* User Identity Panel */}
         <div className="px-3 py-4 bg-slate-800/50 rounded-xl border border-slate-800 flex items-center space-x-3">
           <div className="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center font-bold text-lg">
-            {user?.name.charAt(0).toUpperCase()}
+            {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
           </div>
           <div className="truncate">
-            <h4 className="text-sm font-bold text-white truncate">{user?.name}</h4>
+            <h4 className="text-sm font-bold text-white truncate">{user?.name || 'User'}</h4>
             <span className="text-[10px] font-semibold text-primary-400 uppercase tracking-wider">
-              {user?.role} Portal
+              {user?.role ? `${user.role} Portal` : 'Portal'}
             </span>
           </div>
         </div>

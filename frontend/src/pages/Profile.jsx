@@ -242,7 +242,7 @@ const Profile = () => {
           </div>
           <div className="text-center sm:text-left space-y-1">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight">{user?.name}</h1>
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight">{user?.name || 'Student'}</h1>
               <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider border ${
                 user?.role === 'admin' 
                   ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' 
@@ -250,13 +250,13 @@ const Profile = () => {
                   ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
                   : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
               }`}>
-                {user?.role} Portal
+                {user?.role ? `${user.role} Portal` : 'Student Portal'}
               </span>
             </div>
-            <p className="text-slate-455 text-xs font-semibold">{user?.email}</p>
+            <p className="text-slate-400 text-xs font-semibold">{user?.email || 'No email provided'}</p>
             <p className="text-[10px] text-slate-400 flex items-center justify-center sm:justify-start gap-1 pt-1.5 font-bold">
               <Shield size={12} className="text-emerald-400" />
-              <span>Secure Session • {user?.role === 'student' ? 'Corridor Room Delivery' : 'Internal Ops Access'}</span>
+              <span>Secure Session • {user?.role === 'student' ? 'Corridor Room Delivery' : user?.role ? 'Internal Ops Access' : 'Campus Portal Access'}</span>
             </p>
           </div>
         </div>

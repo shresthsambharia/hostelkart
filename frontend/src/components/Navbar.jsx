@@ -4,12 +4,13 @@ import {
   ShoppingCart, Heart, User, LogOut, Search, Menu, X, 
   PlusCircle, LayoutDashboard, ClipboardList, Bell, Wallet, 
   Gift, Clock, TrendingUp, Trash2, Mic, MicOff, CreditCard, 
-  HelpCircle, Home as HomeIcon, MapPin, Grid, Sparkles
+  HelpCircle, Home as HomeIcon, MapPin, Grid, Sparkles, ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { notificationAPI, productAPI } from '../api';
 import { getOptimizedImageUrl } from '../utils/image';
+import DeliveryLocationModal from './DeliveryLocationModal';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -19,6 +20,30 @@ const Navbar = () => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+
+  const getLocationSummary = (u) => {
+    if (u?.hostelDetails?.hostelName) {
+      const { hostelName, block, roomNumber } = u.hostelDetails;
+      let text = hostelName;
+      if (block) text += ` • Blk ${block}`;
+      if (roomNumber) text += ` • Rm ${roomNumber}`;
+      return text;
+    }
+    try {
+      const guest = localStorage.getItem('guestHostelDetails');
+      if (guest) {
+        const parsed = JSON.parse(guest);
+        if (parsed?.hostelName) {
+          let text = parsed.hostelName;
+          if (parsed.block) text += ` • Blk ${parsed.block}`;
+          if (parsed.roomNumber) text += ` • Rm ${parsed.roomNumber}`;
+          return text;
+        }
+      }
+    } catch {}
+    return 'IIT Hostel Corridors';
+  };
 
   // Advanced Search Overlay States
   const [suggestions, setSuggestions] = useState({ products: [], categories: [] });
@@ -244,14 +269,29 @@ const Navbar = () => {
                 </span>
               </Link>
               
-              {/* Location Pin */}
-              <div className="hidden lg:flex items-center gap-1.5 text-xs text-slate-500 font-bold border-l border-slate-200 pl-6 select-none">
-                <MapPin className="text-primary-600 w-4 h-4 shrink-0 animate-pulse" />
-                <div className="leading-tight">
-                  <span className="block text-slate-800 font-extrabold">Delivery to Room</span>
-                  <span className="text-[10px] text-slate-400">IIT Hostel Corridors</span>
-                </div>
-              </div>
+              {/* Location Pin & Delivery Target */}
+              {(!user || user.role === 'student') && (
+                <button
+                  type="button"
+                  onClick={() => setIsLocationModalOpen(true)}
+                  className="hidden lg:flex items-center gap-2 text-xs text-slate-500 font-bold border-l border-slate-200 pl-5 hover:bg-slate-50 py-1.5 px-3 rounded-2xl transition-all select-none text-left group cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500/30 -my-1"
+                  title="Click to select or change your hostel room delivery location"
+                  aria-label="Change delivery location"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-100 group-hover:scale-105 transition-all shrink-0">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <div className="leading-tight">
+                    <div className="flex items-center gap-1">
+                      <span className="block text-slate-800 font-extrabold text-xs group-hover:text-emerald-700 transition-colors">Delivery to Room</span>
+                      <ChevronDown size={12} className="text-slate-400 group-hover:text-emerald-600 transition-transform group-hover:translate-y-0.5" />
+                    </div>
+                    <span className="text-[10px] text-slate-400 block max-w-[150px] truncate font-medium">
+                      {getLocationSummary(user)}
+                    </span>
+                  </div>
+                </button>
+              )}
             </div>
 
             {/* Desktop Search bar */}
@@ -521,11 +561,11 @@ const Navbar = () => {
                     aria-label="User profile"
                   >
                     <div className="w-7 h-7 rounded-full bg-primary-100 text-primary-800 flex items-center justify-center font-black border border-primary-200">
-                      {user.name.charAt(0).toUpperCase()}
+                      {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
                     </div>
                     <span className="hidden lg:inline-flex items-center gap-1">
-                      <span>{user.name.split(' ')[0]}</span>
-                      {user.role === 'student' && user.loyaltyLevel && (
+                      <span>{user?.name ? user.name.split(' ')[0] : 'Student'}</span>
+                      {user?.role === 'student' && user?.loyaltyLevel && (
                         <span className="text-[8px] font-black tracking-wide uppercase px-1.5 py-0.5 rounded bg-amber-500 text-white shrink-0 shadow-sm leading-none">
                           {user.loyaltyLevel}
                         </span>
@@ -763,6 +803,12 @@ const Navbar = () => {
           </Link>
         </div>
       )}
+
+      {/* Delivery Location Selector Modal */}
+      <DeliveryLocationModal
+        isOpen={isLocationModalOpen}
+        onClose={() => setIsLocationModalOpen(false)}
+      />
     </>
   );
 };

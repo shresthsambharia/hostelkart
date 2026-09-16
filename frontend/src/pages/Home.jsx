@@ -4,12 +4,14 @@ import SEO from '../components/SEO';
 import { productAPI, recommendationAPI, aiAPI } from '../api';
 import ProductCard from '../components/ProductCard';
 import { ProductCardSkeleton } from '../components/SkeletonLoader';
+import HostelKartVideo from '../components/HostelKartVideo';
 import { useAuth } from '../context/AuthContext';
 import { 
   Search, Sparkles, Clock, Home as HomeIcon, 
   ShieldCheck, ShoppingBag, TrendingUp, HelpCircle, Eye, ArrowRight,
-  Zap, Flame, Percent, ChevronRight, Award, MapPin
+  Zap, Flame, Percent, ChevronRight, Award, MapPin, ChevronDown
 } from 'lucide-react';
+import DeliveryLocationModal from '../components/DeliveryLocationModal';
 import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants';
 
 const staticCategories = [
@@ -66,7 +68,31 @@ const Home = () => {
   const [aiRecs, setAiRecs] = useState([]);
   const [aiRecsLoading, setAiRecsLoading] = useState(true);
   const [recentViews, setRecentViews] = useState([]);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const navigate = useNavigate();
+
+  const getLocationSummary = (u) => {
+    if (u?.hostelDetails?.hostelName) {
+      const { hostelName, block, roomNumber } = u.hostelDetails;
+      let text = hostelName;
+      if (block) text += ` • Blk ${block}`;
+      if (roomNumber) text += ` • Rm ${roomNumber}`;
+      return text;
+    }
+    try {
+      const guest = localStorage.getItem('guestHostelDetails');
+      if (guest) {
+        const parsed = JSON.parse(guest);
+        if (parsed?.hostelName) {
+          let text = parsed.hostelName;
+          if (parsed.block) text += ` • Blk ${parsed.block}`;
+          if (parsed.roomNumber) text += ` • Rm ${parsed.roomNumber}`;
+          return text;
+        }
+      }
+    } catch {}
+    return 'Hostel Block Delivery Area';
+  };
 
   // Load recently viewed products
   useEffect(() => {
@@ -269,13 +295,23 @@ const Home = () => {
       
       {/* Mobile Sticky Search Bar Header */}
       <div className="sticky top-0 z-45 bg-emerald-600 text-white px-4 py-3 shadow-md md:hidden flex flex-col gap-2">
-        <div className="flex items-center gap-2 select-none">
+        <div 
+          onClick={() => setIsLocationModalOpen(true)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsLocationModalOpen(true); }}
+          className="flex items-center gap-2 select-none cursor-pointer active:opacity-80 transition-opacity"
+          aria-label="Change delivery location"
+        >
           <div className="bg-white/10 p-1.5 rounded-full">
             <MapPin className="w-4 h-4 text-emerald-100" />
           </div>
           <div>
             <div className="text-[10px] font-bold text-emerald-100 uppercase tracking-wider">{getGreeting()}, {user?.name || 'Student'}</div>
-            <div className="text-xs font-black truncate max-w-[250px]">Hostel Block Delivery Area</div>
+            <div className="text-xs font-black truncate max-w-[250px] flex items-center gap-1">
+              <span>{getLocationSummary(user)}</span>
+              <ChevronDown size={12} className="text-emerald-200 shrink-0" />
+            </div>
           </div>
         </div>
         <form onSubmit={handleSearchSubmit} className="relative mt-1">
@@ -390,7 +426,10 @@ const Home = () => {
         </div>
       </section>
 
-      {/* 3. Flash Deals Horizontal List */}
+      {/* 3. See HostelKart in Action Video Section */}
+      <HostelKartVideo />
+
+      {/* 4. Flash Deals Horizontal List */}
       {renderProductSection(
         "Flash Deals",
         "Top price-drop items flying off shelves",
@@ -457,6 +496,12 @@ const Home = () => {
         delayedRecsLoading,
         "No combo pairs matched right now."
       )}
+
+      {/* Delivery Location Selector Modal */}
+      <DeliveryLocationModal
+        isOpen={isLocationModalOpen}
+        onClose={() => setIsLocationModalOpen(false)}
+      />
     </div>
   );
 };
