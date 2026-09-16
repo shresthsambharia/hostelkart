@@ -39,9 +39,10 @@ const getProducts = asyncHandler(async (req, res) => {
     logSearchKeyword(keyword);
   }
 
-  // Category filter with visibility checks
+  // Category and approval filter with visibility checks
   const isAdmin = req.user && req.user.role === 'admin';
   if (!isAdmin) {
+    query.approvalStatus = { $in: ['approved', undefined, null] };
     if (category) {
       if (STUDENT_VISIBLE_CATEGORIES.includes(category)) {
         query.category = category;
@@ -81,9 +82,15 @@ const getProductById = asyncHandler(async (req, res) => {
 
   if (product) {
     const isAdmin = req.user && req.user.role === 'admin';
-    if (!isAdmin && !STUDENT_VISIBLE_CATEGORIES.includes(product.category)) {
-      res.status(404);
-      throw new Error('Product not found');
+    if (!isAdmin) {
+      if (!STUDENT_VISIBLE_CATEGORIES.includes(product.category)) {
+        res.status(404);
+        throw new Error('Product not found');
+      }
+      if (product.approvalStatus === 'pending' || product.approvalStatus === 'rejected') {
+        res.status(404);
+        throw new Error('Product not found');
+      }
     }
     res.setHeader('Cache-Control', 'public, max-age=30');
     res.json(product);
@@ -182,6 +189,7 @@ const getSearchSuggestions = asyncHandler(async (req, res) => {
   };
   if (!isAdmin) {
     productSearchQuery.category = { $in: STUDENT_VISIBLE_CATEGORIES };
+    productSearchQuery.approvalStatus = { $in: ['approved', undefined, null] };
   }
 
   const products = await Product.find(productSearchQuery)

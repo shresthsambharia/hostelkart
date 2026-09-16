@@ -21,6 +21,11 @@ import {
   createOrderRefund,
   updateOrderRefundStatus,
   deduplicateProducts,
+  getSuppliers,
+  createSupplier,
+  updateSupplier,
+  getAdminSupplierProducts,
+  updateSupplierProductApproval,
 } from '../controllers/adminController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 import { logAdminActivity } from '../middleware/adminLogMiddleware.js';
@@ -39,6 +44,13 @@ router.post('/products/deduplicate', deduplicateProducts);
 router.route('/products/:id')
   .put(editProduct)
   .delete(deleteProduct);
+
+router.route('/suppliers')
+  .get(getSuppliers)
+  .post(createSupplier);
+router.put('/suppliers/:id', updateSupplier);
+router.get('/supplier-products', getAdminSupplierProducts);
+router.put('/supplier-products/:id/approval', updateSupplierProductApproval);
 
 router.get('/orders', getAllOrders);
 router.put('/orders/:id/status', updateOrderStatus);
@@ -63,3 +75,4 @@ router.get('/custom-requests', getAllCustomRequests);
 router.put('/custom-requests/:id', updateCustomRequestStatus);
 
 export default router;
+

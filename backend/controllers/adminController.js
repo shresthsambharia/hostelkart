@@ -1582,6 +1582,186 @@ const deduplicateProducts = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Get all suppliers
+// @route   GET /api/admin/suppliers
+// @access  Private/Admin
+const getSuppliers = asyncHandler(async (req, res) => {
+  const suppliers = await User.find({ role: 'supplier' })
+    .select('-password')
+    .sort({ createdAt: -1 })
+    .lean();
+
+  // Add product counts for each supplier
+  const suppliersWithStats = await Promise.all(
+    suppliers.map(async (sup) => {
+      const [totalProducts, approvedProducts, pendingProducts] = await Promise.all([
+        Product.countDocuments({ supplier: sup._id }),
+        Product.countDocuments({ supplier: sup._id, approvalStatus: 'approved' }),
+        Product.countDocuments({ supplier: sup._id, approvalStatus: 'pending' }),
+      ]);
+      return {
+        ...sup,
+        stats: {
+          totalProducts,
+          approvedProducts,
+          pendingProducts,
+        },
+      };
+    })
+  );
+
+  res.json(suppliersWithStats);
+});
+
+// @desc    Create a new supplier account by admin
+// @route   POST /api/admin/suppliers
+// @access  Private/Admin
+const createSupplier = asyncHandler(async (req, res) => {
+  const { name, email, password, phone, supplierDetails } = req.body;
+
+  if (!name || !email || !password) {
+    res.status(400);
+    throw new Error('Please provide name, email, and password');
+  }
+
+  const userExists = await User.findOne({ email });
+  if (userExists) {
+    res.status(400);
+    throw new Error('User already exists with this email');
+  }
+
+  const supplier = await User.create({
+    name: name.trim(),
+    email: email.trim().toLowerCase(),
+    password,
+    phone: (phone || '').trim(),
+    role: 'supplier',
+    supplierDetails: supplierDetails || {},
+  });
+
+  res.status(201).json({
+    _id: supplier._id,
+    name: supplier.name,
+    email: supplier.email,
+    role: supplier.role,
+    phone: supplier.phone,
+    supplierDetails: supplier.supplierDetails,
+  });
+});
+
+// @desc    Update supplier details by admin
+// @route   PUT /api/admin/suppliers/:id
+// @access  Private/Admin
+const updateSupplier = asyncHandler(async (req, res) => {
+  const supplier = await User.findOne({ _id: req.params.id, role: 'supplier' });
+
+  if (!supplier) {
+    res.status(404);
+    throw new Error('Supplier not found');
+  }
+
+  if (req.body.name) supplier.name = req.body.name.trim();
+  if (req.body.phone !== undefined) supplier.phone = req.body.phone.trim();
+  if (req.body.password) supplier.password = req.body.password;
+  if (req.body.supplierDetails) {
+    supplier.supplierDetails = {
+      ...supplier.supplierDetails,
+      ...req.body.supplierDetails,
+    };
+  }
+
+  const updatedSupplier = await supplier.save();
+
+  res.json({
+    _id: updatedSupplier._id,
+    name: updatedSupplier.name,
+    email: updatedSupplier.email,
+    role: updatedSupplier.role,
+    phone: updatedSupplier.phone,
+    supplierDetails: updatedSupplier.supplierDetails,
+  });
+});
+
+// @desc    Get products submitted by suppliers (with optional supplierId and status filter)
+// @route   GET /api/admin/supplier-products
+// @access  Private/Admin
+const getAdminSupplierProducts = asyncHandler(async (req, res) => {
+  const { supplierId, status } = req.query;
+
+  const query = { supplier: { $ne: null } };
+
+  if (supplierId) {
+    query.supplier = supplierId;
+  }
+
+  if (status && status !== 'all') {
+    query.approvalStatus = status;
+  }
+
+  const products = await Product.find(query)
+    .populate('supplier', 'name email phone supplierDetails')
+    .sort({ createdAt: -1 })
+    .lean();
+
+  res.json(products);
+});
+
+// @desc    Approve or reject a supplier product
+// @route   PUT /api/admin/supplier-products/:id/approval
+// @access  Private/Admin
+const updateSupplierProductApproval = asyncHandler(async (req, res) => {
+  const { approvalStatus, isAvailable, reason } = req.body;
+
+  if (!approvalStatus || !['approved', 'rejected', 'pending'].includes(approvalStatus)) {
+    res.status(400);
+    throw new Error('Invalid approval status. Must be approved, rejected, or pending');
+  }
+
+  const product = await Product.findById(req.params.id);
+
+  if (!product) {
+    res.status(404);
+    throw new Error('Product not found');
+  }
+
+  product.approvalStatus = approvalStatus;
+
+  if (approvalStatus === 'approved') {
+    product.isAvailable = isAvailable !== undefined ? Boolean(isAvailable) : true;
+  } else {
+    product.isAvailable = false;
+  }
+
+  const updatedProduct = await product.save();
+  await invalidateProductCache(product._id);
+
+  // If the product has a supplier, notify them
+  if (product.supplier) {
+    try {
+      const alertTitle = approvalStatus === 'approved' 
+        ? `Product Approved: ${product.name}`
+        : `Product ${approvalStatus === 'rejected' ? 'Rejected' : 'Status Updated'}: ${product.name}`;
+      const alertMessage = approvalStatus === 'approved'
+        ? `Your product "${product.name}" has been approved by admin and is now active in the catalog.`
+        : `Your product "${product.name}" was ${approvalStatus}.${reason ? ` Reason: ${reason}` : ''}`;
+
+      await createAlert(
+        product.supplier,
+        alertTitle,
+        alertMessage,
+        'StatusUpdate'
+      );
+    } catch (e) {
+      console.warn('Failed to send supplier approval notification:', e.message);
+    }
+  }
+
+  res.json({
+    message: `Product ${approvalStatus} successfully`,
+    product: updatedProduct,
+  });
+});
+
 export {
   getDashboardAnalytics,
   addProduct,
@@ -1604,4 +1784,10 @@ export {
   createOrderRefund,
   updateOrderRefundStatus,
   deduplicateProducts,
+  getSuppliers,
+  createSupplier,
+  updateSupplier,
+  getAdminSupplierProducts,
+  updateSupplierProductApproval,
 };
+

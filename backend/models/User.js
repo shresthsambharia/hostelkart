@@ -18,12 +18,20 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['student', 'admin', 'delivery'],
+      enum: ['student', 'admin', 'delivery', 'supplier'],
       default: 'student',
     },
     phone: {
       type: String,
       default: '',
+    },
+    supplierDetails: {
+      businessName: { type: String, default: '' },
+      contactPerson: { type: String, default: '' },
+      address: { type: String, default: '' },
+      gstNumber: { type: String, default: '' },
+      bankAccount: { type: String, default: '' },
+      category: { type: String, default: '' },
     },
     hostelDetails: {
       hostelName: { type: String, default: '' },

@@ -54,16 +54,16 @@ const Profile = () => {
 
   useEffect(() => {
     if (user) {
-      setName(user.name || '');
-      setPhone(user.phone || '');
+      setName((user.name && user.name !== 'undefined' && user.name !== 'null') ? user.name : '');
+      setPhone((user.phone && user.phone !== 'undefined' && user.phone !== 'null') ? user.phone : '');
       if (user.hostelDetails) {
-        setHostelName(user.hostelDetails.hostelName || '');
-        setBlock(user.hostelDetails.block || '');
-        setFloor(user.hostelDetails.floor || '');
-        setRoomNumber(user.hostelDetails.roomNumber || '');
-        setAlternatePhone(user.hostelDetails.alternatePhone || '');
-        setLandmark(user.hostelDetails.landmark || '');
-        setDeliveryInstructions(user.hostelDetails.deliveryInstructions || '');
+        setHostelName((user.hostelDetails.hostelName && user.hostelDetails.hostelName !== 'undefined') ? user.hostelDetails.hostelName : '');
+        setBlock((user.hostelDetails.block && user.hostelDetails.block !== 'undefined') ? user.hostelDetails.block : '');
+        setFloor((user.hostelDetails.floor && user.hostelDetails.floor !== 'undefined') ? user.hostelDetails.floor : '');
+        setRoomNumber((user.hostelDetails.roomNumber && user.hostelDetails.roomNumber !== 'undefined') ? user.hostelDetails.roomNumber : '');
+        setAlternatePhone((user.hostelDetails.alternatePhone && user.hostelDetails.alternatePhone !== 'undefined') ? user.hostelDetails.alternatePhone : '');
+        setLandmark((user.hostelDetails.landmark && user.hostelDetails.landmark !== 'undefined') ? user.hostelDetails.landmark : '');
+        setDeliveryInstructions((user.hostelDetails.deliveryInstructions && user.hostelDetails.deliveryInstructions !== 'undefined') ? user.hostelDetails.deliveryInstructions : '');
       }
     }
   }, [user]);
@@ -222,13 +222,17 @@ const Profile = () => {
     document.body.removeChild(element);
   };
 
+  const displayName = (user?.name && user.name !== 'undefined' && user.name !== 'null') 
+    ? user.name 
+    : (user?.email && user.email !== 'undefined' && user.email !== 'null' ? user.email.split('@')[0] : 'Student');
+
   const getInitials = (userName) => {
-    if (!userName) return 'HK';
-    const parts = userName.split(' ');
-    if (parts.length > 1) {
+    if (!userName || typeof userName !== 'string' || userName === 'undefined' || userName === 'null') return 'HK';
+    const parts = userName.trim().split(' ').filter(Boolean);
+    if (parts.length > 1 && parts[0] && parts[1]) {
       return (parts[0][0] + parts[1][0]).toUpperCase();
     }
-    return userName.slice(0, 2).toUpperCase();
+    return userName.trim().slice(0, 2).toUpperCase() || 'HK';
   };
 
   return (
@@ -238,16 +242,18 @@ const Profile = () => {
         <div className="absolute right-0 top-0 w-64 h-64 bg-primary-600/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="relative flex flex-col sm:flex-row items-center gap-6">
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-primary-500 to-emerald-500 text-white font-black text-2xl flex items-center justify-center shadow-lg border border-white/10 shrink-0">
-            {getInitials(user?.name)}
+            {getInitials(displayName)}
           </div>
           <div className="text-center sm:text-left space-y-1">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight">{user?.name || 'Student'}</h1>
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight">{displayName}</h1>
               <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider border ${
                 user?.role === 'admin' 
                   ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' 
                   : user?.role === 'delivery'
                   ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                  : user?.role === 'supplier'
+                  ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
                   : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
               }`}>
                 {user?.role ? `${user.role} Portal` : 'Student Portal'}
@@ -343,6 +349,32 @@ const Profile = () => {
                 <span className="flex items-center gap-2">
                   <Bike size={15} className="text-primary-600" />
                   <span>Delivery Control</span>
+                </span>
+                <ArrowRight size={12} className="text-slate-400" />
+              </Link>
+            </>
+          )}
+
+          {user?.role === 'supplier' && (
+            <>
+              <Link to="/supplier/dashboard" className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl shadow-premium-sm hover:border-slate-200 transition-all font-bold text-xs text-slate-700">
+                <span className="flex items-center gap-2">
+                  <Layers size={15} className="text-purple-600" />
+                  <span>Supplier Dashboard</span>
+                </span>
+                <ArrowRight size={12} className="text-slate-400" />
+              </Link>
+              <Link to="/supplier/products" className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl shadow-premium-sm hover:border-slate-200 transition-all font-bold text-xs text-slate-700">
+                <span className="flex items-center gap-2">
+                  <ShoppingBag size={15} className="text-purple-600" />
+                  <span>My Products</span>
+                </span>
+                <ArrowRight size={12} className="text-slate-400" />
+              </Link>
+              <Link to="/supplier/orders" className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl shadow-premium-sm hover:border-slate-200 transition-all font-bold text-xs text-slate-700">
+                <span className="flex items-center gap-2">
+                  <ClipboardList size={15} className="text-purple-600" />
+                  <span>Supply Orders</span>
                 </span>
                 <ArrowRight size={12} className="text-slate-400" />
               </Link>
@@ -547,8 +579,8 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Security / 2FA configurations */}
-        {user && (
+        {/* Security / 2FA configurations (Admin Only) */}
+        {user?.role === 'admin' && (
           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-premium space-y-5">
             <div className="flex items-center justify-between border-b border-slate-50 pb-3 select-none">
               <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-1.5">

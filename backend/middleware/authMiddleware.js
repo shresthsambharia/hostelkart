@@ -92,6 +92,16 @@ const delivery = (req, res, next) => {
   }
 };
 
+// Middleware for Supplier role
+const supplier = (req, res, next) => {
+  if (req.user && req.user.role === 'supplier') {
+    next();
+  } else {
+    res.status(403);
+    throw new Error('Not authorized as a supplier');
+  }
+};
+
 // Generic role verification middleware
 const authorize = (...roles) => {
   return (req, res, next) => {
@@ -104,4 +114,5 @@ const authorize = (...roles) => {
   };
 };
 
-export { protect, admin, delivery, authorize, optionalProtect };
+export { protect, admin, delivery, supplier, authorize, optionalProtect };
+

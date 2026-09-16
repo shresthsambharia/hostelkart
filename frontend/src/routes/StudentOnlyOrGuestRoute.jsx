@@ -22,6 +22,8 @@ const StudentOnlyOrGuestRoute = ({ children }) => {
       return <Navigate to="/admin/dashboard" replace />;
     } else if (user.role === 'delivery') {
       return <Navigate to="/delivery/dashboard" replace />;
+    } else if (user.role === 'supplier') {
+      return <Navigate to="/supplier/dashboard" replace />;
     }
   }
 

@@ -78,6 +78,16 @@ const productSchema = new mongoose.Schema(
       required: true,
       default: true,
     },
+    supplier: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    approvalStatus: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'approved',
+    },
     normalizedName: {
       type: String,
       unique: true,
@@ -133,6 +143,7 @@ productSchema.index({ price: 1 });
 productSchema.index({ category: 1, price: 1 });
 productSchema.index({ rating: -1, numReviews: -1 });
 productSchema.index({ name: 'text' });
+productSchema.index({ supplier: 1, approvalStatus: 1 });
 
 const Product = mongoose.model('Product', productSchema);
 

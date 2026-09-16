@@ -16,12 +16,10 @@ import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants';
 
 const staticCategories = [
   { name: 'Fruits', emoji: '🍎', bg: 'bg-red-50 hover:bg-red-100/80 border-red-100 text-red-650' },
-  { name: 'Vegetables', emoji: '🥦', bg: 'bg-emerald-50 hover:bg-emerald-100/80 border-emerald-100 text-emerald-650' },
+  { name: 'Medicines', emoji: '💊', bg: 'bg-pink-50 hover:bg-pink-100/80 border-pink-100 text-pink-650' },
   { name: 'Stationery', emoji: '📚', bg: 'bg-indigo-50 hover:bg-indigo-100/80 border-indigo-100 text-indigo-650' },
-  { name: 'Electronics Accessories', emoji: '🔌', bg: 'bg-amber-50 hover:bg-amber-100/80 border-amber-100 text-amber-650' },
-  { name: 'Personal Care', emoji: '🧼', bg: 'bg-teal-50 hover:bg-teal-100/80 border-teal-100 text-teal-650' },
-  { name: 'Dairy Products', emoji: '🧀', bg: 'bg-orange-50 hover:bg-orange-100/80 border-orange-100 text-orange-650' },
-  { name: 'Medicines', emoji: '💊', bg: 'bg-pink-50 hover:bg-pink-100/80 border-pink-100 text-pink-650' }
+  { name: 'Exotic Fruits', emoji: '🥝', bg: 'bg-emerald-50 hover:bg-emerald-100/80 border-emerald-100 text-emerald-650' },
+  { name: 'Clothes Essentials', emoji: '👕', bg: 'bg-sky-50 hover:bg-sky-100/80 border-sky-100 text-sky-650' },
 ];
 
 const promoBanners = [

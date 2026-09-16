@@ -1,0 +1,475 @@
+import asyncHandler from 'express-async-handler';
+import mongoose from 'mongoose';
+import Product from '../models/Product.js';
+import Order from '../models/Order.js';
+import User from '../models/User.js';
+import { invalidateProductCache } from '../middleware/cacheMiddleware.js';
+import { logger } from '../utils/logger.js';
+
+// @desc    Get Supplier Dashboard Analytics
+// @route   GET /api/supplier/dashboard
+// @access  Private/Supplier
+const getSupplierDashboard = asyncHandler(async (req, res) => {
+  const supplierId = req.user._id;
+
+  // Aggregate product counts for this supplier
+  const [
+    totalProducts,
+    approvedProducts,
+    pendingProducts,
+    rejectedProducts,
+    lowStockProducts,
+    outOfStockProducts,
+    myProducts,
+  ] = await Promise.all([
+    Product.countDocuments({ supplier: supplierId }),
+    Product.countDocuments({ supplier: supplierId, approvalStatus: 'approved' }),
+    Product.countDocuments({ supplier: supplierId, approvalStatus: 'pending' }),
+    Product.countDocuments({ supplier: supplierId, approvalStatus: 'rejected' }),
+    Product.countDocuments({ supplier: supplierId, stock: { $gt: 0, $lt: 10 } }),
+    Product.countDocuments({ supplier: supplierId, stock: 0 }),
+    Product.find({ supplier: supplierId }).select('_id price stock name category approvalStatus isAvailable').lean(),
+  ]);
+
+  // Calculate total inventory valuation & total units in stock
+  let totalStockUnits = 0;
+  let totalStockValuation = 0;
+  myProducts.forEach((p) => {
+    const stock = Number(p.stock) || 0;
+    const price = Number(p.price) || 0;
+    totalStockUnits += stock;
+    totalStockValuation += stock * price;
+  });
+
+  // Calculate order analytics for products belonging to this supplier
+  const myProductIds = myProducts.map((p) => p._id);
+  const relevantOrders = await Order.find({
+    'items.product': { $in: myProductIds },
+  }).select('items orderStatus paymentStatus createdAt totalAmount').lean();
+
+  let totalOrdersCount = relevantOrders.length;
+  let deliveredOrdersCount = 0;
+  let totalRevenue = 0;
+  let totalItemsSold = 0;
+
+  relevantOrders.forEach((order) => {
+    const isDelivered = order.orderStatus === 'Delivered';
+    if (isDelivered) deliveredOrdersCount += 1;
+
+    order.items.forEach((item) => {
+      const isMyProduct = myProductIds.some((id) => id.toString() === item.product?.toString());
+      if (isMyProduct) {
+        totalItemsSold += item.quantity || 1;
+        if (order.orderStatus !== 'Cancelled') {
+          totalRevenue += (item.price || 0) * (item.quantity || 1);
+        }
+      }
+    });
+  });
+
+  res.json({
+    metrics: {
+      totalProducts,
+      approvedProducts,
+      pendingProducts,
+      rejectedProducts,
+      lowStockProducts,
+      outOfStockProducts,
+      totalStockUnits,
+      totalStockValuation: Math.round(totalStockValuation),
+      totalOrdersCount,
+      deliveredOrdersCount,
+      totalRevenue: Math.round(totalRevenue),
+      totalItemsSold,
+    },
+    recentProducts: myProducts.slice(0, 5),
+  });
+});
+
+// @desc    Get all products for current supplier
+// @route   GET /api/supplier/products
+// @access  Private/Supplier
+const getSupplierProducts = asyncHandler(async (req, res) => {
+  const supplierId = req.user._id;
+  const { keyword, category, status, stockFilter } = req.query;
+
+  const query = { supplier: supplierId };
+
+  if (keyword) {
+    query.name = { $regex: keyword, $options: 'i' };
+  }
+
+  if (category && category !== 'all') {
+    query.category = category;
+  }
+
+  if (status && status !== 'all') {
+    query.approvalStatus = status;
+  }
+
+  if (stockFilter === 'low') {
+    query.stock = { $gt: 0, $lt: 10 };
+  } else if (stockFilter === 'out') {
+    query.stock = 0;
+  } else if (stockFilter === 'in') {
+    query.stock = { $gte: 10 };
+  }
+
+  const products = await Product.find(query).sort({ createdAt: -1 }).lean();
+  res.json(products);
+});
+
+// @desc    Get single product for current supplier (Strict IDOR check)
+// @route   GET /api/supplier/products/:id
+// @access  Private/Supplier
+const getSupplierProductById = asyncHandler(async (req, res) => {
+  const product = await Product.findById(req.params.id).lean();
+
+  if (!product) {
+    res.status(404);
+    throw new Error('Product not found');
+  }
+
+  // IDOR Protection: Must belong to requesting supplier
+  if (!product.supplier || product.supplier.toString() !== req.user._id.toString()) {
+    res.status(403);
+    throw new Error('Not authorized to access this product');
+  }
+
+  res.json(product);
+});
+
+// @desc    Create new product by supplier (Defaults to pending approval)
+// @route   POST /api/supplier/products
+// @access  Private/Supplier
+const createSupplierProduct = asyncHandler(async (req, res) => {
+  const {
+    name,
+    price,
+    description,
+    image,
+    category,
+    stock,
+    brand,
+    mrp,
+    discount,
+    deliveryTime,
+  } = req.body;
+
+  if (!name || price === undefined || !description || !image || !category || stock === undefined) {
+    res.status(400);
+    throw new Error('Please provide name, price, description, image, category, and stock');
+  }
+
+  const numPrice = Number(price);
+  const numStock = Number(stock);
+  const numMrp = mrp !== undefined ? Number(mrp) : numPrice;
+  const numDiscount = discount !== undefined ? Number(discount) : 0;
+
+  if (isNaN(numPrice) || numPrice < 0) {
+    res.status(400);
+    throw new Error('Price must be a valid positive number');
+  }
+
+  if (isNaN(numStock) || numStock < 0) {
+    res.status(400);
+    throw new Error('Stock must be a valid non-negative number');
+  }
+
+  const product = await Product.create({
+    name: name.trim(),
+    price: numPrice,
+    mrp: numMrp,
+    discount: numDiscount,
+    description: description.trim(),
+    image: image.trim(),
+    category: category.trim(),
+    stock: numStock,
+    brand: (brand || '').trim(),
+    deliveryTime: deliveryTime || 'Scheduled Delivery',
+    supplier: req.user._id,
+    approvalStatus: 'pending', // Always defaults to pending
+    isAvailable: false,        // Inactive until admin approves
+  });
+
+  logger.info('SUPPLIER_PRODUCT_CREATED', `Supplier ${req.user.email} created product "${product.name}"`, {
+    productId: product._id,
+    supplierId: req.user._id,
+  });
+
+  await invalidateProductCache();
+
+  res.status(201).json({
+    message: 'Product submitted successfully and is pending admin approval',
+    product,
+  });
+});
+
+// @desc    Update product by supplier (Strict IDOR check)
+// @route   PUT /api/supplier/products/:id
+// @access  Private/Supplier
+const updateSupplierProduct = asyncHandler(async (req, res) => {
+  const product = await Product.findById(req.params.id);
+
+  if (!product) {
+    res.status(404);
+    throw new Error('Product not found');
+  }
+
+  // IDOR Protection: Product must belong to requesting supplier
+  if (!product.supplier || product.supplier.toString() !== req.user._id.toString()) {
+    res.status(403);
+    throw new Error('Not authorized to modify this product');
+  }
+
+  const {
+    name,
+    price,
+    description,
+    image,
+    category,
+    stock,
+    brand,
+    mrp,
+    discount,
+    deliveryTime,
+  } = req.body;
+
+  let detailsChanged = false;
+
+  if (name !== undefined && name.trim() !== product.name) {
+    product.name = name.trim();
+    detailsChanged = true;
+  }
+  if (price !== undefined && Number(price) !== product.price) {
+    product.price = Number(price);
+    detailsChanged = true;
+  }
+  if (mrp !== undefined) product.mrp = Number(mrp);
+  if (discount !== undefined) product.discount = Number(discount);
+  if (description !== undefined) product.description = description.trim();
+  if (image !== undefined && image.trim() !== product.image) {
+    product.image = image.trim();
+    detailsChanged = true;
+  }
+  if (category !== undefined && category.trim() !== product.category) {
+    product.category = category.trim();
+    detailsChanged = true;
+  }
+  if (stock !== undefined) {
+    const numStock = Number(stock);
+    if (!isNaN(numStock) && numStock >= 0) {
+      product.stock = numStock;
+    }
+  }
+  if (brand !== undefined) product.brand = brand.trim();
+  if (deliveryTime !== undefined) product.deliveryTime = deliveryTime;
+
+  // If critical details changed on an approved product, flag for re-approval
+  if (detailsChanged && product.approvalStatus === 'approved') {
+    product.approvalStatus = 'pending';
+    product.isAvailable = false;
+  }
+
+  const updatedProduct = await product.save();
+  await invalidateProductCache(product._id);
+
+  logger.info('SUPPLIER_PRODUCT_UPDATED', `Supplier ${req.user.email} updated product "${product.name}"`, {
+    productId: product._id,
+    supplierId: req.user._id,
+  });
+
+  res.json({
+    message: detailsChanged ? 'Product updated and submitted for re-approval' : 'Product updated successfully',
+    product: updatedProduct,
+  });
+});
+
+// @desc    Update stock & availability for supplier product (Strict IDOR check)
+// @route   PATCH /api/supplier/products/:id/stock
+// @access  Private/Supplier
+const updateSupplierProductStock = asyncHandler(async (req, res) => {
+  const product = await Product.findById(req.params.id);
+
+  if (!product) {
+    res.status(404);
+    throw new Error('Product not found');
+  }
+
+  // IDOR Protection: Must belong to requesting supplier
+  if (!product.supplier || product.supplier.toString() !== req.user._id.toString()) {
+    res.status(403);
+    throw new Error('Not authorized to modify this product');
+  }
+
+  const { stock, isAvailable } = req.body;
+
+  if (stock !== undefined) {
+    const numStock = Number(stock);
+    if (isNaN(numStock) || numStock < 0) {
+      res.status(400);
+      throw new Error('Stock must be a non-negative number');
+    }
+    product.stock = numStock;
+  }
+
+  // Supplier can only toggle availability if already approved
+  if (isAvailable !== undefined) {
+    if (product.approvalStatus !== 'approved') {
+      res.status(400);
+      throw new Error('Cannot toggle availability on a pending or rejected product');
+    }
+    product.isAvailable = Boolean(isAvailable);
+  }
+
+  const updatedProduct = await product.save();
+  await invalidateProductCache(product._id);
+
+  res.json({
+    message: 'Stock and availability updated successfully',
+    product: updatedProduct,
+  });
+});
+
+// @desc    Delete supplier product (Strict IDOR check)
+// @route   DELETE /api/supplier/products/:id
+// @access  Private/Supplier
+const deleteSupplierProduct = asyncHandler(async (req, res) => {
+  const product = await Product.findById(req.params.id);
+
+  if (!product) {
+    res.status(404);
+    throw new Error('Product not found');
+  }
+
+  // IDOR Protection: Must belong to requesting supplier
+  if (!product.supplier || product.supplier.toString() !== req.user._id.toString()) {
+    res.status(403);
+    throw new Error('Not authorized to delete this product');
+  }
+
+  await Product.deleteOne({ _id: product._id });
+  await invalidateProductCache(product._id);
+
+  logger.info('SUPPLIER_PRODUCT_DELETED', `Supplier ${req.user.email} deleted product "${product.name}"`, {
+    productId: product._id,
+    supplierId: req.user._id,
+  });
+
+  res.json({ message: 'Product removed successfully' });
+});
+
+// @desc    Get supply orders for current supplier
+// @route   GET /api/supplier/orders
+// @access  Private/Supplier
+const getSupplierOrders = asyncHandler(async (req, res) => {
+  const supplierId = req.user._id;
+
+  // Find all products owned by this supplier
+  const myProducts = await Product.find({ supplier: supplierId }).select('_id name price image category').lean();
+  const myProductIds = myProducts.map((p) => p._id.toString());
+
+  // Find orders containing any of these products
+  const orders = await Order.find({
+    'items.product': { $in: myProductIds },
+  })
+    .sort({ createdAt: -1 })
+    .select('_id createdAt orderStatus paymentStatus deliveryDetails items totalAmount')
+    .lean();
+
+  // Filter items in each order to only include items supplied by this supplier
+  const supplierOrders = orders.map((order) => {
+    const suppliedItems = order.items.filter((item) =>
+      item.product && myProductIds.includes(item.product.toString())
+    );
+
+    const supplierSubtotal = suppliedItems.reduce(
+      (sum, item) => sum + (item.price || 0) * (item.quantity || 1),
+      0
+    );
+
+    return {
+      _id: order._id,
+      createdAt: order.createdAt,
+      orderStatus: order.orderStatus,
+      paymentStatus: order.paymentStatus,
+      deliveryDetails: {
+        hostelName: order.deliveryDetails?.hostelName,
+        block: order.deliveryDetails?.block,
+        floor: order.deliveryDetails?.floor,
+        roomNumber: order.deliveryDetails?.roomNumber,
+      },
+      items: suppliedItems,
+      supplierSubtotal: Math.round(supplierSubtotal),
+    };
+  });
+
+  res.json(supplierOrders);
+});
+
+// @desc    Get current supplier profile
+// @route   GET /api/supplier/profile
+// @access  Private/Supplier
+const getSupplierProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select('-password').lean();
+
+  if (!user) {
+    res.status(404);
+    throw new Error('Supplier profile not found');
+  }
+
+  res.json(user);
+});
+
+// @desc    Update current supplier profile
+// @route   PUT /api/supplier/profile
+// @access  Private/Supplier
+const updateSupplierProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    res.status(404);
+    throw new Error('Supplier not found');
+  }
+
+  if (req.body.name && req.body.name !== 'undefined' && req.body.name !== 'null') {
+    user.name = req.body.name.trim();
+  }
+  if (req.body.phone !== undefined) {
+    user.phone = req.body.phone.trim();
+  }
+  if (req.body.supplierDetails) {
+    user.supplierDetails = {
+      ...user.supplierDetails,
+      ...req.body.supplierDetails,
+    };
+  }
+
+  if (req.body.password) {
+    user.password = req.body.password;
+  }
+
+  const updatedUser = await user.save();
+
+  res.json({
+    _id: updatedUser._id,
+    name: updatedUser.name,
+    email: updatedUser.email,
+    role: updatedUser.role,
+    phone: updatedUser.phone,
+    supplierDetails: updatedUser.supplierDetails,
+  });
+});
+
+export {
+  getSupplierDashboard,
+  getSupplierProducts,
+  getSupplierProductById,
+  createSupplierProduct,
+  updateSupplierProduct,
+  updateSupplierProductStock,
+  deleteSupplierProduct,
+  getSupplierOrders,
+  getSupplierProfile,
+  updateSupplierProfile,
+};

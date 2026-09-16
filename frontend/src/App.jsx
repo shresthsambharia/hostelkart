@@ -55,12 +55,19 @@ const RefundPolicy = React.lazy(() => import('./pages/RefundPolicy'));
 // Admin pages
 const AdminDashboard = React.lazy(() => import('./admin/AdminDashboard'));
 const AdminProducts = React.lazy(() => import('./admin/AdminProducts'));
+const AdminSuppliers = React.lazy(() => import('./admin/AdminSuppliers'));
 const AdminOrders = React.lazy(() => import('./admin/AdminOrders'));
 const AdminUsers = React.lazy(() => import('./admin/AdminUsers'));
 const AdminCustomRequests = React.lazy(() => import('./admin/AdminCustomRequests'));
 const AdminSettings = React.lazy(() => import('./admin/AdminSettings'));
 const AdminCoupons = React.lazy(() => import('./admin/AdminCoupons'));
 const PaymentDashboard = React.lazy(() => import('./admin/PaymentDashboard'));
+
+// Supplier Dashboard pages
+const SupplierDashboard = React.lazy(() => import('./supplier/SupplierDashboard'));
+const SupplierProducts = React.lazy(() => import('./supplier/SupplierProducts'));
+const SupplierOrders = React.lazy(() => import('./supplier/SupplierOrders'));
+const SupplierProfile = React.lazy(() => import('./supplier/SupplierProfile'));
 
 // Delivery Dashboard pages
 const DeliveryDashboard = React.lazy(() => import('./delivery/DeliveryDashboard'));
@@ -122,10 +129,11 @@ const LayoutContainer = ({ children }) => {
   const path = location.pathname;
   const isAdminPath = path.startsWith('/admin');
   const isDeliveryPath = path.startsWith('/delivery');
+  const isSupplierPath = path.startsWith('/supplier');
   const isProfilePath = path === '/profile';
 
-  // Sidebar Layout for Admin and Delivery riders portals, and their profile views
-  const showPortalLayout = user && (isAdminPath || isDeliveryPath || ((user.role === 'admin' || user.role === 'delivery') && isProfilePath));
+  // Sidebar Layout for Admin, Delivery, and Supplier portals, and their profile views
+  const showPortalLayout = user && (isAdminPath || isDeliveryPath || isSupplierPath || ((user.role === 'admin' || user.role === 'delivery' || user.role === 'supplier') && isProfilePath));
 
   if (showPortalLayout) {
     return (
@@ -307,11 +315,11 @@ const AppContent = () => {
             }
           />
           
-          {/* Profile Shared Protected Route (Available to student, admin, delivery) */}
+          {/* Profile Shared Protected Route (Available to student, admin, delivery, supplier) */}
           <Route
             path="/profile"
             element={
-              <ProtectedRoute allowedRoles={['student', 'admin', 'delivery']}>
+              <ProtectedRoute allowedRoles={['student', 'admin', 'delivery', 'supplier']}>
                 <Profile />
               </ProtectedRoute>
             }
@@ -331,6 +339,14 @@ const AppContent = () => {
             element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AdminProducts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/suppliers"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminSuppliers />
               </ProtectedRoute>
             }
           />
@@ -387,6 +403,40 @@ const AppContent = () => {
             element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AdminSupport />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Protected Supplier Routes */}
+          <Route
+            path="/supplier/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['supplier']}>
+                <SupplierDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/supplier/products"
+            element={
+              <ProtectedRoute allowedRoles={['supplier']}>
+                <SupplierProducts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/supplier/orders"
+            element={
+              <ProtectedRoute allowedRoles={['supplier']}>
+                <SupplierOrders />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/supplier/profile"
+            element={
+              <ProtectedRoute allowedRoles={['supplier']}>
+                <SupplierProfile />
               </ProtectedRoute>
             }
           />

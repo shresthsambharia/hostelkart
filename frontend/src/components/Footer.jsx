@@ -26,16 +26,19 @@ const Footer = () => {
             <h3 className="text-white text-xs font-black tracking-widest uppercase">Categories</h3>
             <ul className="space-y-2 text-xs font-bold uppercase">
               <li>
-                <Link to="/products?category=Fruits" className="hover:text-primary-500 transition-colors">Fruits & Vegetables</Link>
+                <Link to="/products?category=Fruits" className="hover:text-primary-500 transition-colors">Fruits</Link>
               </li>
               <li>
-                <Link to="/products?category=Stationery" className="hover:text-primary-500 transition-colors">Stationery Catalog</Link>
+                <Link to="/products?category=Medicines" className="hover:text-primary-500 transition-colors">Medicines</Link>
               </li>
               <li>
-                <Link to="/products?category=Personal Care" className="hover:text-primary-500 transition-colors">Hygiene Care</Link>
+                <Link to="/products?category=Stationery" className="hover:text-primary-500 transition-colors">Stationery</Link>
               </li>
               <li>
-                <Link to="/products?category=Dairy Products" className="hover:text-primary-500 transition-colors">Dairy Products</Link>
+                <Link to="/products?category=Exotic%20Fruits" className="hover:text-primary-500 transition-colors">Exotic Fruits</Link>
+              </li>
+              <li>
+                <Link to="/products?category=Clothes%20Essentials" className="hover:text-primary-500 transition-colors">Clothes Essentials</Link>
               </li>
             </ul>
           </div>
@@ -58,26 +61,6 @@ const Footer = () => {
               </li>
             </ul>
           </div>
-        </div>
-
-        {/* WhatsApp links */}
-        <div className="flex flex-col sm:flex-row justify-center items-center gap-3 border-t border-slate-900 pt-6">
-          <a 
-            href="https://chat.whatsapp.com/DW9mFovIExGBjhLOx9dQYU" 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="text-xs font-black text-emerald-400 bg-emerald-950/20 px-4 py-2 rounded-xl border border-emerald-900/35 hover:bg-emerald-950/30 transition-all uppercase tracking-wider"
-          >
-            💬 Boys Hostel WhatsApp Group
-          </a>
-          <a 
-            href="https://chat.whatsapp.com/GWDywmfUeOz2YYix89pk60" 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="text-xs font-black text-emerald-400 bg-emerald-950/20 px-4 py-2 rounded-xl border border-emerald-900/35 hover:bg-emerald-950/30 transition-all uppercase tracking-wider"
-          >
-            💬 Girls Hostel WhatsApp Group
-          </a>
         </div>
 
         <div className="pt-6 border-t border-slate-900 text-center text-[10px] text-slate-500 font-bold uppercase flex flex-col sm:flex-row justify-between items-center gap-4">

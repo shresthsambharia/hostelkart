@@ -105,6 +105,8 @@ export const AuthProvider = ({ children }) => {
         navigate('/admin/dashboard');
       } else if (data.role === 'delivery') {
         navigate('/delivery/dashboard');
+      } else if (data.role === 'supplier') {
+        navigate('/supplier/dashboard');
       } else {
         navigate('/');
       }
@@ -199,6 +201,8 @@ export const AuthProvider = ({ children }) => {
         navigate('/admin/dashboard');
       } else if (data.role === 'delivery') {
         navigate('/delivery/dashboard');
+      } else if (data.role === 'supplier') {
+        navigate('/supplier/dashboard');
       } else {
         navigate('/');
       }
@@ -221,6 +225,7 @@ export const AuthProvider = ({ children }) => {
         role: data.role,
         phone: data.phone,
         hostelDetails: data.hostelDetails,
+        supplierDetails: data.supplierDetails,
       }));
 
       setUser(data);
@@ -255,6 +260,7 @@ export const AuthProvider = ({ children }) => {
     refreshProfile,
     isAdmin: user?.role === 'admin',
     isDelivery: user?.role === 'delivery',
+    isSupplier: user?.role === 'supplier',
     isStudent: user?.role === 'student',
   }), [user, loading, initializing, login, register, logout, updateProfile, login2FA, refreshProfile]);
 

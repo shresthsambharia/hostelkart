@@ -13,6 +13,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   const adminLinks = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard size={20} /> },
     { name: 'Manage Products', path: '/admin/products', icon: <ShoppingBag size={20} /> },
+    { name: 'Suppliers & Approvals', path: '/admin/suppliers', icon: <Users size={20} /> },
     { name: 'Manage Orders', path: '/admin/orders', icon: <ShoppingCart size={20} /> },
     { name: 'Verify Payments', path: '/admin/payments', icon: <CreditCard size={20} /> },
     { name: 'Manage Coupons', path: '/admin/coupons', icon: <Tag size={20} /> },
@@ -23,13 +24,28 @@ const Sidebar = ({ isOpen, onClose }) => {
     { name: 'My Profile', path: '/profile', icon: <User size={20} /> },
   ];
 
+  const supplierLinks = [
+    { name: 'Dashboard', path: '/supplier/dashboard', icon: <LayoutDashboard size={20} /> },
+    { name: 'My Products', path: '/supplier/products', icon: <ShoppingBag size={20} /> },
+    { name: 'Supply Orders', path: '/supplier/orders', icon: <ShoppingCart size={20} /> },
+    { name: 'Supplier Profile', path: '/supplier/profile', icon: <User size={20} /> },
+  ];
+
   const deliveryLinks = [
     { name: 'Assigned Orders', path: '/delivery/dashboard', icon: <Truck size={20} /> },
     { name: 'Delivery History', path: '/delivery/history', icon: <LayoutDashboard size={20} /> },
     { name: 'My Profile', path: '/profile', icon: <User size={20} /> },
   ];
 
-  const links = user?.role === 'admin' ? adminLinks : deliveryLinks;
+  const links = user?.role === 'admin' 
+    ? adminLinks 
+    : user?.role === 'supplier'
+    ? supplierLinks
+    : deliveryLinks;
+
+  const displayName = (user?.name && user.name !== 'undefined' && user.name !== 'null')
+    ? user.name
+    : (user?.email ? user.email.split('@')[0] : 'User');
 
   return (
     <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 flex flex-col justify-between border-r border-slate-800 shrink-0 transform transition-transform duration-300 md:sticky md:top-16 md:translate-x-0 md:h-[calc(100vh-4rem)] h-full ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
@@ -46,10 +62,10 @@ const Sidebar = ({ isOpen, onClose }) => {
         {/* User Identity Panel */}
         <div className="px-3 py-4 bg-slate-800/50 rounded-xl border border-slate-800 flex items-center space-x-3">
           <div className="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center font-bold text-lg">
-            {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+            {displayName.charAt(0).toUpperCase()}
           </div>
           <div className="truncate">
-            <h4 className="text-sm font-bold text-white truncate">{user?.name || 'User'}</h4>
+            <h4 className="text-sm font-bold text-white truncate">{displayName}</h4>
             <span className="text-[10px] font-semibold text-primary-400 uppercase tracking-wider">
               {user?.role ? `${user.role} Portal` : 'Portal'}
             </span>

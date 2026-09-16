@@ -258,6 +258,24 @@ export const adminAPI = {
       'Content-Type': 'multipart/form-data',
     },
   }),
+  getSuppliers: () => API.get('/admin/suppliers'),
+  createSupplier: (supplierData) => API.post('/admin/suppliers', supplierData),
+  updateSupplier: (id, supplierData) => API.put(`/admin/suppliers/${id}`, supplierData),
+  getSupplierProducts: (params) => API.get('/admin/supplier-products', { params }),
+  updateSupplierProductApproval: (id, data) => API.put(`/admin/supplier-products/${id}/approval`, data),
+};
+
+export const supplierAPI = {
+  getDashboard: () => API.get('/supplier/dashboard'),
+  getProducts: (params) => API.get('/supplier/products', { params }),
+  getProduct: (id) => API.get(`/supplier/products/${id}`),
+  createProduct: (productData) => API.post('/supplier/products', productData),
+  updateProduct: (id, productData) => API.put(`/supplier/products/${id}`, productData),
+  updateStock: (id, data) => API.patch(`/supplier/products/${id}/stock`, data),
+  deleteProduct: (id) => API.delete(`/supplier/products/${id}`),
+  getOrders: () => API.get('/supplier/orders'),
+  getProfile: () => API.get('/supplier/profile'),
+  updateProfile: (profileData) => API.put('/supplier/profile', profileData),
 };
 
 export const deliveryAPI = {

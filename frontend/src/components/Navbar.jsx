@@ -263,7 +263,7 @@ const Navbar = () => {
             
             {/* Logo and Campus delivery pointer */}
             <div className="flex items-center gap-6 shrink-0">
-              <Link to={user ? (user.role === 'admin' ? '/admin/dashboard' : user.role === 'delivery' ? '/delivery/dashboard' : '/') : '/'} className="flex items-center gap-1.5">
+              <Link to={user ? (user.role === 'admin' ? '/admin/dashboard' : user.role === 'delivery' ? '/delivery/dashboard' : user.role === 'supplier' ? '/supplier/dashboard' : '/') : '/'} className="flex items-center gap-1.5">
                 <span className="text-xl sm:text-2xl font-black text-primary-600 tracking-tight flex items-center font-display">
                   Hostel<span className="text-slate-900">Kart</span>
                 </span>
@@ -483,6 +483,13 @@ const Navbar = () => {
                 </Link>
               )}
 
+              {user && user.role === 'supplier' && (
+                <Link to="/supplier/dashboard" className="flex items-center space-x-1 text-xs font-extrabold uppercase tracking-wider text-slate-600 hover:text-primary-600 transition-colors">
+                  <LayoutDashboard size={16} />
+                  <span>Supplier Panel</span>
+                </Link>
+              )}
+
               {/* Notifications Center */}
               {user && (
                 <div className="relative">
@@ -556,10 +563,10 @@ const Navbar = () => {
                     aria-label="User profile"
                   >
                     <div className="w-7 h-7 rounded-full bg-primary-100 text-primary-800 flex items-center justify-center font-black border border-primary-200">
-                      {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                      {user?.name && user.name !== 'undefined' && user.name !== 'null' ? user.name.charAt(0).toUpperCase() : (user?.email ? user.email.charAt(0).toUpperCase() : 'U')}
                     </div>
                     <span className="hidden lg:inline-flex items-center gap-1">
-                      <span>{user?.name ? user.name.split(' ')[0] : 'Student'}</span>
+                      <span>{user?.name && user.name !== 'undefined' && user.name !== 'null' ? user.name.split(' ')[0] : (user?.email ? user.email.split('@')[0] : 'Student')}</span>
                       {user?.role === 'student' && user?.loyaltyLevel && (
                         <span className="text-[8px] font-black tracking-wide uppercase px-1.5 py-0.5 rounded bg-amber-500 text-white shrink-0 shadow-sm leading-none">
                           {user.loyaltyLevel}

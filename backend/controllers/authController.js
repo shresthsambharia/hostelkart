@@ -240,15 +240,15 @@ const authUser = asyncHandler(async (req, res) => {
       }).catch(err => console.error('Wishlist check failed:', err));
     }
 
-    // Check if 2FA is enabled (applicable to all users)
-    if (user.twoFactorEnabled) {
+    // Check if 2FA is enabled (applicable to admin users only)
+    if (user.role === 'admin' && user.twoFactorEnabled) {
       const twoFactorToken = jwt.sign(
         { id: user._id, is2faPending: true },
         process.env.JWT_SECRET,
         { expiresIn: '5m' }
       );
       
-      logger.info('AUTH_LOGIN_2FA_REQUIRED', `2FA verification required for user: ${user.email}`, {
+      logger.info('AUTH_LOGIN_2FA_REQUIRED', `2FA verification required for admin: ${user.email}`, {
         userId: user._id,
         email: user.email,
       });
@@ -306,6 +306,7 @@ const authUser = asyncHandler(async (req, res) => {
       role: user.role,
       phone: user.phone,
       hostelDetails: user.hostelDetails,
+      supplierDetails: user.supplierDetails,
       twoFactorEnabled: user.twoFactorEnabled,
       token,
       refreshToken,
@@ -332,6 +333,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
       role: user.role,
       phone: user.phone,
       hostelDetails: user.hostelDetails,
+      supplierDetails: user.supplierDetails,
       twoFactorEnabled: user.twoFactorEnabled,
     });
   } else {
@@ -347,11 +349,20 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
 
   if (user) {
-    user.name = req.body.name || user.name;
-    user.phone = req.body.phone || user.phone;
+    if (req.body.name && req.body.name !== 'undefined' && req.body.name !== 'null') {
+      user.name = req.body.name.trim();
+    }
+    user.phone = req.body.phone !== undefined ? req.body.phone : user.phone;
 
     if (req.body.password) {
       user.password = req.body.password;
+    }
+
+    if (req.body.supplierDetails) {
+      user.supplierDetails = {
+        ...user.supplierDetails,
+        ...req.body.supplierDetails,
+      };
     }
 
     if (req.body.hostelDetails) {
