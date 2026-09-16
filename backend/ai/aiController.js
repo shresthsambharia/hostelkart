@@ -254,8 +254,8 @@ const updateCartImpl = async (productId, quantity, user) => {
   return await viewCartImpl(user);
 };
 
-const trackOrderImpl = async (user) => {
-  if (!user) return { success: false, error: 'Unauthorized.' };
+export const trackOrderImpl = async (user) => {
+  if (!user) return { success: false, error: 'Unauthorized: Please log in to view your orders.' };
   const orders = await Order.find({ user: user._id }).sort({ createdAt: -1 }).limit(3);
   return orders.map(o => ({
     orderId: o._id.toString(),
@@ -263,7 +263,7 @@ const trackOrderImpl = async (user) => {
     total: o.totalAmount,
     deliverySlot: o.deliverySlot,
     paymentStatus: o.paymentStatus,
-    items: o.orderItems?.map(i => ({ name: i.name, quantity: i.quantity })),
+    items: (o.items || o.orderItems || []).map(i => ({ name: i.name, quantity: i.quantity })),
     createdAt: o.createdAt
   }));
 };
@@ -325,7 +325,7 @@ const searchCustomRequestsImpl = async (user) => {
   }));
 };
 
-const executeTool = async (name, args, user) => {
+export const executeTool = async (name, args, user) => {
   try {
     switch (name) {
       case 'getProductsByCategory':
@@ -361,6 +361,45 @@ const executeTool = async (name, args, user) => {
   }
 };
 
+/**
+ * Sanitizes incoming chat history for Google Gemini:
+ * 1. Normalizes roles (assistant/model -> model, user -> user)
+ * 2. Extracts non-empty text content
+ * 3. Removes any leading 'model' messages so history begins strictly with 'user'
+ * 4. Preserves alternating conversation turns thereafter
+ */
+export const sanitizeChatHistory = (history = []) => {
+  if (!Array.isArray(history)) return [];
+
+  const rawHistory = [];
+  for (const h of history) {
+    if (!h) continue;
+    const role = h.role === 'assistant' || h.role === 'model' ? 'model' : 'user';
+    let text = '';
+    if (Array.isArray(h.parts) && h.parts.length > 0) {
+      text = h.parts.map(p => (typeof p === 'string' ? p : p?.text || '')).filter(Boolean).join('\n');
+    } else if (typeof h.content === 'string') {
+      text = h.content;
+    } else if (typeof h.text === 'string') {
+      text = h.text;
+    }
+
+    if (typeof text === 'string' && text.trim() !== '') {
+      rawHistory.push({
+        role,
+        parts: [{ text: text.trim() }]
+      });
+    }
+  }
+
+  // Remove leading model/assistant messages until the first user message
+  while (rawHistory.length > 0 && rawHistory[0].role === 'model') {
+    rawHistory.shift();
+  }
+
+  return rawHistory;
+};
+
 export const chatWithAI = asyncHandler(async (req, res) => {
   const { message, history = [] } = req.body;
   if (!message) {
@@ -380,18 +419,8 @@ export const chatWithAI = asyncHandler(async (req, res) => {
     return;
   }
 
-  // 1. Prepare history for startChat
-  const chatHistory = [];
-  for (const h of history) {
-    const role = h.role === 'assistant' || h.role === 'model' ? 'model' : 'user';
-    const text = h.parts?.[0]?.text || h.content || '';
-    if (text) {
-      chatHistory.push({
-        role,
-        parts: [{ text }]
-      });
-    }
-  }
+  // 1. Prepare and sanitize history for startChat
+  const chatHistory = sanitizeChatHistory(history);
 
   // Define tools schema for Gemini
   const modelTools = [

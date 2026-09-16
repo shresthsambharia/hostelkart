@@ -172,11 +172,15 @@ export const AIAssistant = () => {
 
     try {
       const token = localStorage.getItem('token');
-      // Format context history for Gemini
-      const backendHistory = chatHistory.map(h => ({
-        role: h.role,
-        parts: [{ text: h.content }]
-      }));
+      // Format context history for Gemini (strip initial client greeting so history strictly begins with a user message)
+      const validMessages = chatHistory.filter(h => h.content && typeof h.content === 'string' && h.content.trim() !== '');
+      const firstUserIdx = validMessages.findIndex(h => h.role === 'user');
+      const backendHistory = firstUserIdx !== -1
+        ? validMessages.slice(firstUserIdx).map(h => ({
+            role: h.role === 'assistant' ? 'assistant' : 'user',
+            parts: [{ text: h.content.trim() }]
+          }))
+        : [];
 
       const res = await fetch('/api/ai/chat', {
         method: 'POST',

@@ -1,8 +1,9 @@
 import { strict as assert } from 'assert';
-import { calculateBMI, searchDietProducts } from '../ai/aiController.js';
+import { calculateBMI, searchDietProducts, normalizeDietPlan, sanitizeChatHistory, trackOrderImpl, executeTool } from '../ai/aiController.js';
 import DietPlan from '../models/DietPlan.js';
 import User from '../models/User.js';
 import Product from '../models/Product.js';
+import Order from '../models/Order.js';
 
 export async function runDietPlannerTests() {
   console.log('\n--- Running AI Diet Planner Unit & Integration Tests ---');
@@ -288,7 +289,163 @@ export async function runDietPlannerTests() {
   assert.equal(normalizedMalformed.dailyPlan.lunch[0].time, '1:30 PM');
   console.log('✓ Schema Normalizer handles raw/malformed LLM shapes and enforces complete 7-day structure.');
 
-  console.log('✓ All AI Diet Planner automated tests passed successfully!');
+  console.log('\n--- Running AI Chat History & Order Tracking Tests ---');
+
+  // Test Chat A: First assistant greeting history sanitization
+  const greetingHistory = [
+    {
+      role: 'assistant',
+      content: "Hi! I'm your HostelKart AI Assistant. Ask me anything about our products, categories, coupons, delivery times, or your orders!"
+    }
+  ];
+  const sanitizedA = sanitizeChatHistory(greetingHistory);
+  assert.equal(sanitizedA.length, 0, 'Leading assistant greeting should be stripped from history');
+  console.log('✓ Test Chat A: Leading assistant greeting stripped from Gemini history (prevents model-first crash).');
+
+  // Test Chat B: Normal multi-turn conversation (user -> assistant -> user -> assistant)
+  const normalConversation = [
+    { role: 'user', content: 'What fruits do you have?' },
+    { role: 'assistant', content: 'We have fresh Apples and Bananas.' },
+    { role: 'user', content: 'Add Apples to my cart' },
+    { role: 'assistant', content: 'Added Apples to your cart.' }
+  ];
+  const sanitizedB = sanitizeChatHistory(normalConversation);
+  assert.equal(sanitizedB.length, 4, 'All 4 conversation turns must be preserved');
+  assert.equal(sanitizedB[0].role, 'user', 'First turn must be user');
+  assert.equal(sanitizedB[1].role, 'model', 'Second turn must be model');
+  assert.equal(sanitizedB[2].role, 'user', 'Third turn must be user');
+  assert.equal(sanitizedB[3].role, 'model', 'Fourth turn must be model');
+  assert.equal(sanitizedB[0].parts[0].text, 'What fruits do you have?');
+  console.log('✓ Test Chat B: Normal multi-turn conversation preserved intact.');
+
+  // Test Chat C: Assistant greeting followed by user and assistant messages
+  const greetingPlusUser = [
+    { role: 'assistant', content: 'Initial greeting from chatbot.' },
+    { role: 'user', content: 'Where is my active order?' },
+    { role: 'assistant', content: 'Let me check that for you.' }
+  ];
+  const sanitizedC = sanitizeChatHistory(greetingPlusUser);
+  assert.equal(sanitizedC.length, 2, 'Initial greeting removed; user and subsequent model message preserved');
+  assert.equal(sanitizedC[0].role, 'user', 'First message after sanitization must be user');
+  assert.equal(sanitizedC[0].parts[0].text, 'Where is my active order?');
+  assert.equal(sanitizedC[1].role, 'model', 'Second message must be model');
+  console.log('✓ Test Chat C: Leading greeting removed while preserving subsequent user->model dialogue.');
+
+  // Test Chat D: Authenticated trackOrder returns user's live orders
+  let chatStudent1 = await User.findOne({ email: 'chat_test_student_1@example.com' });
+  if (!chatStudent1) {
+    chatStudent1 = await User.create({
+      name: 'Chat Test Student 1',
+      email: 'chat_test_student_1@example.com',
+      password: 'hashedpassword123',
+      role: 'student',
+      phone: '9876543210',
+      hostelDetails: { hostelName: 'Brahmaputra', roomNumber: '201' }
+    });
+  }
+
+  // Clean previous orders for student 1
+  await Order.deleteMany({ user: chatStudent1._id });
+
+  let testProduct = await Product.findOne({ isAvailable: true });
+  if (!testProduct) {
+    testProduct = await Product.create({
+      name: 'Fresh Apples',
+      price: 100,
+      stock: 50,
+      category: 'Fruits',
+      brand: 'Farm Fresh',
+      description: 'Crisp apples',
+      isAvailable: true
+    });
+  }
+
+  // Create an active order for student 1
+  const testOrder1 = await Order.create({
+    user: chatStudent1._id,
+    items: [
+      { product: testProduct._id, name: 'Fresh Apples', quantity: 2, price: 100, discount: 0 }
+    ],
+    deliveryDetails: {
+      hostelName: 'Brahmaputra',
+      block: 'A',
+      floor: '2',
+      roomNumber: '201',
+      phone: '9876543210'
+    },
+    paymentMethod: 'COD',
+    paymentStatus: 'Pending',
+    totalAmount: 200,
+    orderStatus: 'Confirmed',
+    deliverySlot: 'Morning Slot (8:00 AM - 1:00 PM)'
+  });
+
+  const orders1 = await trackOrderImpl(chatStudent1);
+  assert.ok(Array.isArray(orders1), 'Orders must be returned as an array');
+  assert.equal(orders1.length, 1, 'Should find 1 order for student 1');
+  assert.equal(orders1[0].orderId, testOrder1._id.toString());
+  assert.equal(orders1[0].status, 'Confirmed');
+  assert.equal(orders1[0].total, 200);
+  assert.equal(orders1[0].items[0].name, 'Fresh Apples');
+  console.log('✓ Test Chat D: Authenticated trackOrder returns exact user orders.');
+
+  // Test Chat E: Unauthenticated trackOrder returns unauthorized
+  const unauthResult = await trackOrderImpl(null);
+  assert.equal(unauthResult.success, false, 'Unauthenticated user must be rejected');
+  assert.ok(unauthResult.error.toLowerCase().includes('unauthorized') || unauthResult.error.toLowerCase().includes('log in'));
+  console.log('✓ Test Chat E: Unauthenticated trackOrder returns unauthorized response.');
+
+  // Test Chat F: Authenticated user with empty orders
+  let chatStudentEmpty = await User.findOne({ email: 'chat_test_student_empty@example.com' });
+  if (!chatStudentEmpty) {
+    chatStudentEmpty = await User.create({
+      name: 'Chat Test Student Empty',
+      email: 'chat_test_student_empty@example.com',
+      password: 'hashedpassword123',
+      role: 'student',
+      phone: '9876543211',
+      hostelDetails: { hostelName: 'Ganga', roomNumber: '101' }
+    });
+  }
+  await Order.deleteMany({ user: chatStudentEmpty._id });
+
+  const emptyOrders = await trackOrderImpl(chatStudentEmpty);
+  assert.ok(Array.isArray(emptyOrders), 'Result must be an array');
+  assert.equal(emptyOrders.length, 0, 'Result must be empty array for user with no orders');
+  console.log('✓ Test Chat F: Authenticated user with 0 orders returns clean empty list.');
+
+  // Test Chat G: IDOR Protection (Student 2 querying cannot see Student 1 orders)
+  let chatStudent2 = await User.findOne({ email: 'chat_test_student_2@example.com' });
+  if (!chatStudent2) {
+    chatStudent2 = await User.create({
+      name: 'Chat Test Student 2',
+      email: 'chat_test_student_2@example.com',
+      password: 'hashedpassword123',
+      role: 'student',
+      phone: '9876543212',
+      hostelDetails: { hostelName: 'Barak', roomNumber: '305' }
+    });
+  }
+  await Order.deleteMany({ user: chatStudent2._id });
+
+  const orders2 = await trackOrderImpl(chatStudent2);
+  assert.equal(orders2.length, 0, 'Student 2 must not see Student 1 orders');
+  for (const ord of orders2) {
+    assert.notEqual(ord.orderId, testOrder1._id.toString(), 'IDOR violation: Student 2 saw Student 1 order');
+  }
+  console.log('✓ Test Chat G: IDOR strict isolation verified (Student 2 cannot see Student 1 orders).');
+
+  // Test Chat H: Tool execution dispatcher
+  const toolExecAuth = await executeTool('trackOrder', {}, chatStudent1);
+  assert.ok(Array.isArray(toolExecAuth), 'executeTool trackOrder should return orders array');
+  assert.equal(toolExecAuth.length, 1);
+  assert.equal(toolExecAuth[0].orderId, testOrder1._id.toString());
+
+  const toolExecUnauth = await executeTool('trackOrder', {}, null);
+  assert.equal(toolExecUnauth.success, false);
+  console.log('✓ Test Chat H: executeTool correctly dispatches trackOrder with authentication context.');
+
+  console.log('✓ All AI Diet Planner & Chat automated tests passed successfully!');
   return true;
 }
 
