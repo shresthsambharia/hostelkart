@@ -26,21 +26,17 @@ jobs:
         run: npm install --global vercel@latest
 
       - name: Link Vercel Project
-        working-directory: frontend
         run: |
           vercel link --yes --project hostelkart --token="${{ secrets.VERCEL_TOKEN }}" || \
           vercel link --yes --project hostelkart --scope shresthsambharias-projects --token="${{ secrets.VERCEL_TOKEN }}"
 
       - name: Pull Vercel Environment Information
-        working-directory: frontend
         run: vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
 
       - name: Build Project Artifacts
-        working-directory: frontend
         run: vercel build --prod --token="${{ secrets.VERCEL_TOKEN }}"
 
       - name: Deploy Project Artifacts to Vercel
-        working-directory: frontend
         run: vercel deploy --prebuilt --prod --token="${{ secrets.VERCEL_TOKEN }}"
 
   deploy-backend:
