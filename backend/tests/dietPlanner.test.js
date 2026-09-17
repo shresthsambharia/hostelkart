@@ -517,6 +517,11 @@ export async function runDietPlannerTests() {
   assert.ok(SYSTEM_PROMPT.includes('Do NOT make exaggerated statements'), 'System prompt must forbid exaggerated claims');
   console.log('✓ Test Chat N: System prompt verified for strict food-safety, allergen compliance, and anti-hallucination rules.');
 
+  // Clean up temporary test products
+  await Product.deleteMany({
+    name: { $in: ['Roasted Salted Almonds (200g)', 'Peanut Butter Creamy (340g)', 'Mother Dairy Curd Cup (200g)'] }
+  });
+
   console.log('✓ All AI Diet Planner & Chat automated tests passed successfully!');
   return true;
 }

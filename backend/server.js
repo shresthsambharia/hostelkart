@@ -3,7 +3,12 @@ import fs from 'fs';
 import express from 'express';
 import dotenv from 'dotenv';
 import https from 'https';
-console.log("STEP 1 Loaded dotenv");
+
+const envPath = fs.existsSync(path.resolve('backend/.env')) 
+  ? path.resolve('backend/.env') 
+  : path.resolve('.env');
+dotenv.config({ path: envPath });
+console.log("STEP 1 Loaded dotenv from", envPath);
 
 process.on('uncaughtException', (err) => {
   console.error('UNCAUGHT EXCEPTION');
@@ -194,7 +199,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
 // Rate Limiting Security Hardening for APIs
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300, // Limit each IP to 300 requests per 15 minutes
+  max: process.env.NODE_ENV === 'test' ? 3000 : (process.env.NODE_ENV === 'development' ? 1500 : 600),
   message: { message: 'Too many requests from this IP, please try again after 15 minutes' },
   standardHeaders: true,
   legacyHeaders: false,

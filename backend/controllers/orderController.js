@@ -377,14 +377,29 @@ const createOrder = asyncHandler(async (req, res) => {
   });
 
   if (paymentMethod === 'COD' || paymentMethod === 'UPI') {
-    // Deduct product stocks using a single high-performance bulkWrite query
-    const bulkOps = orderItems.map((item) => ({
-      updateOne: {
-        filter: { _id: item.product },
-        update: { $inc: { stock: -item.quantity } },
-      },
-    }));
-    await Product.bulkWrite(bulkOps);
+    // Atomic stock deduction: ensure stock >= requested quantity for every item to prevent race conditions
+    const decrementedItems = [];
+    for (const item of orderItems) {
+      const updated = await Product.findOneAndUpdate(
+        { _id: item.product, stock: { $gte: item.quantity } },
+        { $inc: { stock: -item.quantity } },
+        { new: true }
+      );
+      if (!updated) {
+        // Rollback already decremented items
+        for (const dec of decrementedItems) {
+          await Product.updateOne(
+            { _id: dec.product },
+            { $inc: { stock: dec.quantity } }
+          );
+        }
+        // Delete created order to avoid orphan
+        await Order.findByIdAndDelete(createdOrder._id);
+        res.status(400);
+        throw new Error(`Insufficient stock for item "${item.name}". Please update your cart.`);
+      }
+      decrementedItems.push(item);
+    }
 
     // Clear cart for COD immediately; UPI clears only when UTR is successfully submitted
     if (paymentMethod === 'COD') {
