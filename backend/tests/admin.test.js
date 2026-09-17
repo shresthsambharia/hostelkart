@@ -19,6 +19,7 @@ import {
 
 export async function runAdminTests() {
   console.log('\n--- Running Admin Module Unit & Integration Tests ---');
+  await Product.deleteMany({ name: /^Admin Test/ });
 
   // Setup mock users
   let adminUser = await User.findOne({ email: 'unit_admin_test@example.com' });
@@ -97,12 +98,12 @@ export async function runAdminTests() {
   let createdProduct = null;
   const mockReqAddProd = {
     body: {
-      name: 'Admin Test Protein Bar',
+      name: 'Admin Test Fresh Fruit Box',
       price: 120,
       mrp: 150,
       discount: 20,
-      description: 'High energy protein snack for hostel late night study',
-      category: 'Snacks',
+      description: 'High energy fresh fruit snack for hostel late night study',
+      category: 'Fruits',
       stock: 50,
       isAvailable: true,
       deliveryTime: '15-25 mins'
@@ -117,7 +118,7 @@ export async function runAdminTests() {
   };
   await addProduct(mockReqAddProd, mockResAddProd);
   assert.ok(createdProduct._id, 'Product should have an _id');
-  assert.equal(createdProduct.name, 'Admin Test Protein Bar');
+  assert.equal(createdProduct.name, 'Admin Test Fresh Fruit Box');
   console.log('✓ Admin Product Creation verified.');
 
   // 3b: Edit Product

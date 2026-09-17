@@ -8,6 +8,7 @@ import Order from '../models/Order.js';
 
 export async function runDietPlannerTests() {
   console.log('\n--- Running AI Diet Planner Unit & Integration Tests ---');
+  await Product.deleteMany({ name: /^Admin Test/ });
 
   // Test 1: BMI Calculation and Categories
   const bmi1 = calculateBMI(180, 80);

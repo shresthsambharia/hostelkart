@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { getAdminThumbnail } from '../utils/image';
 import ImageUploader from '../components/ImageUploader';
+import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants';
 
 // DataGrid components for strict verification
 import { DataGrid } from '@mui/x-data-grid';
@@ -243,7 +244,7 @@ const AvailabilityToggleCell = ({ rowId, isAvailable, onToggle }) => {
 
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState(STUDENT_VISIBLE_CATEGORIES.map((name) => ({ name })));
   const [logs, setLogs] = useState([]);
   const [trendingKeywords, setTrendingKeywords] = useState([]);
   const [analytics, setAnalytics] = useState(null);
@@ -283,7 +284,7 @@ const AdminProducts = () => {
   const [price, setPrice] = useState('');
   const [discount, setDiscount] = useState('0');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState(STUDENT_VISIBLE_CATEGORIES[0]);
   const [stock, setStock] = useState('');
   const [deliveryTime, setDeliveryTime] = useState('Scheduled Delivery');
   const [isAvailable, setIsAvailable] = useState(true);
@@ -344,7 +345,9 @@ const AdminProducts = () => {
       setProducts(prodRes.data);
 
       const catRes = await productAPI.getCategories();
-      setCategories(catRes.data);
+      if (catRes.data && catRes.data.length > 0) {
+        setCategories(catRes.data);
+      }
     } catch (error) {
       console.error('Error fetching inventory details:', error);
       showToastMsg('error', 'Failed to load catalog products.');
@@ -392,14 +395,14 @@ const AdminProducts = () => {
     }
   }, [activeTab]);
 
-  const handleOpenAddModal = () => {
+  const handleOpenAddModal = (defaultCategory = '') => {
     setEditMode(false);
     setSelectedId(null);
     setName('');
     setPrice('');
     setDiscount('0');
     setDescription('');
-    setCategory(categories[0]?.name || '');
+    setCategory(defaultCategory || categoryFilter || STUDENT_VISIBLE_CATEGORIES[0]);
     setStock('');
     setDeliveryTime('Scheduled Delivery');
     setIsAvailable(true);
@@ -1041,6 +1044,41 @@ const AdminProducts = () => {
             </div>
           )}
 
+          {/* Category Fast-Filter Badges */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => { setCategoryFilter(''); setCurrentPage(1); }}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
+                categoryFilter === ''
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              All Categories ({products.length})
+            </button>
+            {STUDENT_VISIBLE_CATEGORIES.map((catName) => {
+              const count = products.filter(p => p.category === catName).length;
+              return (
+                <button
+                  key={catName}
+                  onClick={() => { setCategoryFilter(catName); setCurrentPage(1); }}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+                    categoryFilter === catName
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>{catName}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                    categoryFilter === catName ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
           {/* Custom Search & Filters Grid */}
           <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-premium grid grid-cols-1 md:grid-cols-5 gap-3.5 items-center">
             
@@ -1063,8 +1101,8 @@ const AdminProducts = () => {
               className="bg-slate-50/50 border border-slate-200 p-2 rounded-xl text-xs font-bold text-slate-650 outline-none focus:bg-white transition-all"
             >
               <option value="">All Categories</option>
-              {categories.map((c) => (
-                <option key={c.name} value={c.name}>{c.name}</option>
+              {STUDENT_VISIBLE_CATEGORIES.map((catName) => (
+                <option key={catName} value={catName}>{catName}</option>
               ))}
             </select>
 
@@ -1116,6 +1154,34 @@ const AdminProducts = () => {
               </div>
             </ThemeProvider>
           </div>
+
+          {/* Empty State Banner when category is empty */}
+          {filteredProducts.length === 0 && !loading && (
+            <div className="p-8 text-center bg-white rounded-2xl border border-dashed border-slate-200 space-y-3">
+              <div className="w-12 h-12 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center mx-auto text-xl">
+                📦
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-slate-800">
+                  {categoryFilter ? `No products in "${categoryFilter}"` : 'No matching products'}
+                </h4>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {categoryFilter 
+                    ? `This category currently has 0 products. You can manually add a product to ${categoryFilter}.`
+                    : 'No products match your search or filter criteria.'}
+                </p>
+              </div>
+              {categoryFilter && (
+                <button
+                  onClick={() => handleOpenAddModal(categoryFilter)}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-sm inline-flex items-center gap-1.5 transition-colors"
+                >
+                  <Plus size={14} />
+                  <span>Add Product to {categoryFilter}</span>
+                </button>
+              )}
+            </div>
+          )}
 
         </div>
       )}
@@ -1322,13 +1388,13 @@ const AdminProducts = () => {
                   <div>
                     <label className="text-[10px] font-black uppercase text-slate-450 block mb-1">Active Category</label>
                     <select
-                      className="input-field text-xs py-2 bg-white"
+                      className="input-field text-xs py-2 bg-white font-medium"
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
                       required
                     >
-                      {categories.map((c) => (
-                        <option key={c.name} value={c.name}>{c.name}</option>
+                      {STUDENT_VISIBLE_CATEGORIES.map((catName) => (
+                        <option key={catName} value={catName}>{catName}</option>
                       ))}
                     </select>
                   </div>
@@ -1467,7 +1533,7 @@ const AdminProducts = () => {
 
                     <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
                       <div className="space-y-0.5">
-                        <span className="text-[9px] text-slate-400 font-bold uppercase">{category || 'Default Category'}</span>
+                        <span className="text-[9px] text-slate-400 font-bold uppercase">{category || STUDENT_VISIBLE_CATEGORIES[0]}</span>
                         <h4 className="font-extrabold text-slate-800 text-xs truncate">{name || 'Default Product Name'}</h4>
                       </div>
                       

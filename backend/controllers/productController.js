@@ -43,6 +43,7 @@ const getProducts = asyncHandler(async (req, res) => {
   const isAdmin = req.user && req.user.role === 'admin';
   if (!isAdmin) {
     query.approvalStatus = { $in: ['approved', undefined, null] };
+    query.isAvailable = true;
     if (category) {
       if (STUDENT_VISIBLE_CATEGORIES.includes(category)) {
         query.category = category;
@@ -53,8 +54,17 @@ const getProducts = asyncHandler(async (req, res) => {
       query.category = { $in: STUDENT_VISIBLE_CATEGORIES };
     }
   } else {
+    // Admin catalog management uses the exact same 5 categories
     if (category) {
-      query.category = category;
+      if (STUDENT_VISIBLE_CATEGORIES.includes(category)) {
+        query.category = category;
+      } else if (req.query.allCategories === 'true') {
+        query.category = category;
+      } else {
+        query.category = { $in: [] };
+      }
+    } else if (req.query.allCategories !== 'true') {
+      query.category = { $in: STUDENT_VISIBLE_CATEGORIES };
     }
   }
 
@@ -156,13 +166,7 @@ const createProductReview = asyncHandler(async (req, res) => {
 // @route   GET /api/products/categories
 // @access  Public
 const getCategories = asyncHandler(async (req, res) => {
-  const isAdmin = req.user && req.user.role === 'admin';
-  let categories;
-  if (!isAdmin) {
-    categories = await Category.find({ name: { $in: STUDENT_VISIBLE_CATEGORIES } }).lean();
-  } else {
-    categories = await Category.find({}).lean();
-  }
+  const categories = STUDENT_VISIBLE_CATEGORIES.map((name) => ({ name }));
   res.setHeader('Cache-Control', 'public, max-age=3600');
   res.json(categories);
 });

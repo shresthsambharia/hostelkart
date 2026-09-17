@@ -5,6 +5,7 @@ import Order from '../models/Order.js';
 import User from '../models/User.js';
 import { invalidateProductCache } from '../middleware/cacheMiddleware.js';
 import { logger } from '../utils/logger.js';
+import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants.js';
 
 // @desc    Get Supplier Dashboard Analytics
 // @route   GET /api/supplier/dashboard
@@ -161,6 +162,11 @@ const createSupplierProduct = asyncHandler(async (req, res) => {
     throw new Error('Please provide name, price, description, image, category, and stock');
   }
 
+  if (!STUDENT_VISIBLE_CATEGORIES.includes(category.trim())) {
+    res.status(400);
+    throw new Error(`Invalid category. Allowed categories: ${STUDENT_VISIBLE_CATEGORIES.join(', ')}`);
+  }
+
   const numPrice = Number(price);
   const numStock = Number(stock);
   const numMrp = mrp !== undefined ? Number(mrp) : numPrice;
@@ -252,9 +258,15 @@ const updateSupplierProduct = asyncHandler(async (req, res) => {
     product.image = image.trim();
     detailsChanged = true;
   }
-  if (category !== undefined && category.trim() !== product.category) {
-    product.category = category.trim();
-    detailsChanged = true;
+  if (category !== undefined) {
+    if (!STUDENT_VISIBLE_CATEGORIES.includes(category.trim())) {
+      res.status(400);
+      throw new Error(`Invalid category. Allowed categories: ${STUDENT_VISIBLE_CATEGORIES.join(', ')}`);
+    }
+    if (category.trim() !== product.category) {
+      product.category = category.trim();
+      detailsChanged = true;
+    }
   }
   if (stock !== undefined) {
     const numStock = Number(stock);

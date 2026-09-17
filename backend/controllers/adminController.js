@@ -10,6 +10,7 @@ import { createAlert } from './notificationController.js';
 import { deleteFromCloudinary, getPublicIdFromUrl } from '../config/cloudinary.js';
 import AdminLog from '../models/AdminLog.js';
 import { invalidateProductCache, invalidateAnalyticsCache } from '../middleware/cacheMiddleware.js';
+import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants.js';
 
 // @desc    Get Admin Dashboard Analytics
 // @route   GET /api/admin/analytics
@@ -351,6 +352,11 @@ const addProduct = asyncHandler(async (req, res) => {
     throw new Error('Product name and category are required');
   }
 
+  if (!STUDENT_VISIBLE_CATEGORIES.includes(category.trim())) {
+    res.status(400);
+    throw new Error(`Invalid category. Allowed categories: ${STUDENT_VISIBLE_CATEGORIES.join(', ')}`);
+  }
+
   const priceNum = Number(price);
   if (isNaN(priceNum) || priceNum < 0) {
     res.status(400);
@@ -374,7 +380,7 @@ const addProduct = asyncHandler(async (req, res) => {
     price: priceNum,
     discount: discountNum,
     description,
-    category,
+    category: category.trim(),
     stock: stockNum,
     deliveryTime: deliveryTime || '30 mins',
     isAvailable: isAvailable !== undefined ? isAvailable : true,
@@ -397,6 +403,11 @@ const addProduct = asyncHandler(async (req, res) => {
 // @access  Private/Admin
 const editProduct = asyncHandler(async (req, res) => {
   const { name, price, discount, description, category, stock, deliveryTime, isAvailable, image, imageOriginal, imageMedium, imageThumb, mrp } = req.body;
+
+  if (category && !STUDENT_VISIBLE_CATEGORIES.includes(category.trim())) {
+    res.status(400);
+    throw new Error(`Invalid category. Allowed categories: ${STUDENT_VISIBLE_CATEGORIES.join(', ')}`);
+  }
 
   if (price !== undefined) {
     const priceNum = Number(price);

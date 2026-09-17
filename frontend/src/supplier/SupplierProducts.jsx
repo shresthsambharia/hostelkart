@@ -7,8 +7,9 @@ import {
   X, Check, Image as ImageIcon, Sparkles, Upload
 } from 'lucide-react';
 import { getOptimizedImageUrl } from '../utils/image';
+import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants';
 
-const CATEGORIES = ['Fruits', 'Medicines', 'Stationery', 'Exotic Fruits', 'Clothes Essentials'];
+const CATEGORIES = STUDENT_VISIBLE_CATEGORIES;
 
 const SupplierProducts = () => {
   const location = useLocation();
