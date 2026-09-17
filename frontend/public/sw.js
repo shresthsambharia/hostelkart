@@ -38,10 +38,15 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // 1. Ignore API requests, socket.io connections, and Sentry reports
+  // 1. Ignore API requests, socket.io connections, Sentry reports, video streams, and range requests
   if (
     url.pathname.startsWith('/api') || 
     url.pathname.startsWith('/socket.io') ||
+    url.pathname.startsWith('/videos/') ||
+    url.pathname.endsWith('.mp4') ||
+    url.pathname.endsWith('.webm') ||
+    url.pathname.endsWith('.ogv') ||
+    event.request.headers.has('range') ||
     url.hostname.includes('sentry')
   ) {
     return;

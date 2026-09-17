@@ -7,23 +7,12 @@ import { SlidersHorizontal, Search, X, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants';
 
-const staticCategoryNames = [
-  'Fruits',
-  'Vegetables',
-  'Stationery',
-  'Electronics Accessories',
-  'Personal Care',
-  'Dairy Products',
-  'Medicines'
-];
+const staticCategoryNames = STUDENT_VISIBLE_CATEGORIES;
 
 const ProductListing = () => {
   const location = useLocation();
   const { user } = useAuth();
-  const isAdmin = user && user.role === 'admin';
-  const visibleCategories = isAdmin 
-    ? staticCategoryNames 
-    : staticCategoryNames.filter(cat => STUDENT_VISIBLE_CATEGORIES.includes(cat));
+  const visibleCategories = STUDENT_VISIBLE_CATEGORIES;
   
   // Parse initial query params
   const getQueryParams = () => {

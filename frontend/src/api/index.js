@@ -8,6 +8,7 @@ const baseURL = cleanApiURL.endsWith('/api') ? `${cleanApiURL}/` : `${cleanApiUR
 
 const API = axios.create({
   baseURL,
+  timeout: 15000,
   withCredentials: true, // Send secure HttpOnly cookies (refresh tokens) with API requests
   headers: {
     'Content-Type': 'application/json',

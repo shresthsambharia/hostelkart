@@ -107,6 +107,7 @@ const Navbar = () => {
   useEffect(() => {
     if (!user) return;
     const fetchNotifications = async () => {
+      if (document.hidden) return;
       try {
         const { data } = await notificationAPI.getAll();
         const list = Array.isArray(data) ? data : (data?.notifications || []);
@@ -117,8 +118,15 @@ const Navbar = () => {
       }
     };
     fetchNotifications();
-    const timer = setInterval(fetchNotifications, 15000);
-    return () => clearInterval(timer);
+    const timer = setInterval(fetchNotifications, 60000);
+    const handleVisibilityChange = () => {
+      if (!document.hidden) fetchNotifications();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [user]);
 
   const handleMarkAsRead = async (notifId) => {

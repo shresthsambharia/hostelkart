@@ -159,8 +159,8 @@ const Cart = () => {
             </div>
             <p className="text-[10px] text-emerald-700 font-semibold leading-relaxed">Complete your cart value to unlock promo codes & free direct-to-room shipping slots!</p>
             <div className="flex gap-2 flex-wrap">
-              {['Fruits', 'Dairy Products', 'Personal Care']
-                .filter((catName) => STUDENT_VISIBLE_CATEGORIES.includes(catName))
+              {STUDENT_VISIBLE_CATEGORIES
+                .slice(0, 3)
                 .map((categoryName) => (
                   <Link
                     key={categoryName}
