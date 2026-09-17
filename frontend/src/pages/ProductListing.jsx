@@ -37,6 +37,40 @@ const ProductListing = () => {
   const [debouncedMinPrice, setDebouncedMinPrice] = useState('');
   const [debouncedMaxPrice, setDebouncedMaxPrice] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [categoryCounts, setCategoryCounts] = useState({
+    'Fruits': 0,
+    'Medicines': 0,
+    'Stationery': 0,
+    'Exotic Fruits': 0,
+    'Clothes Essentials': 0
+  });
+  const [totalCatalogCount, setTotalCatalogCount] = useState(0);
+
+  // Load all product counts per category
+  useEffect(() => {
+    const fetchCategoryCounts = async () => {
+      try {
+        const { data } = await productAPI.getAll({});
+        const counts = {
+          'Fruits': 0,
+          'Medicines': 0,
+          'Stationery': 0,
+          'Exotic Fruits': 0,
+          'Clothes Essentials': 0
+        };
+        (data || []).forEach(p => {
+          if (p.category && counts[p.category] !== undefined) {
+            counts[p.category] += 1;
+          }
+        });
+        setCategoryCounts(counts);
+        setTotalCatalogCount((data || []).length);
+      } catch (err) {
+        console.error('Failed to load category counts:', err);
+      }
+    };
+    fetchCategoryCounts();
+  }, []);
 
   // AI Search states
   const [aiSearchQuery, setAiSearchQuery] = useState('');
@@ -170,25 +204,31 @@ const ProductListing = () => {
             <div className="flex flex-col space-y-2 max-h-60 overflow-y-auto pr-1">
               <button
                 onClick={() => setSelectedCategory('')}
-                className={`text-left text-sm py-1.5 px-3 rounded-lg font-medium transition-colors ${
+                className={`text-left text-sm py-1.5 px-3 rounded-lg font-medium transition-colors flex items-center justify-between ${
                   selectedCategory === ''
                     ? 'bg-primary-50 text-primary-700 font-bold'
                     : 'text-slate-600 hover:bg-slate-50'
                 }`}
               >
-                All Categories
+                <span>All Categories</span>
+                <span className="text-xs text-slate-400 font-bold">({totalCatalogCount})</span>
               </button>
               {visibleCategories.map((catName) => (
                 <button
                   key={catName}
                   onClick={() => setSelectedCategory(catName)}
-                  className={`text-left text-sm py-1.5 px-3 rounded-lg font-medium transition-colors ${
+                  className={`text-left text-sm py-1.5 px-3 rounded-lg font-medium transition-colors flex items-center justify-between ${
                     selectedCategory === catName
                       ? 'bg-primary-50 text-primary-700 font-bold'
                       : 'text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  {catName}
+                  <span>{catName}</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
+                    selectedCategory === catName ? 'bg-primary-100 text-primary-800' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {categoryCounts[catName] || 0}
+                  </span>
                 </button>
               ))}
             </div>
@@ -333,21 +373,27 @@ const ProductListing = () => {
                 <div className="flex flex-col space-y-2 max-h-60 overflow-y-auto pr-1">
                   <button
                     onClick={() => { setSelectedCategory(''); setSidebarOpen(false); }}
-                    className={`text-left text-sm py-1.5 px-3 rounded-lg font-medium transition-colors ${
+                    className={`text-left text-sm py-1.5 px-3 rounded-lg font-medium transition-colors flex items-center justify-between ${
                       selectedCategory === '' ? 'bg-primary-50 text-primary-700 font-bold' : 'text-slate-600'
                     }`}
                   >
-                    All Categories
+                    <span>All Categories</span>
+                    <span className="text-xs text-slate-400 font-bold">({totalCatalogCount})</span>
                   </button>
                   {visibleCategories.map((catName) => (
                     <button
                       key={catName}
                       onClick={() => { setSelectedCategory(catName); setSidebarOpen(false); }}
-                      className={`text-left text-sm py-1.5 px-3 rounded-lg font-medium transition-colors ${
+                      className={`text-left text-sm py-1.5 px-3 rounded-lg font-medium transition-colors flex items-center justify-between ${
                         selectedCategory === catName ? 'bg-primary-50 text-primary-700 font-bold' : 'text-slate-600'
                       }`}
                     >
-                      {catName}
+                      <span>{catName}</span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
+                        selectedCategory === catName ? 'bg-primary-100 text-primary-800' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {categoryCounts[catName] || 0}
+                      </span>
                     </button>
                   ))}
                 </div>

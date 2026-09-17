@@ -29,12 +29,10 @@ const connectDB = async () => {
 
 const categories = [
   { name: 'Fruits', description: 'Fresh and organic seasonal fruits', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg' },
-  { name: 'Vegetables', description: 'Fresh vegetables for hostel cooking', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000002/vegetables.jpg' },
-  { name: 'Dairy Products', description: 'Milk, cheese, butter, yogurt, and paneer', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000003/dairy.jpg' },
-  { name: 'Personal Care', description: 'Shampoo, soaps, toothpaste, and grooming', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000004/personal_care.jpg' },
+  { name: 'Medicines', description: 'OTC medicines, first-aid, and wellness products', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg' },
   { name: 'Stationery', description: 'Notebooks, pens, registers, and study tools', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000005/stationery.jpg' },
-  { name: 'Electronics Accessories', description: 'OTG cables, phone stands, charging wires, and earphones', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000006/electronics.jpg' },
-  { name: 'Medicines', description: 'OTC medicines, first-aid, and wellness products', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg' }
+  { name: 'Exotic Fruits', description: 'Fresh imported and exotic fruits', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000001/fruits.jpg' },
+  { name: 'Clothes Essentials', description: 'Daily hostel wear and clothing essentials', image: 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg' }
 ];
 
 const usersData = [

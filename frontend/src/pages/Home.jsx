@@ -459,8 +459,8 @@ const Home = () => {
           </Link>
         </div>
 
-        {/* Mobile: 4x2 grid with "More" card. Desktop: 7 columns grid */}
-        <div className={`grid grid-cols-4 md:grid-cols-${isAdmin ? 7 : Math.max(visibleCategories.length, 2)} gap-3`}>
+        {/* 5 Canonical Categories Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
           {visibleCategories.map((cat) => (
             <Link
               key={cat.name}
@@ -470,23 +470,11 @@ const Home = () => {
               <div className="w-11 h-11 rounded-2xl bg-white border border-slate-150 flex items-center justify-center text-xl shadow-inner transition-transform duration-300 group-hover:scale-105">
                 {cat.emoji}
               </div>
-              <span className="text-[10px] font-black text-slate-700 block truncate w-full mt-2">
+              <span className="text-xs font-black text-slate-700 block truncate w-full mt-2">
                 {cat.name}
               </span>
             </Link>
           ))}
-          {/* Mobile "More" block to fill the 8th grid slot */}
-          <Link
-            to="/products"
-            className="p-3.5 bg-white border border-slate-100 rounded-2.5xl hover:shadow-premium-hover hover:-translate-y-0.5 transition-all duration-300 text-center flex flex-col items-center justify-between shadow-premium-sm md:hidden text-primary-600 bg-emerald-50 border-emerald-100 group"
-          >
-            <div className="w-11 h-11 rounded-2xl bg-white border border-slate-150 flex items-center justify-center text-lg shadow-inner transition-transform duration-300 group-hover:scale-105">
-              ✨
-            </div>
-            <span className="text-[10px] font-black block truncate w-full mt-2">
-              See All
-            </span>
-          </Link>
         </div>
       </section>
 
