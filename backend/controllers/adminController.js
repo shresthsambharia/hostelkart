@@ -9,8 +9,16 @@ import Settings from '../models/Settings.js';
 import { createAlert } from './notificationController.js';
 import { deleteFromCloudinary, getPublicIdFromUrl } from '../config/cloudinary.js';
 import AdminLog from '../models/AdminLog.js';
+import FinancialLedger from '../models/FinancialLedger.js';
+import SupplierPayout from '../models/SupplierPayout.js';
 import { invalidateProductCache, invalidateAnalyticsCache } from '../middleware/cacheMiddleware.js';
 import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants.js';
+import {
+  getMarketplaceSettings,
+  DEFAULT_MARKETPLACE_SETTINGS,
+  processOrderDeliverySettlement,
+  recordLedgerEntry,
+} from '../utils/commissionEngine.js';
 
 // @desc    Get Admin Dashboard Analytics
 // @route   GET /api/admin/analytics
@@ -609,6 +617,7 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     if (status === 'Delivered') {
       order.paymentStatus = 'Paid';
       order.deliveredAt = Date.now();
+      await processOrderDeliverySettlement(order, req.user);
     }
 
     const updatedOrder = await order.save();
@@ -1773,6 +1782,460 @@ const updateSupplierProductApproval = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Get Marketplace Finance Overview
+// @route   GET /api/admin/finance/overview
+// @access  Private/Admin
+const getMarketplaceFinance = asyncHandler(async (req, res) => {
+  const deliveredOrders = await Order.find({ orderStatus: 'Delivered' }).lean();
+  
+  let platformGMV = 0;
+  let totalSupplierGross = 0;
+  let totalPlatformCommission = 0;
+  let totalSupplierPayable = 0;
+  let settledPayoutsAmount = 0;
+  let pendingPayoutsAmount = 0;
+
+  const categoryStats = {
+    Fruits: { gmv: 0, itemsSold: 0, commission: 0 },
+    Medicines: { gmv: 0, itemsSold: 0, commission: 0 },
+    Stationery: { gmv: 0, itemsSold: 0, commission: 0 },
+    'Exotic Fruits': { gmv: 0, itemsSold: 0, commission: 0 },
+    'Clothes Essentials': { gmv: 0, itemsSold: 0, commission: 0 },
+  };
+
+  deliveredOrders.forEach((order) => {
+    platformGMV += Number(order.totalAmount) || 0;
+    (order.items || []).forEach((item) => {
+      const gross = Number(item.grossAmount) || ((Number(item.price) || 0) * (Number(item.quantity) || 1));
+      const comm = Number(item.commissionAmount) || 0;
+      const payable = Number(item.supplierPayableAmount) || 0;
+
+      if (item.supplier) {
+        totalSupplierGross += gross;
+        totalPlatformCommission += comm;
+        totalSupplierPayable += payable;
+      }
+
+      const cat = item.category || 'Other';
+      if (categoryStats[cat]) {
+        categoryStats[cat].gmv += gross;
+        categoryStats[cat].itemsSold += Number(item.quantity) || 1;
+        categoryStats[cat].commission += comm;
+      }
+    });
+  });
+
+  const payouts = await SupplierPayout.find().lean();
+  payouts.forEach((p) => {
+    if (p.status === 'Paid') {
+      settledPayoutsAmount += Number(p.netPayable) || 0;
+    } else if (p.status === 'Pending' || p.status === 'Processing') {
+      pendingPayoutsAmount += Number(p.netPayable) || 0;
+    }
+  });
+
+  const totalSuppliers = await User.countDocuments({ role: 'supplier' });
+  const activeSuppliers = await User.countDocuments({ role: 'supplier', 'supplierDetails.status': 'active' });
+
+  const recentLedger = await FinancialLedger.find()
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .populate('supplier', 'name email supplierDetails')
+    .lean();
+
+  res.json({
+    summary: {
+      platformGMV: Math.round(platformGMV * 100) / 100,
+      totalSupplierGross: Math.round(totalSupplierGross * 100) / 100,
+      totalPlatformCommission: Math.round(totalPlatformCommission * 100) / 100,
+      totalSupplierPayable: Math.round(totalSupplierPayable * 100) / 100,
+      settledPayoutsAmount: Math.round(settledPayoutsAmount * 100) / 100,
+      pendingPayoutsAmount: Math.round(pendingPayoutsAmount * 100) / 100,
+      totalSuppliers,
+      activeSuppliers,
+    },
+    categoryStats,
+    recentLedger,
+  });
+});
+
+// @desc    Update supplier commission rate
+// @route   PUT /api/admin/suppliers/:id/commission
+// @access  Private/Admin
+const updateSupplierCommission = asyncHandler(async (req, res) => {
+  const { commissionPercentage } = req.body;
+  const supplier = await User.findOne({ _id: req.params.id, role: 'supplier' });
+
+  if (!supplier) {
+    res.status(404);
+    throw new Error('Supplier not found');
+  }
+
+  if (commissionPercentage === null || commissionPercentage === '' || commissionPercentage === undefined) {
+    if (supplier.supplierDetails) {
+      supplier.supplierDetails.commissionPercentage = undefined;
+      supplier.markModified('supplierDetails');
+    }
+  } else {
+    const rate = Number(commissionPercentage);
+    if (isNaN(rate) || rate < 0 || rate > 100) {
+      res.status(400);
+      throw new Error('Commission rate must be a valid percentage between 0 and 100');
+    }
+    if (!supplier.supplierDetails) supplier.supplierDetails = {};
+    supplier.supplierDetails.commissionPercentage = Math.round(rate * 100) / 100;
+    supplier.markModified('supplierDetails');
+  }
+
+  const updated = await supplier.save();
+  res.json({
+    message: 'Supplier commission rate updated successfully',
+    supplier: {
+      _id: updated._id,
+      name: updated.name,
+      email: updated.email,
+      supplierDetails: updated.supplierDetails,
+    },
+  });
+});
+
+// @desc    Update supplier account status
+// @route   PUT /api/admin/suppliers/:id/status
+// @access  Private/Admin
+const updateSupplierStatus = asyncHandler(async (req, res) => {
+  const { status, reason } = req.body;
+  if (!status || !['active', 'suspended', 'pending_verification'].includes(status)) {
+    res.status(400);
+    throw new Error('Invalid supplier status. Must be active, suspended, or pending_verification');
+  }
+
+  const supplier = await User.findOne({ _id: req.params.id, role: 'supplier' });
+  if (!supplier) {
+    res.status(404);
+    throw new Error('Supplier not found');
+  }
+
+  if (!supplier.supplierDetails) supplier.supplierDetails = {};
+  supplier.supplierDetails.status = status;
+  supplier.markModified('supplierDetails');
+
+  const updated = await supplier.save();
+
+  try {
+    await createAlert(
+      supplier._id,
+      `Account Status Updated: ${status}`,
+      `Your supplier account status has been updated to "${status}". ${reason ? `Note: ${reason}` : ''}`,
+      'StatusUpdate'
+    );
+  } catch (err) {
+    console.warn('Failed to send status alert to supplier:', err.message);
+  }
+
+  res.json({
+    message: `Supplier status updated to ${status}`,
+    supplier: {
+      _id: updated._id,
+      name: updated.name,
+      email: updated.email,
+      supplierDetails: updated.supplierDetails,
+    },
+  });
+});
+
+// @desc    Get all supplier payouts for admin
+// @route   GET /api/admin/payouts
+// @access  Private/Admin
+const getAdminSupplierPayouts = asyncHandler(async (req, res) => {
+  const { supplierId, status, page = 1, limit = 20 } = req.query;
+  const filter = {};
+
+  if (supplierId) {
+    filter.supplier = supplierId;
+  }
+  if (status && status !== 'all') {
+    filter.status = status;
+  }
+
+  const skip = (Number(page) - 1) * Number(limit);
+  const [payouts, total] = await Promise.all([
+    SupplierPayout.find(filter)
+      .populate('supplier', 'name email phone supplierDetails')
+      .populate('paidBy', 'name email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit))
+      .lean(),
+    SupplierPayout.countDocuments(filter),
+  ]);
+
+  res.json({
+    payouts,
+    page: Number(page),
+    pages: Math.ceil(total / Number(limit)) || 1,
+    total,
+  });
+});
+
+// @desc    Create supplier payout batch
+// @route   POST /api/admin/payouts
+// @access  Private/Admin
+const createSupplierPayout = asyncHandler(async (req, res) => {
+  const { supplierId, orderItemIds, paymentMethod = 'UPI', adjustments = [], notes = '', settlementPeriod } = req.body;
+
+  if (!supplierId) {
+    res.status(400);
+    throw new Error('Supplier ID is required');
+  }
+
+  const supplier = await User.findOne({ _id: supplierId, role: 'supplier' });
+  if (!supplier) {
+    res.status(404);
+    throw new Error('Supplier not found');
+  }
+
+  const deliveredOrders = await Order.find({
+    orderStatus: 'Delivered',
+    'items.supplier': supplierId,
+  });
+
+  const eligibleItems = [];
+  const matchedOrderIds = new Set();
+  const matchedOrderItemIds = [];
+
+  let totalGross = 0;
+  let totalCommission = 0;
+  let totalNetPayable = 0;
+
+  deliveredOrders.forEach((order) => {
+    order.items.forEach((item) => {
+      const isThisSupplier = item.supplier && item.supplier.toString() === supplierId.toString();
+      const isEligibleStatus = !item.settlementStatus || item.settlementStatus === 'Eligible' || item.settlementStatus === 'Pending';
+      const isSpecificMatch = !orderItemIds || orderItemIds.length === 0 || orderItemIds.includes(item._id.toString());
+
+      if (isThisSupplier && isEligibleStatus && isSpecificMatch && !item.payout) {
+        eligibleItems.push({ order, item });
+        matchedOrderIds.add(order._id);
+        matchedOrderItemIds.push(item._id);
+
+        const itemGross = Number(item.grossAmount) || ((Number(item.price) || 0) * (Number(item.quantity) || 1));
+        const itemComm = Number(item.commissionAmount) || 0;
+        const itemPayable = Number(item.supplierPayableAmount) || (itemGross - itemComm);
+
+        totalGross += itemGross;
+        totalCommission += itemComm;
+        totalNetPayable += itemPayable;
+      }
+    });
+  });
+
+  if (eligibleItems.length === 0) {
+    res.status(400);
+    throw new Error('No eligible delivered items found for settlement for this supplier');
+  }
+
+  let totalAdjustmentsAmount = 0;
+  const formattedAdjustments = (adjustments || []).map((adj) => {
+    const adjAmt = Number(adj.amount) || 0;
+    totalAdjustmentsAmount += adjAmt;
+    return {
+      type: adj.type || 'FEE',
+      amount: adjAmt,
+      description: adj.description || 'Adjustment',
+    };
+  });
+
+  const finalNetPayable = Math.max(0, Math.round((totalNetPayable + totalAdjustmentsAmount) * 100) / 100);
+
+  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  const payoutNumber = `PAY-${dateStr}-${randomSuffix}`;
+
+  const payout = await SupplierPayout.create({
+    payoutNumber,
+    supplier: supplierId,
+    orderIds: Array.from(matchedOrderIds),
+    orderItemIds: matchedOrderItemIds,
+    settlementPeriod: settlementPeriod || {
+      startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      endDate: new Date(),
+    },
+    grossAmount: Math.round(totalGross * 100) / 100,
+    commissionAmount: Math.round(totalCommission * 100) / 100,
+    adjustments: formattedAdjustments,
+    netPayable: finalNetPayable,
+    payoutAmount: finalNetPayable,
+    status: 'Pending',
+    paymentMethod,
+    bankDetailsSnapshot: {
+      accountHolderName: supplier.supplierDetails?.accountHolderName || supplier.name,
+      bankName: supplier.supplierDetails?.bankName || '',
+      accountNumber: supplier.supplierDetails?.accountNumber || '',
+      ifsc: supplier.supplierDetails?.ifsc || '',
+      upiId: supplier.supplierDetails?.upiId || '',
+    },
+    notes,
+    createdBy: req.user._id,
+  });
+
+  for (const { order, item } of eligibleItems) {
+    item.settlementStatus = 'Processing';
+    item.payout = payout._id;
+    await order.save();
+  }
+
+  res.status(201).json({
+    message: 'Supplier payout batch created successfully',
+    payout,
+  });
+});
+
+// @desc    Update supplier payout status (e.g. mark Paid with UTR)
+// @route   PUT /api/admin/payouts/:id/status
+// @access  Private/Admin
+const updateSupplierPayoutStatus = asyncHandler(async (req, res) => {
+  const { status, utrNumber, paymentMethod, failureReason, notes } = req.body;
+
+  if (!status || !['Pending', 'Processing', 'Paid', 'Failed', 'Cancelled'].includes(status)) {
+    res.status(400);
+    throw new Error('Invalid payout status');
+  }
+
+  const payout = await SupplierPayout.findById(req.params.id).populate('supplier', 'name email phone');
+  if (!payout) {
+    res.status(404);
+    throw new Error('Payout record not found');
+  }
+
+  const previousStatus = payout.status;
+  if (previousStatus === 'Paid' && status !== 'Paid') {
+    res.status(400);
+    throw new Error('Cannot change status of an already paid payout record');
+  }
+
+  payout.status = status;
+  if (notes) payout.notes = notes;
+  if (paymentMethod) payout.paymentMethod = paymentMethod;
+
+  if (status === 'Paid') {
+    if (!utrNumber && !payout.utrNumber) {
+      res.status(400);
+      throw new Error('UTR / Transaction reference number is required to mark payout as Paid');
+    }
+    payout.utrNumber = utrNumber || payout.utrNumber;
+    payout.paidAt = new Date();
+    payout.paidBy = req.user._id;
+
+    if (payout.orderIds && payout.orderIds.length > 0) {
+      const orders = await Order.find({ _id: { $in: payout.orderIds } });
+      for (const order of orders) {
+        let changed = false;
+        order.items.forEach((item) => {
+          if (
+            (item.payout && item.payout.toString() === payout._id.toString()) ||
+            (payout.orderItemIds && payout.orderItemIds.some((id) => id.toString() === item._id.toString()))
+          ) {
+            item.settlementStatus = 'Settled';
+            changed = true;
+          }
+        });
+        if (changed) {
+          await order.save();
+        }
+      }
+    }
+
+    await recordLedgerEntry({
+      supplier: payout.supplier._id || payout.supplier,
+      payout: payout._id,
+      type: 'PAYOUT',
+      amount: payout.netPayable,
+      direction: 'DEBIT',
+      description: `Manual Payout Disbursed via ${payout.paymentMethod} (UTR: ${payout.utrNumber})`,
+      reference: payout.utrNumber || payout.payoutNumber,
+      createdBy: req.user._id,
+    });
+
+    try {
+      await createAlert(
+        payout.supplier._id || payout.supplier,
+        `Payout Disbursed: ₹${payout.netPayable}`,
+        `Your payout of ₹${payout.netPayable} has been processed via ${payout.paymentMethod}. UTR: ${payout.utrNumber}`,
+        'PaymentUpdate'
+      );
+    } catch (e) {
+      console.warn('Failed to notify supplier on payout:', e.message);
+    }
+  } else if (status === 'Cancelled' || status === 'Failed') {
+    payout.failureReason = failureReason || '';
+    if (payout.orderIds && payout.orderIds.length > 0) {
+      const orders = await Order.find({ _id: { $in: payout.orderIds } });
+      for (const order of orders) {
+        let changed = false;
+        order.items.forEach((item) => {
+          if (
+            (item.payout && item.payout.toString() === payout._id.toString()) ||
+            (payout.orderItemIds && payout.orderItemIds.some((id) => id.toString() === item._id.toString()))
+          ) {
+            item.settlementStatus = 'Eligible';
+            item.payout = null;
+            changed = true;
+          }
+        });
+        if (changed) {
+          await order.save();
+        }
+      }
+    }
+  }
+
+  const updatedPayout = await payout.save();
+
+  res.json({
+    message: `Payout status updated to ${status}`,
+    payout: updatedPayout,
+  });
+});
+
+// @desc    Get Marketplace Settlement Settings
+// @route   GET /api/admin/finance/settings
+// @access  Private/Admin
+const getSettlementSettings = asyncHandler(async (req, res) => {
+  const settings = await getMarketplaceSettings();
+  res.json(settings);
+});
+
+// @desc    Update Marketplace Settlement Settings
+// @route   PUT /api/admin/finance/settings
+// @access  Private/Admin
+const updateSettlementSettings = asyncHandler(async (req, res) => {
+  const current = await getMarketplaceSettings();
+  const updatedValue = {
+    ...current,
+    ...req.body,
+    categoryCommissionPercentages: {
+      ...current.categoryCommissionPercentages,
+      ...(req.body.categoryCommissionPercentages || {}),
+    },
+  };
+
+  let settingDoc = await Settings.findOne({ key: 'marketplace_settlement_settings' });
+  if (settingDoc) {
+    settingDoc.value = updatedValue;
+    await settingDoc.save();
+  } else {
+    settingDoc = await Settings.create({
+      key: 'marketplace_settlement_settings',
+      value: updatedValue,
+    });
+  }
+
+  res.json({
+    message: 'Marketplace settlement settings updated successfully',
+    settings: settingDoc.value,
+  });
+});
+
 export {
   getDashboardAnalytics,
   addProduct,
@@ -1798,7 +2261,15 @@ export {
   getSuppliers,
   createSupplier,
   updateSupplier,
+  updateSupplierCommission,
+  updateSupplierStatus,
   getAdminSupplierProducts,
   updateSupplierProductApproval,
+  getMarketplaceFinance,
+  getAdminSupplierPayouts,
+  createSupplierPayout,
+  updateSupplierPayoutStatus,
+  getSettlementSettings,
+  updateSettlementSettings,
 };
 

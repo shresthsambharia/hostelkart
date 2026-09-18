@@ -185,29 +185,81 @@ const SupplierOrders = () => {
                 )}
 
                 {/* Supplied Items List */}
-                <div className="divide-y divide-slate-50">
-                  {order.items.map((item, idx) => (
-                    <div key={idx} className="py-2.5 flex justify-between items-center text-xs">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center font-black text-xs">
-                          {item.quantity}x
+                <div className="divide-y divide-slate-100">
+                  {order.items.map((item, idx) => {
+                    const itemGross = Number(item.grossAmount) || ((Number(item.price) || 0) * (Number(item.quantity) || 1));
+                    const itemComm = Number(item.commissionAmount) || 0;
+                    const itemNet = Number(item.supplierPayableAmount) || (itemGross - itemComm);
+
+                    return (
+                      <div key={idx} className="py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-black text-xs shrink-0">
+                            {item.quantity}x
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-800">{item.name}</p>
+                            <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-400 font-semibold">
+                              <span>₹{item.price} each</span>
+                              {item.commissionRate !== undefined && (
+                                <span className="text-purple-600 font-bold bg-purple-50 px-1.5 py-0.2 rounded">
+                                  Comm: {item.commissionRate}% (-₹{itemComm})
+                                </span>
+                              )}
+                              {item.settlementStatus && (
+                                <span className={`px-1.5 py-0.2 rounded font-bold ${
+                                  item.settlementStatus === 'Settled'
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : item.settlementStatus === 'Processing'
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'bg-amber-50 text-amber-700'
+                                }`}>
+                                  {item.settlementStatus}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-slate-800">{item.name}</p>
-                          <p className="text-[10px] text-slate-400 font-semibold">₹{item.price} each</p>
+
+                        {/* Item Status & Net Payable */}
+                        <div className="flex items-center gap-3 self-end sm:self-center">
+                          {/* Item Fulfillment Selector */}
+                          <select
+                            value={item.itemStatus || 'Pending'}
+                            onChange={async (e) => {
+                              try {
+                                await supplierAPI.updateOrderItemStatus(order._id, item._id, e.target.value);
+                                fetchOrders();
+                              } catch (err) {
+                                alert(err.response?.data?.message || 'Failed to update item status');
+                              }
+                            }}
+                            className="bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-2 py-1 text-[11px] font-bold outline-none focus:border-purple-500"
+                          >
+                            <option value="Pending">Pending</option>
+                            <option value="Accepted">Accepted</option>
+                            <option value="Packed">Packed</option>
+                            <option value="Dispatched">Dispatched</option>
+                          </select>
+
+                          <div className="text-right">
+                            <div className="font-black text-slate-800">Gross ₹{itemGross}</div>
+                            <div className="text-[10px] font-black text-emerald-600">Net ₹{itemNet}</div>
+                          </div>
                         </div>
                       </div>
-                      <div className="font-black text-slate-800">
-                        ₹{(item.price || 0) * (item.quantity || 1)}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
-                {/* Order Footer with Subtotal */}
-                <div className="flex justify-between items-center border-t border-slate-100 pt-3 text-xs">
-                  <span className="font-extrabold text-slate-400 uppercase text-[10px] tracking-wider">Your Item Subtotal</span>
-                  <span className="font-black text-slate-900 text-sm">₹{order.supplierSubtotal}</span>
+                {/* Order Footer with Subtotal & Net Payable */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-t border-slate-100 pt-3 text-xs">
+                  <span className="font-extrabold text-slate-400 uppercase text-[10px] tracking-wider">
+                    Gross Subtotal: ₹{order.supplierSubtotal} • Platform Commission: -₹{order.supplierCommission || 0}
+                  </span>
+                  <div className="font-black text-emerald-700 text-sm">
+                    Net Receivable: ₹{order.supplierPayable || order.supplierSubtotal}
+                  </div>
                 </div>
               </div>
             );

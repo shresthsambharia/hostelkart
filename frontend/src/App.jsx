@@ -68,6 +68,7 @@ const SupplierDashboard = React.lazy(() => import('./supplier/SupplierDashboard'
 const SupplierProducts = React.lazy(() => import('./supplier/SupplierProducts'));
 const SupplierOrders = React.lazy(() => import('./supplier/SupplierOrders'));
 const SupplierProfile = React.lazy(() => import('./supplier/SupplierProfile'));
+const SupplierFinance = React.lazy(() => import('./supplier/SupplierFinance'));
 
 // Delivery Dashboard pages
 const DeliveryDashboard = React.lazy(() => import('./delivery/DeliveryDashboard'));
@@ -437,6 +438,14 @@ const AppContent = () => {
             element={
               <ProtectedRoute allowedRoles={['supplier']}>
                 <SupplierProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/supplier/finance"
+            element={
+              <ProtectedRoute allowedRoles={['supplier']}>
+                <SupplierFinance />
               </ProtectedRoute>
             }
           />

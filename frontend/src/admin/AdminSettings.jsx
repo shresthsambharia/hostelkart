@@ -17,6 +17,8 @@ import {
   X,
   Key,
   Download,
+  Percent,
+  Sliders,
 } from 'lucide-react';
 
 const AdminSettings = () => {
@@ -26,8 +28,21 @@ const AdminSettings = () => {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingMarketplace, setSavingMarketplace] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [alert, setAlert] = useState({ type: '', message: '' });
+
+  // Marketplace & Commission Settings
+  const [globalCommission, setGlobalCommission] = useState(10);
+  const [categoryCommissions, setCategoryCommissions] = useState({
+    Fruits: 10,
+    Medicines: 10,
+    Stationery: 10,
+    'Exotic Fruits': 10,
+    'Clothes Essentials': 10,
+  });
+  const [minPayoutThreshold, setMinPayoutThreshold] = useState(1000);
+  const [settlementMethod, setSettlementMethod] = useState('UPI');
 
   // 2FA state variables
   const [setupStep, setSetupStep] = useState('idle'); // idle, scan, recovery_codes
@@ -50,12 +65,33 @@ const AdminSettings = () => {
 
   const fetchSettings = async () => {
     try {
-      const { data } = await adminAPI.getPaymentSettings();
-      setUpiId(data.upiId || '');
-      setQrCodeUrl(data.qrCodeUrl || '');
+      const [payRes, mktRes] = await Promise.all([
+        adminAPI.getPaymentSettings(),
+        adminAPI.getSettlementSettings().catch(() => ({ data: {} })),
+      ]);
+      setUpiId(payRes.data.upiId || '');
+      setQrCodeUrl(payRes.data.qrCodeUrl || '');
+
+      if (mktRes.data) {
+        if (mktRes.data.globalCommissionPercentage !== undefined) {
+          setGlobalCommission(mktRes.data.globalCommissionPercentage);
+        }
+        if (mktRes.data.categoryCommissionPercentages) {
+          setCategoryCommissions((prev) => ({
+            ...prev,
+            ...mktRes.data.categoryCommissionPercentages,
+          }));
+        }
+        if (mktRes.data.minPayoutThreshold !== undefined) {
+          setMinPayoutThreshold(mktRes.data.minPayoutThreshold);
+        }
+        if (mktRes.data.settlementMethod) {
+          setSettlementMethod(mktRes.data.settlementMethod);
+        }
+      }
     } catch (error) {
       console.error('Error fetching settings:', error);
-      setAlert({ type: 'error', message: 'Failed to load payment settings' });
+      setAlert({ type: 'error', message: 'Failed to load settings' });
     } finally {
       setLoading(false);
     }
@@ -103,6 +139,33 @@ const AdminSettings = () => {
       setAlert({ type: 'error', message: error.response?.data?.message || 'Failed to save payment settings' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleMarketplaceSubmit = async (e) => {
+    e.preventDefault();
+    setSavingMarketplace(true);
+    setAlert({ type: '', message: '' });
+
+    try {
+      await adminAPI.updateSettlementSettings({
+        globalCommissionPercentage: Number(globalCommission),
+        categoryCommissionPercentages: {
+          Fruits: Number(categoryCommissions.Fruits || 0),
+          Medicines: Number(categoryCommissions.Medicines || 0),
+          Stationery: Number(categoryCommissions.Stationery || 0),
+          'Exotic Fruits': Number(categoryCommissions['Exotic Fruits'] || 0),
+          'Clothes Essentials': Number(categoryCommissions['Clothes Essentials'] || 0),
+        },
+        minPayoutThreshold: Number(minPayoutThreshold),
+        settlementMethod,
+      });
+      setAlert({ type: 'success', message: 'Marketplace commission & settlement settings saved successfully!' });
+    } catch (error) {
+      console.error('Error saving marketplace settings:', error);
+      setAlert({ type: 'error', message: error.response?.data?.message || 'Failed to save marketplace settings' });
+    } finally {
+      setSavingMarketplace(false);
     }
   };
 
@@ -343,6 +406,125 @@ const AdminSettings = () => {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Marketplace & Commission Settings */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-6 mt-6">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+          <h3 className="font-extrabold text-slate-800 text-base flex items-center gap-2">
+            <Sliders className="text-primary-600 w-5 h-5" />
+            <span>Marketplace Commission & Settlement Configuration</span>
+          </h3>
+          <span className="text-xs bg-primary-50 text-primary-700 px-3 py-1 rounded-full font-bold border border-primary-100">
+            Auto-Split Engine
+          </span>
+        </div>
+
+        <form onSubmit={handleMarketplaceSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Global Commission */}
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
+              <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                <span>Platform Global Commission (%)</span>
+                <span className="text-primary-600 font-extrabold">{globalCommission}%</span>
+              </label>
+              <p className="text-[11px] text-slate-400">
+                Default fallback commission charged across all supplier sales if no category or supplier-specific override exists.
+              </p>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  className="input-field text-sm font-bold pl-8"
+                  value={globalCommission}
+                  onChange={(e) => setGlobalCommission(e.target.value)}
+                  required
+                />
+                <Percent size={14} className="absolute left-3 top-3.5 text-slate-400" />
+              </div>
+            </div>
+
+            {/* Min Payout Threshold */}
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
+              <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                <span>Minimum Payout Threshold (₹)</span>
+                <span className="text-emerald-600 font-extrabold">₹{minPayoutThreshold}</span>
+              </label>
+              <p className="text-[11px] text-slate-400">
+                Minimum accumulated eligible earnings a supplier must have before appearing in payout batches.
+              </p>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  step="10"
+                  className="input-field text-sm font-bold pl-8"
+                  value={minPayoutThreshold}
+                  onChange={(e) => setMinPayoutThreshold(e.target.value)}
+                  required
+                />
+                <span className="absolute left-3 top-3 text-slate-400 font-bold text-sm">₹</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Canonical Category Specific Overrides */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">
+              Category-Specific Commission Rates (%)
+            </h4>
+            <p className="text-[11px] text-slate-400">
+              Overrides global platform rate for items belonging to specific canonical categories.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              {[
+                { key: 'Fruits', label: '🍎 Fruits' },
+                { key: 'Medicines', label: '💊 Medicines' },
+                { key: 'Stationery', label: '📚 Stationery' },
+                { key: 'Exotic Fruits', label: '🥑 Exotic Fruits' },
+                { key: 'Clothes Essentials', label: '👕 Clothes Essentials' },
+              ].map((cat) => (
+                <div key={cat.key} className="p-3 bg-white rounded-xl border border-slate-200 space-y-1">
+                  <label className="text-xs font-bold text-slate-700 block truncate" title={cat.label}>
+                    {cat.label}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      className="input-field text-xs font-bold pl-7 py-1.5"
+                      value={categoryCommissions[cat.key] !== undefined ? categoryCommissions[cat.key] : 10}
+                      onChange={(e) =>
+                        setCategoryCommissions({
+                          ...categoryCommissions,
+                          [cat.key]: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                    <Percent size={12} className="absolute left-2.5 top-2.5 text-slate-400" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              disabled={savingMarketplace}
+              className="btn-primary py-2.5 px-6 font-bold text-sm shadow-md flex items-center justify-center gap-1.5"
+            >
+              {savingMarketplace && <RefreshCw size={14} className="animate-spin" />}
+              <span>{savingMarketplace ? 'Saving Settings...' : 'Save Marketplace Settings'}</span>
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Two-Factor Authentication (2FA) Section */}

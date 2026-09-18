@@ -4,6 +4,7 @@ import DeliveryPartner from '../models/DeliveryPartner.js';
 import Product from '../models/Product.js';
 import User from '../models/User.js';
 import { createAlert } from './notificationController.js';
+import { processOrderDeliverySettlement } from '../utils/commissionEngine.js';
 
 // @desc    Get assigned orders for delivery partner
 // @route   GET /api/delivery/orders
@@ -68,6 +69,8 @@ const updateDeliveryStatus = asyncHandler(async (req, res) => {
       if (order.paymentMethod === 'COD') {
         order.paymentStatus = 'Paid';
       }
+      // Process supplier marketplace settlement & financial ledger
+      await processOrderDeliverySettlement(order, req.user);
     } else if (status === 'Cancelled' || status === 'Delivery Failed') {
       order.paymentStatus = (status === 'Delivery Failed' && ['ONLINE', 'CASHFREE'].includes(order.paymentMethod) && ['Paid', 'PAID'].includes(order.paymentStatus)) ? 'Paid' : 'Failed';
       order.cancelledAt = Date.now();

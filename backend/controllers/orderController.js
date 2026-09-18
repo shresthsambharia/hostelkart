@@ -8,6 +8,11 @@ import Settings from '../models/Settings.js';
 import { createAlert } from './notificationController.js';
 import sendEmail from '../utils/sendEmail.js';
 import QRCode from 'qrcode';
+import {
+  getMarketplaceSettings,
+  calculateItemCommissionSnapshot,
+  processOrderDeliverySettlement,
+} from '../utils/commissionEngine.js';
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -80,6 +85,17 @@ const createOrder = asyncHandler(async (req, res) => {
     productMap[p._id.toString()] = p;
   });
 
+  // Fetch marketplace settings and supplier profiles for authoritative commission snapshotting
+  const marketplaceSettings = await getMarketplaceSettings();
+  const supplierIds = products.map((p) => p.supplier).filter(Boolean);
+  const supplierUsers = supplierIds.length > 0
+    ? await User.find({ _id: { $in: supplierIds } }).lean()
+    : [];
+  const supplierMap = {};
+  supplierUsers.forEach((s) => {
+    supplierMap[s._id.toString()] = s;
+  });
+
   // Validate products, availability, and enforce authoritative server prices/discounts
   const validatedItems = [];
   let serverSubtotal = 0;
@@ -109,12 +125,22 @@ const createOrder = asyncHandler(async (req, res) => {
     const effectivePrice = Math.max(0, itemPrice - (itemPrice * itemDiscount / 100));
     serverSubtotal += effectivePrice * qty;
 
+    const supplierUser = product.supplier ? supplierMap[product.supplier.toString()] : null;
+    const commSnapshot = calculateItemCommissionSnapshot(product, supplierUser, marketplaceSettings, qty);
+
     validatedItems.push({
       product: product._id,
+      supplier: commSnapshot.supplier,
       name: product.name,
       quantity: qty,
       price: itemPrice,
       discount: itemDiscount,
+      grossAmount: commSnapshot.grossAmount,
+      commissionRate: commSnapshot.commissionRate,
+      commissionAmount: commSnapshot.commissionAmount,
+      supplierPayableAmount: commSnapshot.supplierPayableAmount,
+      itemStatus: isUpi ? 'Pending' : 'Confirmed',
+      settlementStatus: 'Pending',
     });
   }
 
@@ -338,6 +364,17 @@ const createOrder = asyncHandler(async (req, res) => {
             admin._id,
             'New Order Placed',
             `Order #${createdOrder._id.toString().substring(12).toUpperCase()} of INR ${createdOrder.totalAmount} has been placed by ${req.user.name}.`,
+            'NewOrder'
+          );
+        }
+
+        // Notify Suppliers who have items in this order
+        const uniqueSupplierIds = [...new Set(validatedItems.map((i) => i.supplier?.toString()).filter(Boolean))];
+        for (const sId of uniqueSupplierIds) {
+          await createAlert(
+            sId,
+            'New Supply Order Received',
+            `You have received a new supply request for Order #${createdOrder._id.toString().substring(12).toUpperCase()}. Please check your supplier panel.`,
             'NewOrder'
           );
         }

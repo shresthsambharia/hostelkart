@@ -262,8 +262,16 @@ export const adminAPI = {
   getSuppliers: () => API.get('/admin/suppliers'),
   createSupplier: (supplierData) => API.post('/admin/suppliers', supplierData),
   updateSupplier: (id, supplierData) => API.put(`/admin/suppliers/${id}`, supplierData),
+  updateSupplierCommission: (id, commissionPercentage) => API.put(`/admin/suppliers/${id}/commission`, { commissionPercentage }),
+  updateSupplierStatus: (id, status, reason) => API.put(`/admin/suppliers/${id}/status`, { status, reason }),
   getSupplierProducts: (params) => API.get('/admin/supplier-products', { params }),
   updateSupplierProductApproval: (id, data) => API.put(`/admin/supplier-products/${id}/approval`, data),
+  getMarketplaceFinance: () => API.get('/admin/finance/overview'),
+  getSettlementSettings: () => API.get('/admin/finance/settings'),
+  updateSettlementSettings: (settings) => API.put('/admin/finance/settings', settings),
+  getSupplierPayouts: (params) => API.get('/admin/payouts', { params }),
+  createSupplierPayout: (payoutData) => API.post('/admin/payouts', payoutData),
+  updateSupplierPayoutStatus: (id, data) => API.put(`/admin/payouts/${id}/status`, data),
 };
 
 export const supplierAPI = {
@@ -275,8 +283,13 @@ export const supplierAPI = {
   updateStock: (id, data) => API.patch(`/supplier/products/${id}/stock`, data),
   deleteProduct: (id) => API.delete(`/supplier/products/${id}`),
   getOrders: () => API.get('/supplier/orders'),
+  updateOrderItemStatus: (orderId, itemId, itemStatus) => API.patch(`/supplier/orders/${orderId}/items/${itemId}/status`, { itemStatus }),
   getProfile: () => API.get('/supplier/profile'),
   updateProfile: (profileData) => API.put('/supplier/profile', profileData),
+  getFinance: () => API.get('/supplier/finance/overview'),
+  getPayouts: (params) => API.get('/supplier/finance/payouts', { params }),
+  getLedger: (params) => API.get('/supplier/finance/ledger', { params }),
+  getStatement: (payoutId) => API.get(`/supplier/finance/statements/${payoutId}`),
 };
 
 export const deliveryAPI = {

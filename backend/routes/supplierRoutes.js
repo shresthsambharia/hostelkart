@@ -8,6 +8,11 @@ import {
   updateSupplierProductStock,
   deleteSupplierProduct,
   getSupplierOrders,
+  updateSupplierOrderItemStatus,
+  getSupplierFinance,
+  getSupplierPayouts,
+  getSupplierLedger,
+  getSettlementStatement,
   getSupplierProfile,
   updateSupplierProfile,
 } from '../controllers/supplierController.js';
@@ -20,6 +25,14 @@ router.use(protect, supplier);
 
 router.get('/dashboard', getSupplierDashboard);
 router.get('/orders', getSupplierOrders);
+router.patch('/orders/:id/items/:itemId/status', updateSupplierOrderItemStatus);
+
+// Financial Overview, Payouts, Immutable Ledger & Settlement Statements
+router.get('/finance/overview', getSupplierFinance);
+router.get('/finance/payouts', getSupplierPayouts);
+router.get('/finance/ledger', getSupplierLedger);
+router.get('/finance/statements/:payoutId', getSettlementStatement);
+
 router.route('/profile')
   .get(getSupplierProfile)
   .put(updateSupplierProfile);

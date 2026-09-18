@@ -7,10 +7,36 @@ const orderItemSchema = new mongoose.Schema({
     ref: 'Product',
     required: true,
   },
+  supplier: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+    index: true,
+  },
   name: { type: String, required: true },
   quantity: { type: Number, required: true },
   price: { type: Number, required: true },
   discount: { type: Number, required: true, default: 0 },
+  grossAmount: { type: Number, default: 0 },
+  commissionRate: { type: Number, default: 0 },
+  commissionAmount: { type: Number, default: 0 },
+  supplierPayableAmount: { type: Number, default: 0 },
+  itemStatus: {
+    type: String,
+    enum: ['Pending', 'Confirmed', 'Accepted', 'Packed', 'Ready for Pickup', 'Out for Delivery', 'Delivered', 'Cancelled', 'Refunded'],
+    default: 'Pending',
+  },
+  settlementStatus: {
+    type: String,
+    enum: ['Pending', 'Eligible', 'Processing', 'Settled', 'Refunded', 'Cancelled'],
+    default: 'Pending',
+    index: true,
+  },
+  payout: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'SupplierPayout',
+    default: null,
+  },
 });
 
 const timelineSchema = new mongoose.Schema({

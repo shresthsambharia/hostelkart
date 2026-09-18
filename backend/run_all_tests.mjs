@@ -10,12 +10,15 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 
+import Product from './models/Product.js';
+
 const envPath = fs.existsSync('./backend/.env') ? './backend/.env' : './.env';
 dotenv.config({ path: envPath });
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/hostelkart';
 
 try {
   await mongoose.connect(MONGO_URI);
+  await Product.deleteMany({ name: 'Organic Shimla Apples (1kg)' });
   await runBackendTests();
   await runDietPlannerTests();
   await runDeliveryPartnerTests();

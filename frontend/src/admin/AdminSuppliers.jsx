@@ -21,14 +21,22 @@ import {
   ExternalLink,
   ChevronRight,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  DollarSign,
+  TrendingUp,
+  CreditCard,
+  Percent,
+  ShieldAlert,
+  FileText
 } from 'lucide-react';
 
 const AdminSuppliers = () => {
-  const [activeTab, setActiveTab] = useState('approvals'); // 'approvals' | 'suppliers'
+  const [activeTab, setActiveTab] = useState('approvals'); // 'approvals' | 'suppliers' | 'payouts' | 'finance'
   const [loading, setLoading] = useState(true);
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
+  const [payouts, setPayouts] = useState([]);
+  const [financeOverview, setFinanceOverview] = useState(null);
   const [filterStatus, setFilterStatus] = useState('pending');
   const [selectedSupplierFilter, setSelectedSupplierFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,6 +48,30 @@ const AdminSuppliers = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
+
+  // Commission Modal
+  const [showCommissionModal, setShowCommissionModal] = useState(false);
+  const [selectedSupplierForCommission, setSelectedSupplierForCommission] = useState(null);
+  const [commissionRateInput, setCommissionRateInput] = useState('');
+
+  // Status Modal
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [selectedSupplierForStatus, setSelectedSupplierForStatus] = useState(null);
+  const [statusInput, setStatusInput] = useState('active');
+
+  // Payout Generation Modal
+  const [showCreatePayoutModal, setShowCreatePayoutModal] = useState(false);
+  const [payoutForm, setPayoutForm] = useState({
+    supplierId: '',
+    paymentMethod: 'UPI',
+    notes: '',
+  });
+
+  // Mark Paid Modal
+  const [showMarkPaidModal, setShowMarkPaidModal] = useState(false);
+  const [selectedPayoutForPaid, setSelectedPayoutForPaid] = useState(null);
+  const [utrInput, setUtrInput] = useState('');
+  const [paidMethodInput, setPaidMethodInput] = useState('UPI');
 
   // Add Supplier Form
   const [supplierForm, setSupplierForm] = useState({
@@ -60,16 +92,20 @@ const AdminSuppliers = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [suppliersRes, productsRes] = await Promise.all([
+      const [suppliersRes, productsRes, payoutsRes, financeRes] = await Promise.all([
         adminAPI.getSuppliers(),
         adminAPI.getSupplierProducts({
           status: filterStatus === 'all' ? undefined : filterStatus,
           supplierId: selectedSupplierFilter === 'all' ? undefined : selectedSupplierFilter,
         }),
+        adminAPI.getSupplierPayouts({ limit: 50 }),
+        adminAPI.getMarketplaceFinance(),
       ]);
 
       setSuppliers(suppliersRes.data || []);
       setProducts(productsRes.data || []);
+      setPayouts(payoutsRes.data.payouts || []);
+      setFinanceOverview(financeRes.data || null);
     } catch (err) {
       console.error('Failed to load supplier administration data:', err);
       setFeedback({ type: 'error', message: 'Failed to load supplier management data.' });
@@ -181,6 +217,105 @@ const AdminSuppliers = () => {
     }
   };
 
+  const handleSaveCommission = async (e) => {
+    e.preventDefault();
+    if (!selectedSupplierForCommission) return;
+    try {
+      setActionLoading(true);
+      const rate = commissionRateInput === '' ? null : Number(commissionRateInput);
+      await adminAPI.updateSupplierCommission(selectedSupplierForCommission._id, rate);
+      setFeedback({
+        type: 'success',
+        message: `Commission percentage updated for ${selectedSupplierForCommission.name}`,
+      });
+      setShowCommissionModal(false);
+      fetchData();
+    } catch (err) {
+      setFeedback({
+        type: 'error',
+        message: err.response?.data?.message || 'Failed to update commission rate',
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSaveStatus = async (e) => {
+    e.preventDefault();
+    if (!selectedSupplierForStatus) return;
+    try {
+      setActionLoading(true);
+      await adminAPI.updateSupplierStatus(selectedSupplierForStatus._id, statusInput);
+      setFeedback({
+        type: 'success',
+        message: `Supplier account status updated to ${statusInput}`,
+      });
+      setShowStatusModal(false);
+      fetchData();
+    } catch (err) {
+      setFeedback({
+        type: 'error',
+        message: err.response?.data?.message || 'Failed to update supplier status',
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCreatePayoutBatch = async (e) => {
+    e.preventDefault();
+    if (!payoutForm.supplierId) return;
+    try {
+      setActionLoading(true);
+      const res = await adminAPI.createSupplierPayout(payoutForm);
+      setFeedback({
+        type: 'success',
+        message: `Payout batch ${res.data.payout?.payoutNumber || ''} created successfully!`,
+      });
+      setShowCreatePayoutModal(false);
+      fetchData();
+    } catch (err) {
+      setFeedback({
+        type: 'error',
+        message: err.response?.data?.message || 'Failed to create payout batch. Ensure there are delivered unsettled items for this supplier.',
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleConfirmMarkPaid = async (e) => {
+    e.preventDefault();
+    if (!selectedPayoutForPaid) return;
+    if (!utrInput.trim()) {
+      alert('UTR / Transaction reference is required to mark as Paid');
+      return;
+    }
+    try {
+      setActionLoading(true);
+      await adminAPI.updateSupplierPayoutStatus(selectedPayoutForPaid._id, {
+        status: 'Paid',
+        utrNumber: utrInput.trim(),
+        paymentMethod: paidMethodInput,
+      });
+      setFeedback({
+        type: 'success',
+        message: 'Payout marked as Paid! UTR recorded and ledger debited.',
+      });
+      setShowMarkPaidModal(false);
+      setSelectedPayoutForPaid(null);
+      setUtrInput('');
+      fetchData();
+    } catch (err) {
+      setFeedback({
+        type: 'error',
+        message: err.response?.data?.message || 'Failed to update payout status',
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const filteredProducts = products.filter((p) => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
@@ -220,6 +355,13 @@ const AdminSuppliers = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowCreatePayoutModal(true)}
+            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-sm flex items-center gap-2 transition-colors"
+          >
+            <DollarSign size={16} />
+            Generate Payout
+          </button>
           <button
             onClick={() => setShowAddSupplierModal(true)}
             className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-sm flex items-center gap-2 transition-colors"
@@ -261,7 +403,7 @@ const AdminSuppliers = () => {
       )}
 
       {/* Tab Switcher */}
-      <div className="flex border-b border-slate-200 gap-6">
+      <div className="flex flex-wrap border-b border-slate-200 gap-4 sm:gap-6">
         <button
           onClick={() => { setActiveTab('approvals'); setSearchTerm(''); }}
           className={`pb-3 font-black text-sm tracking-wide transition-colors flex items-center gap-2 border-b-2 ${
@@ -288,6 +430,28 @@ const AdminSuppliers = () => {
         >
           <Users size={18} />
           Registered Suppliers ({suppliers.length})
+        </button>
+        <button
+          onClick={() => { setActiveTab('payouts'); setSearchTerm(''); }}
+          className={`pb-3 font-black text-sm tracking-wide transition-colors flex items-center gap-2 border-b-2 ${
+            activeTab === 'payouts'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <DollarSign size={18} />
+          Supplier Payouts ({payouts.length})
+        </button>
+        <button
+          onClick={() => { setActiveTab('finance'); setSearchTerm(''); }}
+          className={`pb-3 font-black text-sm tracking-wide transition-colors flex items-center gap-2 border-b-2 ${
+            activeTab === 'finance'
+              ? 'border-purple-600 text-purple-600'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <TrendingUp size={18} />
+          Marketplace Finance
         </button>
       </div>
 
@@ -448,7 +612,7 @@ const AdminSuppliers = () => {
             </div>
           )}
         </div>
-      ) : (
+      ) : activeTab === 'suppliers' ? (
         // Suppliers Directory Grid
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredSuppliers.length === 0 ? (
@@ -461,6 +625,9 @@ const AdminSuppliers = () => {
             filteredSuppliers.map((s) => {
               const safeName = s.name && s.name !== 'undefined' && s.name !== 'null' ? s.name : 'Supplier Account';
               const businessName = s.supplierDetails?.businessName || safeName;
+              const commissionOverride = s.supplierDetails?.commissionPercentage;
+              const status = s.supplierDetails?.status || 'active';
+
               return (
                 <div key={s._id} className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 flex flex-col justify-between">
                   <div className="space-y-3">
@@ -472,13 +639,40 @@ const AdminSuppliers = () => {
                         <h3 className="text-base font-black text-slate-900 mt-1.5">{businessName}</h3>
                         <p className="text-xs text-slate-500 font-medium">Rep: {safeName}</p>
                       </div>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${s.isActive !== false ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
-                        {s.isActive !== false ? 'Active' : 'Disabled'}
-                      </span>
+                      <button
+                        onClick={() => {
+                          setSelectedSupplierForStatus(s);
+                          setStatusInput(status);
+                          setShowStatusModal(true);
+                        }}
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
+                          status === 'active'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                            : status === 'suspended'
+                            ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                            : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                        }`}
+                      >
+                        {status}
+                      </button>
                     </div>
 
-                    <div className="space-y-1.5 text-xs text-slate-600 bg-slate-50 p-3 rounded-xl">
-                      <div className="flex items-center gap-2">
+                    <div className="bg-slate-50 p-3 rounded-xl space-y-1.5 text-xs text-slate-600">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-slate-500">Commission Rate:</span>
+                        <button
+                          onClick={() => {
+                            setSelectedSupplierForCommission(s);
+                            setCommissionRateInput(commissionOverride !== undefined ? String(commissionOverride) : '');
+                            setShowCommissionModal(true);
+                          }}
+                          className="font-black text-purple-700 bg-purple-50 hover:bg-purple-100 px-2 py-0.5 rounded flex items-center gap-1 transition-colors"
+                        >
+                          <Percent size={11} />
+                          <span>{commissionOverride !== undefined ? `${commissionOverride}% (Override)` : 'Default (10%)'}</span>
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2 pt-1">
                         <Mail size={13} className="text-slate-400 shrink-0" />
                         <span className="truncate">{s.email}</span>
                       </div>
@@ -488,17 +682,26 @@ const AdminSuppliers = () => {
                           <span>{s.phone}</span>
                         </div>
                       )}
-                      {s.supplierDetails?.address && (
+                      {s.supplierDetails?.upiId && (
                         <div className="flex items-center gap-2">
-                          <MapPin size={13} className="text-slate-400 shrink-0" />
-                          <span className="truncate">{s.supplierDetails.address}</span>
+                          <CreditCard size={13} className="text-slate-400 shrink-0" />
+                          <span className="text-indigo-600 font-bold truncate">UPI: {s.supplierDetails.upiId}</span>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-                    <span>Joined: {new Date(s.createdAt).toLocaleDateString()}</span>
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <button
+                      onClick={() => {
+                        setPayoutForm({ ...payoutForm, supplierId: s._id });
+                        setShowCreatePayoutModal(true);
+                      }}
+                      className="font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+                    >
+                      <DollarSign size={13} />
+                      <span>Payout Batch</span>
+                    </button>
                     <button
                       onClick={() => {
                         setSelectedSupplierFilter(s._id);
@@ -507,13 +710,434 @@ const AdminSuppliers = () => {
                       }}
                       className="font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
                     >
-                      View Products <ChevronRight size={14} />
+                      Products ({s.stats?.totalProducts || 0}) <ChevronRight size={14} />
                     </button>
                   </div>
                 </div>
               );
             })
           )}
+        </div>
+      ) : activeTab === 'payouts' ? (
+        // Tab 3: Payouts Management
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h2 className="text-base font-black text-slate-800">Manual Supplier Settlement Payouts</h2>
+              <p className="text-xs text-slate-500">Review payout batches, record UTR transaction references, and trigger ledger disbursements.</p>
+            </div>
+            <button
+              onClick={() => setShowCreatePayoutModal(true)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-colors"
+            >
+              <Plus size={14} />
+              <span>Create Payout Batch</span>
+            </button>
+          </div>
+
+          {payouts.length === 0 ? (
+            <div className="text-center py-12 space-y-2">
+              <DollarSign size={36} className="mx-auto text-slate-300" />
+              <p className="text-slate-600 text-sm font-bold">No payout records created yet.</p>
+              <p className="text-xs text-slate-400">Click "Create Payout Batch" to calculate net payables for delivered order items.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                    <th className="pb-3">Payout #</th>
+                    <th className="pb-3">Supplier</th>
+                    <th className="pb-3">Date</th>
+                    <th className="pb-3">Gross Sales</th>
+                    <th className="pb-3">Commission</th>
+                    <th className="pb-3">Net Payable</th>
+                    <th className="pb-3">Method</th>
+                    <th className="pb-3">UTR / Ref</th>
+                    <th className="pb-3">Status</th>
+                    <th className="pb-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                  {payouts.map((p) => (
+                    <tr key={p._id} className="hover:bg-slate-50/60">
+                      <td className="py-3 font-mono font-black text-indigo-600">
+                        {p.payoutNumber || `PAY-${p._id.slice(-6).toUpperCase()}`}
+                      </td>
+                      <td className="py-3 font-bold text-slate-800">
+                        {p.supplier?.supplierDetails?.businessName || p.supplier?.name || 'Supplier'}
+                      </td>
+                      <td className="py-3 text-slate-500 font-semibold">
+                        {new Date(p.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                      </td>
+                      <td className="py-3 font-bold text-slate-800">₹{p.grossAmount}</td>
+                      <td className="py-3 text-rose-600 font-semibold">-₹{p.commissionAmount}</td>
+                      <td className="py-3 font-black text-emerald-600 text-sm">₹{p.netPayable}</td>
+                      <td className="py-3">
+                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold text-[10px]">
+                          {p.paymentMethod}
+                        </span>
+                      </td>
+                      <td className="py-3 font-mono text-slate-600 font-bold">
+                        {p.utrNumber || <span className="text-slate-400 italic font-normal">Pending</span>}
+                      </td>
+                      <td className="py-3">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                          p.status === 'Paid'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : p.status === 'Processing'
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : p.status === 'Cancelled' || p.status === 'Failed'
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          {p.status}
+                        </span>
+                      </td>
+                      <td className="py-3 text-right">
+                        {p.status !== 'Paid' && p.status !== 'Cancelled' ? (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => {
+                                setSelectedPayoutForPaid(p);
+                                setPaidMethodInput(p.paymentMethod || 'UPI');
+                                setUtrInput(p.utrNumber || '');
+                                setShowMarkPaidModal(true);
+                              }}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
+                            >
+                              Mark Paid
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 font-semibold">Settled</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ) : (
+        // Tab 4: Marketplace Finance Overview
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Platform Delivered GMV</span>
+              <div className="text-2xl font-black text-slate-900">
+                ₹{(financeOverview?.summary?.platformGMV || 0).toLocaleString()}
+              </div>
+              <span className="text-[10px] font-bold text-slate-400">Total delivered order value</span>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-purple-600">Platform Commission</span>
+              <div className="text-2xl font-black text-purple-700">
+                ₹{(financeOverview?.summary?.totalPlatformCommission || 0).toLocaleString()}
+              </div>
+              <span className="text-[10px] font-bold text-purple-600">Net HostelKart marketplace revenue</span>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-600">Pending Disbursable</span>
+              <div className="text-2xl font-black text-amber-600">
+                ₹{(financeOverview?.summary?.pendingPayoutsAmount || 0).toLocaleString()}
+              </div>
+              <span className="text-[10px] font-bold text-amber-700">Awaiting UPI/Bank execution</span>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Total Settled to Suppliers</span>
+              <div className="text-2xl font-black text-emerald-600">
+                ₹{(financeOverview?.summary?.settledPayoutsAmount || 0).toLocaleString()}
+              </div>
+              <span className="text-[10px] font-bold text-emerald-700">Disbursed with UTR reference</span>
+            </div>
+          </div>
+
+          {financeOverview?.categoryStats && (
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-4">
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">
+                Category GMV & Commission Breakdown
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {Object.entries(financeOverview.categoryStats).map(([catName, stats]) => (
+                  <div key={catName} className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 space-y-1">
+                    <span className="text-xs font-black text-slate-800 block truncate">{catName}</span>
+                    <div className="text-base font-black text-indigo-900">₹{stats.gmv}</div>
+                    <div className="text-[10px] font-bold text-slate-500">
+                      {stats.itemsSold} sold • Comm: ₹{stats.commission}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Commission Override Modal */}
+      {showCommissionModal && selectedSupplierForCommission && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                <Percent className="text-purple-600" size={16} />
+                <span>Supplier Commission Rate</span>
+              </h3>
+              <button onClick={() => setShowCommissionModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleSaveCommission} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">
+                  Commission Percentage (%) for {selectedSupplierForCommission.name}
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  placeholder="Leave blank for platform default (10%)"
+                  value={commissionRateInput}
+                  onChange={(e) => setCommissionRateInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Applies directly to all future orders containing products from this supplier.
+                </p>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCommissionModal(false)}
+                  className="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow"
+                >
+                  {actionLoading ? 'Saving...' : 'Save Rate'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Status Modal */}
+      {showStatusModal && selectedSupplierForStatus && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                <ShieldAlert className="text-emerald-600" size={16} />
+                <span>Supplier Account Status</span>
+              </h3>
+              <button onClick={() => setShowStatusModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleSaveStatus} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">
+                  Account Status
+                </label>
+                <select
+                  value={statusInput}
+                  onChange={(e) => setStatusInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="active">Active (Authorized)</option>
+                  <option value="suspended">Suspended (Paused)</option>
+                  <option value="pending_verification">Pending Verification</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowStatusModal(false)}
+                  className="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow"
+                >
+                  {actionLoading ? 'Saving...' : 'Update Status'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create Payout Modal */}
+      {showCreatePayoutModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <DollarSign className="text-indigo-600" />
+                <span>Create Supplier Payout Batch</span>
+              </h3>
+              <button onClick={() => setShowCreatePayoutModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleCreatePayoutBatch} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">
+                  Select Supplier Partner *
+                </label>
+                <select
+                  required
+                  value={payoutForm.supplierId}
+                  onChange={(e) => setPayoutForm({ ...payoutForm, supplierId: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">Select a supplier...</option>
+                  {suppliers.map((s) => (
+                    <option key={s._id} value={s._id}>
+                      {s.supplierDetails?.businessName || s.name} ({s.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">
+                  Disbursement Method
+                </label>
+                <select
+                  value={payoutForm.paymentMethod}
+                  onChange={(e) => setPayoutForm({ ...payoutForm, paymentMethod: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="UPI">UPI Transfer</option>
+                  <option value="Bank Transfer">NEFT / IMPS Bank Transfer</option>
+                  <option value="Cash">Manual Cash Settlement</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">
+                  Notes / Internal Reference
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Optional note..."
+                  value={payoutForm.notes}
+                  onChange={(e) => setPayoutForm({ ...payoutForm, notes: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowCreatePayoutModal(false)}
+                  className="px-3 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow"
+                >
+                  {actionLoading ? 'Creating Batch...' : 'Generate Payout Batch'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Mark Paid Modal */}
+      {showMarkPaidModal && selectedPayoutForPaid && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <CheckCircle2 className="text-emerald-600" />
+                <span>Mark Payout as Disbursed (Paid)</span>
+              </h3>
+              <button onClick={() => setShowMarkPaidModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="bg-slate-50 p-3.5 rounded-xl text-xs space-y-1">
+              <div><strong>Payout #:</strong> {selectedPayoutForPaid.payoutNumber}</div>
+              <div><strong>Supplier:</strong> {selectedPayoutForPaid.supplier?.name}</div>
+              <div className="text-emerald-700 font-bold text-sm">
+                <strong>Net Payable:</strong> ₹{selectedPayoutForPaid.netPayable}
+              </div>
+              {selectedPayoutForPaid.bankDetailsSnapshot?.upiId && (
+                <div>UPI ID: <strong className="text-indigo-600">{selectedPayoutForPaid.bankDetailsSnapshot.upiId}</strong></div>
+              )}
+            </div>
+
+            <form onSubmit={handleConfirmMarkPaid} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">
+                  Payment Method
+                </label>
+                <select
+                  value={paidMethodInput}
+                  onChange={(e) => setPaidMethodInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="UPI">UPI Transfer</option>
+                  <option value="Bank Transfer">NEFT / IMPS Bank Transfer</option>
+                  <option value="Cash">Manual Cash Settlement</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">
+                  Bank UTR / Transaction Reference Number *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 423589123456 or UPI Reference ID"
+                  value={utrInput}
+                  onChange={(e) => setUtrInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  This reference will be visible to the supplier and recorded in the immutable Financial Ledger.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowMarkPaidModal(false)}
+                  className="px-3 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow"
+                >
+                  {actionLoading ? 'Recording...' : 'Confirm & Disburse'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

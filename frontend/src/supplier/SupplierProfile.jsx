@@ -61,12 +61,14 @@ const SupplierProfile = () => {
         businessName: profile?.supplierDetails?.businessName || '',
         contactPerson: profile?.supplierDetails?.contactPerson || '',
         address: profile?.supplierDetails?.address || '',
-        gstNumber: profile?.supplierDetails?.gstNumber || '',
+        gstNumber: profile?.supplierDetails?.gstNumber || profile?.supplierDetails?.gstin || '',
+        panNumber: profile?.supplierDetails?.panNumber || '',
         bankAccount: {
-          accountName: profile?.supplierDetails?.bankAccount?.accountName || '',
-          accountNumber: profile?.supplierDetails?.bankAccount?.accountNumber || '',
-          ifscCode: profile?.supplierDetails?.bankAccount?.ifscCode || '',
-          upiId: profile?.supplierDetails?.bankAccount?.upiId || '',
+          accountName: profile?.supplierDetails?.accountHolderName || profile?.supplierDetails?.bankAccount?.accountName || '',
+          bankName: profile?.supplierDetails?.bankName || profile?.supplierDetails?.bankAccount?.bankName || '',
+          accountNumber: profile?.supplierDetails?.accountNumber || profile?.supplierDetails?.bankAccount?.accountNumber || '',
+          ifscCode: profile?.supplierDetails?.ifsc || profile?.supplierDetails?.bankAccount?.ifscCode || '',
+          upiId: profile?.supplierDetails?.upiId || profile?.supplierDetails?.bankAccount?.upiId || '',
         },
         password: '',
         confirmPassword: '',
@@ -123,8 +125,16 @@ const SupplierProfile = () => {
           contactPerson: formData.contactPerson.trim(),
           address: formData.address.trim(),
           gstNumber: formData.gstNumber.trim(),
+          gstin: formData.gstNumber.trim(),
+          panNumber: (formData.panNumber || '').trim().toUpperCase(),
+          accountHolderName: formData.bankAccount.accountName.trim(),
+          bankName: formData.bankAccount.bankName.trim(),
+          accountNumber: formData.bankAccount.accountNumber.trim(),
+          ifsc: formData.bankAccount.ifscCode.trim().toUpperCase(),
+          upiId: formData.bankAccount.upiId.trim(),
           bankAccount: {
             accountName: formData.bankAccount.accountName.trim(),
+            bankName: formData.bankAccount.bankName.trim(),
             accountNumber: formData.bankAccount.accountNumber.trim(),
             ifscCode: formData.bankAccount.ifscCode.trim().toUpperCase(),
             upiId: formData.bankAccount.upiId.trim(),
@@ -234,6 +244,19 @@ const SupplierProfile = () => {
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
               />
             </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                PAN Card Number
+              </label>
+              <input
+                type="text"
+                name="panNumber"
+                value={formData.panNumber || ''}
+                onChange={handleChange}
+                placeholder="e.g. ABCDE1234F"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm uppercase focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+              />
+            </div>
             <div className="md:col-span-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                 Business Address
@@ -329,6 +352,19 @@ const SupplierProfile = () => {
             Payout & Settlement Details
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                Bank Name
+              </label>
+              <input
+                type="text"
+                name="bank.bankName"
+                value={formData.bankAccount.bankName || ''}
+                onChange={handleChange}
+                placeholder="e.g. HDFC Bank / State Bank of India"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+              />
+            </div>
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                 Account Holder Name

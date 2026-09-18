@@ -3,9 +3,12 @@ import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
 import User from '../models/User.js';
+import FinancialLedger from '../models/FinancialLedger.js';
+import SupplierPayout from '../models/SupplierPayout.js';
 import { invalidateProductCache } from '../middleware/cacheMiddleware.js';
 import { logger } from '../utils/logger.js';
 import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants.js';
+import { getMarketplaceSettings, resolveCommissionRate } from '../utils/commissionEngine.js';
 
 // @desc    Get Supplier Dashboard Analytics
 // @route   GET /api/supplier/dashboard
@@ -22,6 +25,8 @@ const getSupplierDashboard = asyncHandler(async (req, res) => {
     lowStockProducts,
     outOfStockProducts,
     myProducts,
+    supplierUser,
+    marketplaceSettings,
   ] = await Promise.all([
     Product.countDocuments({ supplier: supplierId }),
     Product.countDocuments({ supplier: supplierId, approvalStatus: 'approved' }),
@@ -30,6 +35,8 @@ const getSupplierDashboard = asyncHandler(async (req, res) => {
     Product.countDocuments({ supplier: supplierId, stock: { $gt: 0, $lt: 10 } }),
     Product.countDocuments({ supplier: supplierId, stock: 0 }),
     Product.find({ supplier: supplierId }).select('_id price stock name category approvalStatus isAvailable').lean(),
+    User.findById(supplierId).lean(),
+    getMarketplaceSettings(),
   ]);
 
   // Calculate total inventory valuation & total units in stock
@@ -45,28 +52,56 @@ const getSupplierDashboard = asyncHandler(async (req, res) => {
   // Calculate order analytics for products belonging to this supplier
   const myProductIds = myProducts.map((p) => p._id);
   const relevantOrders = await Order.find({
-    'items.product': { $in: myProductIds },
+    $or: [
+      { 'items.supplier': supplierId },
+      { 'items.product': { $in: myProductIds } },
+    ],
   }).select('items orderStatus paymentStatus createdAt totalAmount').lean();
 
   let totalOrdersCount = relevantOrders.length;
   let deliveredOrdersCount = 0;
   let totalRevenue = 0;
   let totalItemsSold = 0;
+  let totalCommissionDeducted = 0;
+  let netEarningsDelivered = 0;
+  let pendingPayableBalance = 0;
 
   relevantOrders.forEach((order) => {
     const isDelivered = order.orderStatus === 'Delivered';
     if (isDelivered) deliveredOrdersCount += 1;
 
-    order.items.forEach((item) => {
-      const isMyProduct = myProductIds.some((id) => id.toString() === item.product?.toString());
+    (order.items || []).forEach((item) => {
+      const isMyProduct = (item.supplier && item.supplier.toString() === supplierId.toString()) ||
+        (item.product && myProductIds.some((id) => id.toString() === item.product?.toString()));
+
       if (isMyProduct) {
-        totalItemsSold += item.quantity || 1;
+        const qty = item.quantity || 1;
+        const gross = Number(item.grossAmount) || ((Number(item.price) || 0) * qty);
+        const comm = Number(item.commissionAmount) || 0;
+        const payable = Number(item.supplierPayableAmount) || (gross - comm);
+
+        totalItemsSold += qty;
         if (order.orderStatus !== 'Cancelled') {
-          totalRevenue += (item.price || 0) * (item.quantity || 1);
+          totalRevenue += gross;
+        }
+
+        if (isDelivered) {
+          totalCommissionDeducted += comm;
+          netEarningsDelivered += payable;
+          if (!item.settlementStatus || item.settlementStatus === 'Eligible' || item.settlementStatus === 'Pending') {
+            pendingPayableBalance += payable;
+          }
         }
       }
     });
   });
+
+  // Check last paid payout
+  const lastPaidPayout = await SupplierPayout.findOne({ supplier: supplierId, status: 'Paid' })
+    .sort({ paidAt: -1 })
+    .lean();
+
+  const effectiveCommissionRate = resolveCommissionRate(null, supplierUser, marketplaceSettings);
 
   res.json({
     metrics: {
@@ -80,8 +115,14 @@ const getSupplierDashboard = asyncHandler(async (req, res) => {
       totalStockValuation: Math.round(totalStockValuation),
       totalOrdersCount,
       deliveredOrdersCount,
-      totalRevenue: Math.round(totalRevenue),
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
       totalItemsSold,
+      totalCommissionDeducted: Math.round(totalCommissionDeducted * 100) / 100,
+      netEarningsDelivered: Math.round(netEarningsDelivered * 100) / 100,
+      pendingPayableBalance: Math.round(pendingPayableBalance * 100) / 100,
+      lastPayoutAmount: lastPaidPayout ? Number(lastPaidPayout.netPayable) : 0,
+      lastPayoutDate: lastPaidPayout ? lastPaidPayout.paidAt : null,
+      effectiveCommissionRate,
     },
     recentProducts: myProducts.slice(0, 5),
   });
@@ -381,9 +422,12 @@ const getSupplierOrders = asyncHandler(async (req, res) => {
   const myProducts = await Product.find({ supplier: supplierId }).select('_id name price image category').lean();
   const myProductIds = myProducts.map((p) => p._id.toString());
 
-  // Find orders containing any of these products
+  // Find orders containing any of these products OR where item.supplier == supplierId
   const orders = await Order.find({
-    'items.product': { $in: myProductIds },
+    $or: [
+      { 'items.supplier': supplierId },
+      { 'items.product': { $in: myProductIds } },
+    ],
   })
     .sort({ createdAt: -1 })
     .select('_id createdAt orderStatus paymentStatus deliveryDetails items totalAmount')
@@ -392,11 +436,22 @@ const getSupplierOrders = asyncHandler(async (req, res) => {
   // Filter items in each order to only include items supplied by this supplier
   const supplierOrders = orders.map((order) => {
     const suppliedItems = order.items.filter((item) =>
-      item.product && myProductIds.includes(item.product.toString())
+      (item.supplier && item.supplier.toString() === supplierId.toString()) ||
+      (item.product && myProductIds.includes(item.product.toString()))
     );
 
     const supplierSubtotal = suppliedItems.reduce(
-      (sum, item) => sum + (item.price || 0) * (item.quantity || 1),
+      (sum, item) => sum + (Number(item.grossAmount) || (Number(item.price) || 0) * (Number(item.quantity) || 1)),
+      0
+    );
+
+    const supplierCommission = suppliedItems.reduce(
+      (sum, item) => sum + (Number(item.commissionAmount) || 0),
+      0
+    );
+
+    const supplierPayable = suppliedItems.reduce(
+      (sum, item) => sum + (Number(item.supplierPayableAmount) || ((Number(item.price) || 0) * (Number(item.quantity) || 1) - (Number(item.commissionAmount) || 0))),
       0
     );
 
@@ -412,11 +467,274 @@ const getSupplierOrders = asyncHandler(async (req, res) => {
         roomNumber: order.deliveryDetails?.roomNumber,
       },
       items: suppliedItems,
-      supplierSubtotal: Math.round(supplierSubtotal),
+      supplierSubtotal: Math.round(supplierSubtotal * 100) / 100,
+      supplierCommission: Math.round(supplierCommission * 100) / 100,
+      supplierPayable: Math.round(supplierPayable * 100) / 100,
     };
   });
 
   res.json(supplierOrders);
+});
+
+// @desc    Update item status for a supplier's item in an order
+// @route   PATCH /api/supplier/orders/:id/items/:itemId/status
+// @access  Private/Supplier
+const updateSupplierOrderItemStatus = asyncHandler(async (req, res) => {
+  const supplierId = req.user._id;
+  const { id: orderId, itemId } = req.params;
+  const { itemStatus } = req.body;
+
+  if (!itemStatus || !['Pending', 'Accepted', 'Packed', 'Dispatched', 'Delivered', 'Cancelled'].includes(itemStatus)) {
+    res.status(400);
+    throw new Error('Invalid item status');
+  }
+
+  const order = await Order.findById(orderId);
+  if (!order) {
+    res.status(404);
+    throw new Error('Order not found');
+  }
+
+  const item = order.items.id(itemId);
+  if (!item) {
+    res.status(404);
+    throw new Error('Order item not found');
+  }
+
+  let isOwner = item.supplier && item.supplier.toString() === supplierId.toString();
+  if (!isOwner && item.product) {
+    const prod = await Product.findById(item.product).select('supplier').lean();
+    if (prod && prod.supplier && prod.supplier.toString() === supplierId.toString()) {
+      isOwner = true;
+    }
+  }
+
+  if (!isOwner) {
+    res.status(403);
+    throw new Error('Not authorized to update this item');
+  }
+
+  item.itemStatus = itemStatus;
+  await order.save();
+
+  res.json({
+    message: `Item status updated to ${itemStatus}`,
+    item,
+  });
+});
+
+// @desc    Get Supplier Financial Overview & Metrics
+// @route   GET /api/supplier/finance/overview
+// @access  Private/Supplier
+const getSupplierFinance = asyncHandler(async (req, res) => {
+  const supplierId = req.user._id;
+
+  const deliveredOrders = await Order.find({
+    orderStatus: 'Delivered',
+    'items.supplier': supplierId,
+  }).lean();
+
+  let totalDeliveredGross = 0;
+  let totalDeliveredCommission = 0;
+  let totalDeliveredPayable = 0;
+  let eligibleUnsettled = 0;
+  let processingSettlement = 0;
+  let settledAmount = 0;
+
+  deliveredOrders.forEach((order) => {
+    (order.items || []).forEach((item) => {
+      if (item.supplier && item.supplier.toString() === supplierId.toString()) {
+        const gross = Number(item.grossAmount) || ((Number(item.price) || 0) * (Number(item.quantity) || 1));
+        const comm = Number(item.commissionAmount) || 0;
+        const payable = Number(item.supplierPayableAmount) || (gross - comm);
+
+        totalDeliveredGross += gross;
+        totalDeliveredCommission += comm;
+        totalDeliveredPayable += payable;
+
+        const status = item.settlementStatus || 'Eligible';
+        if (status === 'Eligible' || status === 'Pending') {
+          eligibleUnsettled += payable;
+        } else if (status === 'Processing') {
+          processingSettlement += payable;
+        } else if (status === 'Settled') {
+          settledAmount += payable;
+        }
+      }
+    });
+  });
+
+  const payouts = await SupplierPayout.find({ supplier: supplierId }).sort({ createdAt: -1 }).lean();
+  let totalPaidOut = 0;
+  let pendingPayoutsTotal = 0;
+
+  payouts.forEach((p) => {
+    if (p.status === 'Paid') {
+      totalPaidOut += Number(p.netPayable) || 0;
+    } else if (p.status === 'Pending' || p.status === 'Processing') {
+      pendingPayoutsTotal += Number(p.netPayable) || 0;
+    }
+  });
+
+  const supplierUser = await User.findById(supplierId).lean();
+  const marketplaceSettings = await getMarketplaceSettings();
+  const effectiveCommissionRate = resolveCommissionRate(null, supplierUser, marketplaceSettings);
+
+  const recentLedger = await FinancialLedger.find({ supplier: supplierId })
+    .sort({ createdAt: -1 })
+    .limit(15)
+    .lean();
+
+  res.json({
+    metrics: {
+      totalDeliveredGross: Math.round(totalDeliveredGross * 100) / 100,
+      totalDeliveredCommission: Math.round(totalDeliveredCommission * 100) / 100,
+      totalDeliveredPayable: Math.round(totalDeliveredPayable * 100) / 100,
+      eligibleUnsettled: Math.round(eligibleUnsettled * 100) / 100,
+      processingSettlement: Math.round(processingSettlement * 100) / 100,
+      settledAmount: Math.round(settledAmount * 100) / 100,
+      totalPaidOut: Math.round(totalPaidOut * 100) / 100,
+      pendingPayoutsTotal: Math.round(pendingPayoutsTotal * 100) / 100,
+      effectiveCommissionRate,
+    },
+    payouts: payouts.slice(0, 5),
+    recentLedger,
+    bankDetails: {
+      accountHolderName: supplierUser?.supplierDetails?.accountHolderName || supplierUser?.name || '',
+      bankName: supplierUser?.supplierDetails?.bankName || '',
+      accountNumber: supplierUser?.supplierDetails?.accountNumber || '',
+      ifsc: supplierUser?.supplierDetails?.ifsc || '',
+      upiId: supplierUser?.supplierDetails?.upiId || '',
+    },
+  });
+});
+
+// @desc    Get all payouts for current supplier
+// @route   GET /api/supplier/finance/payouts
+// @access  Private/Supplier
+const getSupplierPayouts = asyncHandler(async (req, res) => {
+  const supplierId = req.user._id;
+  const { status, page = 1, limit = 20 } = req.query;
+
+  const query = { supplier: supplierId };
+  if (status && status !== 'all') {
+    query.status = status;
+  }
+
+  const skip = (Number(page) - 1) * Number(limit);
+  const [payouts, total] = await Promise.all([
+    SupplierPayout.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit))
+      .lean(),
+    SupplierPayout.countDocuments(query),
+  ]);
+
+  res.json({
+    payouts,
+    page: Number(page),
+    pages: Math.ceil(total / Number(limit)) || 1,
+    total,
+  });
+});
+
+// @desc    Get immutable financial ledger for current supplier
+// @route   GET /api/supplier/finance/ledger
+// @access  Private/Supplier
+const getSupplierLedger = asyncHandler(async (req, res) => {
+  const supplierId = req.user._id;
+  const { type, page = 1, limit = 25 } = req.query;
+
+  const query = { supplier: supplierId };
+  if (type && type !== 'all') {
+    query.type = type;
+  }
+
+  const skip = (Number(page) - 1) * Number(limit);
+  const [entries, total] = await Promise.all([
+    FinancialLedger.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit))
+      .lean(),
+    FinancialLedger.countDocuments(query),
+  ]);
+
+  res.json({
+    entries,
+    page: Number(page),
+    pages: Math.ceil(total / Number(limit)) || 1,
+    total,
+  });
+});
+
+// @desc    Get structured settlement statement
+// @route   GET /api/supplier/finance/statements/:payoutId
+// @access  Private/Supplier
+const getSettlementStatement = asyncHandler(async (req, res) => {
+  const supplierId = req.user._id;
+  const { payoutId } = req.params;
+
+  const payout = await SupplierPayout.findOne({ _id: payoutId, supplier: supplierId })
+    .populate('supplier', 'name email phone supplierDetails')
+    .lean();
+
+  if (!payout) {
+    res.status(404);
+    throw new Error('Settlement payout record not found');
+  }
+
+  const orders = await Order.find({ _id: { $in: payout.orderIds || [] } }).lean();
+  const statementItems = [];
+
+  orders.forEach((order) => {
+    (order.items || []).forEach((item) => {
+      const match = (item.payout && item.payout.toString() === payout._id.toString()) ||
+        (payout.orderItemIds && payout.orderItemIds.some((id) => id.toString() === item._id.toString())) ||
+        (item.supplier && item.supplier.toString() === supplierId.toString());
+
+      if (match) {
+        statementItems.push({
+          orderId: order._id,
+          orderCreatedAt: order.createdAt,
+          name: item.name,
+          category: item.category,
+          quantity: item.quantity,
+          price: item.price,
+          grossAmount: item.grossAmount || (item.price * item.quantity),
+          commissionRate: item.commissionRate,
+          commissionAmount: item.commissionAmount || 0,
+          supplierPayableAmount: item.supplierPayableAmount || ((item.price * item.quantity) - (item.commissionAmount || 0)),
+          settlementStatus: item.settlementStatus,
+        });
+      }
+    });
+  });
+
+  res.json({
+    statement: {
+      payoutNumber: payout.payoutNumber,
+      status: payout.status,
+      settlementPeriod: payout.settlementPeriod,
+      paymentMethod: payout.paymentMethod,
+      utrNumber: payout.utrNumber,
+      paidAt: payout.paidAt,
+      grossAmount: payout.grossAmount,
+      commissionAmount: payout.commissionAmount,
+      adjustments: payout.adjustments,
+      netPayable: payout.netPayable,
+      bankDetailsSnapshot: payout.bankDetailsSnapshot,
+      supplier: {
+        name: payout.supplier?.name,
+        email: payout.supplier?.email,
+        phone: payout.supplier?.phone,
+        gstin: payout.supplier?.supplierDetails?.gstin,
+        panNumber: payout.supplier?.supplierDetails?.panNumber,
+      },
+      items: statementItems,
+    },
+  });
 });
 
 // @desc    Get current supplier profile
@@ -482,6 +800,11 @@ export {
   updateSupplierProductStock,
   deleteSupplierProduct,
   getSupplierOrders,
+  updateSupplierOrderItemStatus,
+  getSupplierFinance,
+  getSupplierPayouts,
+  getSupplierLedger,
+  getSettlementStatement,
   getSupplierProfile,
   updateSupplierProfile,
 };

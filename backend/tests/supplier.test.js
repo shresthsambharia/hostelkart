@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
+import FinancialLedger from '../models/FinancialLedger.js';
+import SupplierPayout from '../models/SupplierPayout.js';
 import {
   getSupplierDashboard,
   getSupplierProducts,
@@ -14,6 +16,10 @@ import {
   getSupplierOrders,
   getSupplierProfile,
   updateSupplierProfile,
+  updateSupplierOrderItemStatus,
+  getSupplierFinance,
+  getSupplierLedger,
+  getSettlementStatement,
 } from '../controllers/supplierController.js';
 import {
   getSuppliers,
@@ -21,11 +27,23 @@ import {
   updateSupplier,
   getAdminSupplierProducts,
   updateSupplierProductApproval,
+  updateSupplierCommission,
+  createSupplierPayout,
+  updateSupplierPayoutStatus,
+  getAdminSupplierPayouts,
 } from '../controllers/adminController.js';
 import { getProducts, getProductById } from '../controllers/productController.js';
+import {
+  resolveCommissionRate,
+  calculateItemCommissionSnapshot,
+  processOrderDeliverySettlement,
+} from '../utils/commissionEngine.js';
 
 export async function runSupplierTests() {
   console.log('\n--- Running Supplier Unit & Integration Tests ---');
+
+  // Pre-cleanup stale test products if any
+  await Product.deleteMany({ name: 'Organic Shimla Apples (1kg)' });
 
   // 1. Setup Test Users
   let supplier1 = await User.findOne({ email: 'supplier_test_1@example.com' });
@@ -77,6 +95,11 @@ export async function runSupplierTests() {
       role: 'admin',
     });
   }
+
+  // Pre-cleanup any previous test orders, ledgers, payouts
+  await Order.deleteMany({ 'items.supplier': supplier1._id });
+  await FinancialLedger.deleteMany({ supplier: supplier1._id });
+  await SupplierPayout.deleteMany({ supplier: supplier1._id });
 
   console.log('✓ Users setup completed');
 
@@ -262,8 +285,182 @@ export async function runSupplierTests() {
   await getSupplierDashboard(mockDashReq, mockDashRes);
   console.log('✓ Supplier dashboard analytics verified');
 
-  // 10. Clean up test products
+  // 10. Test Commission Rate Hierarchy Resolution
+  const mockSettings = {
+    globalCommissionPercentage: 10,
+    categoryCommissionPercentages: {
+      Fruits: 15,
+      Medicines: 8,
+      Stationery: 12,
+      'Exotic Fruits': 20,
+      'Clothes Essentials': 14,
+    },
+  };
+
+  // Case A: Global default fallback (no category match, no supplier override)
+  const defaultRate = resolveCommissionRate({ category: 'Other' }, { supplierDetails: {} }, mockSettings);
+  assert.strictEqual(defaultRate, 10, 'Should fall back to global default 10%');
+
+  // Case B: Category override (Fruits = 15%)
+  const categoryRate = resolveCommissionRate({ category: 'Fruits' }, { supplierDetails: {} }, mockSettings);
+  assert.strictEqual(categoryRate, 15, 'Should use category override 15%');
+
+  // Case C: Supplier-specific override takes top precedence (e.g. 7%)
+  const supplierOverrideRate = resolveCommissionRate(
+    { category: 'Fruits' },
+    { supplierDetails: { commissionPercentage: 7 } },
+    mockSettings
+  );
+  assert.strictEqual(supplierOverrideRate, 7, 'Supplier override must take precedence over category rate');
+  console.log('✓ Commission hierarchy resolution verified (Supplier > Category > Global)');
+
+  // 11. Test Exact Integer Paise Calculation Snapshot
+  const snapshot = calculateItemCommissionSnapshot(
+    { price: 250, discount: 10, supplier: supplier1._id, category: 'Fruits' },
+    supplier1,
+    mockSettings,
+    2
+  );
+  // price 250 with 10% discount = 225. Qty = 2 => gross = 450.00
+  assert.strictEqual(snapshot.grossAmount, 450);
+  // Supplier 1 has no override so Fruits rate 15% applies => 450 * 0.15 = 67.50
+  assert.strictEqual(snapshot.commissionRate, 15);
+  assert.strictEqual(snapshot.commissionAmount, 67.5);
+  // supplier payable = 450 - 67.50 = 382.50
+  assert.strictEqual(snapshot.supplierPayableAmount, 382.5);
+  console.log('✓ Precise paise snapshot arithmetic verified');
+
+  // 12. Test Order Creation with Supplier Item Snapshots & Delivery Settlement
+  const testOrder = await Order.create({
+    user: student._id,
+    items: [
+      {
+        product: createdProduct._id,
+        name: 'Organic Shimla Apples (1kg)',
+        price: 140,
+        quantity: 2,
+        image: 'https://res.cloudinary.com/test/image/upload/apples.jpg',
+        supplier: supplier1._id,
+        grossAmount: 280,
+        commissionRate: 10,
+        commissionAmount: 28,
+        supplierPayableAmount: 252,
+        itemStatus: 'Pending',
+        settlementStatus: 'Pending',
+      },
+    ],
+    deliveryDetails: {
+      hostelName: 'BH-1',
+      block: 'A',
+      floor: '2',
+      roomNumber: '204',
+      phone: '9876543210',
+    },
+    deliverySlot: 'Immediate (10-20 mins)',
+    paymentMethod: 'UPI',
+    paymentStatus: 'Paid',
+    totalAmount: 280,
+    itemsPrice: 280,
+    deliveryCharge: 0,
+    platformFee: 0,
+    orderStatus: 'Confirmed',
+  });
+
+  // 13. Test Delivery Settlement Trigger & Financial Ledger Generation
+  testOrder.orderStatus = 'Delivered';
+  await processOrderDeliverySettlement(testOrder, admin);
+  await testOrder.save();
+
+  // Verify item settlement status transitioned to 'Eligible'
+  assert.strictEqual(testOrder.items[0].settlementStatus, 'Eligible');
+
+  // Verify Ledger entries created for Supplier 1 (SALE credit + COMMISSION debit)
+  const ledgerEntries = await FinancialLedger.find({ order: testOrder._id, supplier: supplier1._id });
+  assert.strictEqual(ledgerEntries.length, 2, 'Must have SALE and COMMISSION ledger entries');
+  const saleEntry = ledgerEntries.find((e) => e.type === 'SALE');
+  const commEntry = ledgerEntries.find((e) => e.type === 'COMMISSION');
+  assert.ok(saleEntry && saleEntry.direction === 'CREDIT' && saleEntry.amount === 280);
+  assert.ok(commEntry && commEntry.direction === 'DEBIT' && commEntry.amount === 28);
+  console.log('✓ Delivery settlement and immutable ledger entry generation verified');
+
+  // 14. Test Supplier Finance API
+  const mockFinanceReq = { user: supplier1 };
+  let financeData = null;
+  const mockFinanceRes = {
+    json(data) {
+      assert.ok(data.metrics, 'Finance metrics returned');
+      assert.strictEqual(data.metrics.totalDeliveredGross >= 280, true);
+      assert.strictEqual(data.metrics.totalDeliveredCommission >= 28, true);
+      assert.strictEqual(data.metrics.totalDeliveredPayable >= 252, true);
+      financeData = data;
+    },
+  };
+  await getSupplierFinance(mockFinanceReq, mockFinanceRes);
+  console.log('✓ Supplier finance metrics calculation verified');
+
+  // 15. Test Admin Supplier Payout Generation
+  const mockCreatePayoutReq = {
+    user: admin,
+    body: {
+      supplierId: supplier1._id.toString(),
+      paymentMethod: 'UPI',
+      notes: 'Weekly batch settlement test',
+    },
+  };
+  let createdPayout = null;
+  const mockCreatePayoutRes = {
+    status(code) {
+      assert.strictEqual(code, 201);
+      return this;
+    },
+    json(data) {
+      assert.ok(data.payout, 'Payout batch created');
+      assert.strictEqual(data.payout.status, 'Pending');
+      assert.strictEqual(data.payout.netPayable, 252);
+      createdPayout = data.payout;
+    },
+  };
+  await createSupplierPayout(mockCreatePayoutReq, mockCreatePayoutRes);
+
+  // Check that order item status is now 'Processing'
+  const refreshedOrder = await Order.findById(testOrder._id);
+  assert.strictEqual(refreshedOrder.items[0].settlementStatus, 'Processing');
+  console.log('✓ Admin payout batch creation & item transition to Processing verified');
+
+  // 16. Test Admin Payout Status Update to 'Paid' with UTR
+  const mockUpdatePayoutReq = {
+    user: admin,
+    params: { id: createdPayout._id.toString() },
+    body: {
+      status: 'Paid',
+      utrNumber: 'UTR998877665544',
+      payoutProofUrl: 'https://res.cloudinary.com/test/receipt.pdf',
+    },
+  };
+  const mockUpdatePayoutRes = {
+    json(data) {
+      assert.strictEqual(data.payout.status, 'Paid');
+      assert.strictEqual(data.payout.utrNumber, 'UTR998877665544');
+    },
+  };
+  await updateSupplierPayoutStatus(mockUpdatePayoutReq, mockUpdatePayoutRes);
+
+  // Verify item settlement status is now 'Settled'
+  const settledOrder = await Order.findById(testOrder._id);
+  assert.strictEqual(settledOrder.items[0].settlementStatus, 'Settled');
+
+  // Verify PAYOUT debit written to ledger
+  const payoutLedger = await FinancialLedger.findOne({ payout: createdPayout._id, type: 'PAYOUT' });
+  assert.ok(payoutLedger, 'PAYOUT ledger entry must be created on mark as Paid');
+  assert.strictEqual(payoutLedger.direction, 'DEBIT');
+  assert.strictEqual(payoutLedger.amount, 252);
+  console.log('✓ Payout mark-as-paid with UTR, Settled state and PAYOUT ledger entry verified');
+
+  // 17. Clean up test data
   await Product.deleteOne({ _id: createdProduct._id });
+  await Order.deleteOne({ _id: testOrder._id });
+  await SupplierPayout.deleteOne({ _id: createdPayout._id });
+  await FinancialLedger.deleteMany({ supplier: supplier1._id });
   console.log('✓ Cleanup completed');
-  console.log('--- ALL SUPPLIER TESTS PASSED ---\n');
+  console.log('--- ALL SUPPLIER & FINANCIAL TESTS PASSED ---\n');
 }

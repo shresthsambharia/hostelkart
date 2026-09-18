@@ -194,21 +194,23 @@ const SupplierDashboard = () => {
           <div className="text-[10px] font-bold text-indigo-700">{metrics.deliveredOrdersCount} delivered to students</div>
         </div>
 
-        {/* Total Revenue */}
+        {/* Total Revenue & Net Earnings */}
         <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-premium-sm space-y-2">
           <div className="flex justify-between items-center text-slate-400">
-            <span className="text-[10px] font-black uppercase tracking-wider">Gross Sales Value</span>
+            <span className="text-[10px] font-black uppercase tracking-wider">Net Delivered Earnings</span>
             <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <TrendingUp size={16} />
             </div>
           </div>
-          <div className="text-2xl font-black text-emerald-700">₹{metrics.totalRevenue.toLocaleString()}</div>
-          <div className="text-[10px] font-bold text-emerald-700">{metrics.totalItemsSold} items sold total</div>
+          <div className="text-2xl font-black text-emerald-700">₹{(metrics.netEarningsDelivered || 0).toLocaleString()}</div>
+          <div className="text-[10px] font-bold text-slate-400">
+            Pending Payout: <strong className="text-amber-600">₹{(metrics.pendingPayableBalance || 0).toLocaleString()}</strong>
+          </div>
         </div>
       </div>
 
       {/* Quick Action Navigation Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link
           to="/supplier/products"
           className="p-5 bg-white border border-slate-100 rounded-3xl shadow-premium-sm hover:border-purple-200 hover:shadow-md transition-all group"
@@ -219,9 +221,9 @@ const SupplierDashboard = () => {
             </div>
             <ArrowRight size={16} className="text-slate-400 group-hover:text-purple-600 transition-colors" />
           </div>
-          <h3 className="font-extrabold text-slate-800 text-sm">Product Inventory Catalog</h3>
+          <h3 className="font-extrabold text-slate-800 text-sm">Product Catalog</h3>
           <p className="text-slate-400 text-xs font-semibold mt-1">
-            Add new products, adjust pricing, stock quantities, and availability toggles.
+            Add new items, adjust stock, prices, and availability toggles.
           </p>
         </Link>
 
@@ -235,9 +237,25 @@ const SupplierDashboard = () => {
             </div>
             <ArrowRight size={16} className="text-slate-400 group-hover:text-blue-600 transition-colors" />
           </div>
-          <h3 className="font-extrabold text-slate-800 text-sm">Supply Orders & Dispatch</h3>
+          <h3 className="font-extrabold text-slate-800 text-sm">Supply Orders</h3>
           <p className="text-slate-400 text-xs font-semibold mt-1">
-            View orders containing your products, hostel delivery targets, and statuses.
+            View student orders containing your items and fulfillment stages.
+          </p>
+        </Link>
+
+        <Link
+          to="/supplier/finance"
+          className="p-5 bg-white border border-slate-100 rounded-3xl shadow-premium-sm hover:border-purple-200 hover:shadow-md transition-all group"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <DollarSign size={20} />
+            </div>
+            <ArrowRight size={16} className="text-slate-400 group-hover:text-indigo-600 transition-colors" />
+          </div>
+          <h3 className="font-extrabold text-slate-800 text-sm">Finance & Payouts</h3>
+          <p className="text-slate-400 text-xs font-semibold mt-1">
+            Track commissions, settlements, ledger entries, and statements.
           </p>
         </Link>
 
@@ -251,7 +269,7 @@ const SupplierDashboard = () => {
             </div>
             <ArrowRight size={16} className="text-slate-400 group-hover:text-emerald-600 transition-colors" />
           </div>
-          <h3 className="font-extrabold text-slate-800 text-sm">Business & Bank Profile</h3>
+          <h3 className="font-extrabold text-slate-800 text-sm">Business & Bank</h3>
           <p className="text-slate-400 text-xs font-semibold mt-1">
             Update your business name, contact person, phone, and payout details.
           </p>

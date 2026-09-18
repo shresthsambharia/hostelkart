@@ -28,6 +28,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { name: 'Dashboard', path: '/supplier/dashboard', icon: <LayoutDashboard size={20} /> },
     { name: 'My Products', path: '/supplier/products', icon: <ShoppingBag size={20} /> },
     { name: 'Supply Orders', path: '/supplier/orders', icon: <ShoppingCart size={20} /> },
+    { name: 'Finance & Payouts', path: '/supplier/finance', icon: <CreditCard size={20} /> },
     { name: 'Supplier Profile', path: '/supplier/profile', icon: <User size={20} /> },
   ];
 

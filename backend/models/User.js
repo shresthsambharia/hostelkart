@@ -29,9 +29,19 @@ const userSchema = new mongoose.Schema(
       businessName: { type: String, default: '' },
       contactPerson: { type: String, default: '' },
       address: { type: String, default: '' },
+      city: { type: String, default: '' },
       gstNumber: { type: String, default: '' },
+      panNumber: { type: String, default: '' },
       bankAccount: { type: String, default: '' },
       category: { type: String, default: '' },
+      categoriesSupplied: { type: [String], default: [] },
+      businessDescription: { type: String, default: '' },
+      commissionPercentage: { type: Number, default: null }, // Null means use category/global rate
+      status: {
+        type: String,
+        enum: ['Pending', 'Approved', 'Rejected', 'Suspended', 'Active', 'Inactive'],
+        default: 'Approved',
+      },
     },
     hostelDetails: {
       hostelName: { type: String, default: '' },

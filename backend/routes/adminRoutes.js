@@ -24,8 +24,16 @@ import {
   getSuppliers,
   createSupplier,
   updateSupplier,
+  updateSupplierCommission,
+  updateSupplierStatus,
   getAdminSupplierProducts,
   updateSupplierProductApproval,
+  getMarketplaceFinance,
+  getAdminSupplierPayouts,
+  createSupplierPayout,
+  updateSupplierPayoutStatus,
+  getSettlementSettings,
+  updateSettlementSettings,
 } from '../controllers/adminController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 import { logAdminActivity } from '../middleware/adminLogMiddleware.js';
@@ -45,12 +53,25 @@ router.route('/products/:id')
   .put(editProduct)
   .delete(deleteProduct);
 
+// Supplier Management & Commissions
 router.route('/suppliers')
   .get(getSuppliers)
   .post(createSupplier);
 router.put('/suppliers/:id', updateSupplier);
+router.put('/suppliers/:id/commission', updateSupplierCommission);
+router.put('/suppliers/:id/status', updateSupplierStatus);
 router.get('/supplier-products', getAdminSupplierProducts);
 router.put('/supplier-products/:id/approval', updateSupplierProductApproval);
+
+// Marketplace Finance, Settlements & Payouts
+router.get('/finance/overview', getMarketplaceFinance);
+router.route('/finance/settings')
+  .get(getSettlementSettings)
+  .put(updateSettlementSettings);
+router.route('/payouts')
+  .get(getAdminSupplierPayouts)
+  .post(createSupplierPayout);
+router.put('/payouts/:id/status', updateSupplierPayoutStatus);
 
 router.get('/orders', getAllOrders);
 router.put('/orders/:id/status', updateOrderStatus);
