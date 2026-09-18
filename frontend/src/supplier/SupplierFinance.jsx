@@ -60,6 +60,44 @@ const SupplierFinance = () => {
     window.print();
   };
 
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'Paid':
+      case 'Settled':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'Processing':
+        return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'Approved':
+        return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+      case 'Eligible':
+        return 'bg-teal-50 text-teal-700 border-teal-200';
+      case 'Pending':
+        return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'Cancelled':
+      case 'Failed':
+        return 'bg-rose-50 text-rose-700 border-rose-200';
+      default:
+        return 'bg-slate-50 text-slate-700 border-slate-200';
+    }
+  };
+
+  const getLedgerTypeBadge = (type) => {
+    switch (type) {
+      case 'SALE':
+        return 'bg-emerald-100 text-emerald-800';
+      case 'COMMISSION':
+        return 'bg-purple-100 text-purple-800';
+      case 'PAYOUT':
+        return 'bg-blue-100 text-blue-800';
+      case 'ADJUSTMENT':
+        return 'bg-amber-100 text-amber-800';
+      case 'REFUND':
+        return 'bg-rose-100 text-rose-800';
+      default:
+        return 'bg-slate-100 text-slate-800';
+    }
+  };
+
   const metrics = financeData?.metrics || {
     totalDeliveredGross: 0,
     totalDeliveredCommission: 0,
