@@ -65,13 +65,25 @@ const supplierPayoutSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['Pending', 'Approved', 'Processing', 'Paid', 'Failed', 'Cancelled'],
+      enum: ['Pending', 'Eligible', 'Approved', 'Processing', 'Settled', 'Paid', 'Failed', 'Cancelled'],
       default: 'Pending',
       index: true,
     },
+    payoutDay: {
+      type: String,
+      default: 'Saturday',
+    },
+    dueAt: {
+      type: Date,
+      default: null,
+    },
+    isOverdue: {
+      type: Boolean,
+      default: false,
+    },
     paymentMethod: {
       type: String,
-      default: 'UPI',
+      default: 'UPI QR',
     },
     bankDetailsSnapshot: {
       accountHolderName: { type: String, default: '' },
@@ -79,6 +91,7 @@ const supplierPayoutSchema = new mongoose.Schema(
       accountNumber: { type: String, default: '' },
       ifsc: { type: String, default: '' },
       upiId: { type: String, default: '' },
+      upiQrCode: { type: String, default: '' },
     },
     utrNumber: {
       type: String,

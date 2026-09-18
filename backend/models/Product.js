@@ -88,6 +88,10 @@ const productSchema = new mongoose.Schema(
       enum: ['pending', 'approved', 'rejected'],
       default: 'approved',
     },
+    commissionPercentage: {
+      type: Number,
+      default: null, // Null means fall back to supplier/category/global commission rate
+    },
     normalizedName: {
       type: String,
       unique: true,

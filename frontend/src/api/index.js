@@ -270,8 +270,11 @@ export const adminAPI = {
   getSettlementSettings: () => API.get('/admin/finance/settings'),
   updateSettlementSettings: (settings) => API.put('/admin/finance/settings', settings),
   getSupplierPayouts: (params) => API.get('/admin/payouts', { params }),
+  getSupplierPayoutById: (id) => API.get(`/admin/payouts/${id}`),
+  generateSaturdayPayoutBatch: (data) => API.post('/admin/payouts/batch-generate', data || {}),
   createSupplierPayout: (payoutData) => API.post('/admin/payouts', payoutData),
   updateSupplierPayoutStatus: (id, data) => API.put(`/admin/payouts/${id}/status`, data),
+  requestSupplierQr: (id, note) => API.post(`/admin/suppliers/${id}/request-qr`, { note }),
 };
 
 export const supplierAPI = {
@@ -286,8 +289,14 @@ export const supplierAPI = {
   updateOrderItemStatus: (orderId, itemId, itemStatus) => API.patch(`/supplier/orders/${orderId}/items/${itemId}/status`, { itemStatus }),
   getProfile: () => API.get('/supplier/profile'),
   updateProfile: (profileData) => API.put('/supplier/profile', profileData),
+  uploadPayoutQr: (formData) => API.post('/supplier/profile/payout-qr', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
   getFinance: () => API.get('/supplier/finance/overview'),
   getPayouts: (params) => API.get('/supplier/finance/payouts', { params }),
+  getPayoutById: (id) => API.get(`/supplier/finance/payouts/${id}`),
   getLedger: (params) => API.get('/supplier/finance/ledger', { params }),
   getStatement: (payoutId) => API.get(`/supplier/finance/statements/${payoutId}`),
 };

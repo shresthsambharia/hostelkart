@@ -1,5 +1,9 @@
 import asyncHandler from 'express-async-handler';
 import mongoose from 'mongoose';
+import path from 'path';
+import fs from 'fs';
+import sharp from 'sharp';
+import crypto from 'crypto';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
 import User from '../models/User.js';
@@ -8,7 +12,14 @@ import SupplierPayout from '../models/SupplierPayout.js';
 import { invalidateProductCache } from '../middleware/cacheMiddleware.js';
 import { logger } from '../utils/logger.js';
 import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants.js';
-import { getMarketplaceSettings, resolveCommissionRate } from '../utils/commissionEngine.js';
+import {
+  getMarketplaceSettings,
+  resolveCommissionRate,
+  isSettlementOverdue,
+  getNextPayoutDate,
+  calculateSettlementDueDate,
+} from '../utils/commissionEngine.js';
+import { uploadBufferToCloudinary, deleteFromCloudinary, getPublicIdFromUrl } from '../config/cloudinary.js';
 
 // @desc    Get Supplier Dashboard Analytics
 // @route   GET /api/supplier/dashboard
@@ -540,8 +551,16 @@ const getSupplierFinance = asyncHandler(async (req, res) => {
   let eligibleUnsettled = 0;
   let processingSettlement = 0;
   let settledAmount = 0;
+  let overdueItemsCount = 0;
+  let overduePayable = 0;
+
+  const marketplaceSettings = await getMarketplaceSettings();
+  const maxDays = marketplaceSettings.maxSettlementDays || 10;
 
   deliveredOrders.forEach((order) => {
+    const deliveryDate = order.deliveryDate || order.updatedAt;
+    const isOverdue = isSettlementOverdue(deliveryDate, maxDays);
+
     (order.items || []).forEach((item) => {
       if (item.supplier && item.supplier.toString() === supplierId.toString()) {
         const gross = Number(item.grossAmount) || ((Number(item.price) || 0) * (Number(item.quantity) || 1));
@@ -555,6 +574,10 @@ const getSupplierFinance = asyncHandler(async (req, res) => {
         const status = item.settlementStatus || 'Eligible';
         if (status === 'Eligible' || status === 'Pending') {
           eligibleUnsettled += payable;
+          if (isOverdue) {
+            overdueItemsCount += 1;
+            overduePayable += payable;
+          }
         } else if (status === 'Processing') {
           processingSettlement += payable;
         } else if (status === 'Settled') {
@@ -577,7 +600,6 @@ const getSupplierFinance = asyncHandler(async (req, res) => {
   });
 
   const supplierUser = await User.findById(supplierId).lean();
-  const marketplaceSettings = await getMarketplaceSettings();
   const effectiveCommissionRate = resolveCommissionRate(null, supplierUser, marketplaceSettings);
 
   const recentLedger = await FinancialLedger.find({ supplier: supplierId })
@@ -585,19 +607,35 @@ const getSupplierFinance = asyncHandler(async (req, res) => {
     .limit(15)
     .lean();
 
+  const nextPayoutDate = getNextPayoutDate(marketplaceSettings.payoutDay || 'Saturday');
+
   res.json({
     metrics: {
       totalDeliveredGross: Math.round(totalDeliveredGross * 100) / 100,
       totalDeliveredCommission: Math.round(totalDeliveredCommission * 100) / 100,
       totalDeliveredPayable: Math.round(totalDeliveredPayable * 100) / 100,
       eligibleUnsettled: Math.round(eligibleUnsettled * 100) / 100,
+      currentPayable: Math.round(eligibleUnsettled * 100) / 100,
       processingSettlement: Math.round(processingSettlement * 100) / 100,
       settledAmount: Math.round(settledAmount * 100) / 100,
       totalPaidOut: Math.round(totalPaidOut * 100) / 100,
       pendingPayoutsTotal: Math.round(pendingPayoutsTotal * 100) / 100,
+      overdueItemsCount,
+      overduePayable: Math.round(overduePayable * 100) / 100,
       effectiveCommissionRate,
+      payoutDay: marketplaceSettings.payoutDay || 'Saturday',
+      nextPayoutDay: marketplaceSettings.payoutDay || 'Saturday',
+      nextPayoutDate,
+      maxSettlementDays: maxDays,
+      minPayoutThreshold: marketplaceSettings.minPayoutThreshold || 500,
+      isBelowThreshold: eligibleUnsettled < (marketplaceSettings.minPayoutThreshold || 500),
     },
-    payouts: payouts.slice(0, 5),
+    myPayoutQr: {
+      qrUrl: supplierUser?.supplierDetails?.upiQrCode || '',
+      upiId: supplierUser?.supplierDetails?.upiId || '',
+      isConfigured: Boolean(supplierUser?.supplierDetails?.upiQrCode),
+    },
+    payouts: payouts.slice(0, 10),
     recentLedger,
     bankDetails: {
       accountHolderName: supplierUser?.supplierDetails?.accountHolderName || supplierUser?.name || '',
@@ -605,6 +643,7 @@ const getSupplierFinance = asyncHandler(async (req, res) => {
       accountNumber: supplierUser?.supplierDetails?.accountNumber || '',
       ifsc: supplierUser?.supplierDetails?.ifsc || '',
       upiId: supplierUser?.supplierDetails?.upiId || '',
+      upiQrCode: supplierUser?.supplierDetails?.upiQrCode || '',
     },
   });
 });
@@ -791,6 +830,99 @@ const updateSupplierProfile = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Upload Supplier Payout UPI QR Code Image
+// @route   POST /api/supplier/profile/payout-qr
+// @access  Private/Supplier
+const uploadSupplierPayoutQr = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    res.status(404);
+    throw new Error('Supplier not found');
+  }
+
+  if (!req.file) {
+    res.status(400);
+    throw new Error('No QR code image file uploaded');
+  }
+
+  // Magic byte validation for PNG, JPG, WebP
+  const buffer = req.file.buffer;
+  const isPng = buffer.length > 4 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47;
+  const isJpg = buffer.length > 3 && buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF;
+  const isWebp = buffer.length > 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP';
+  if (!isPng && !isJpg && !isWebp) {
+    res.status(400);
+    throw new Error('Invalid file format. Only genuine PNG, JPG, or WEBP images are allowed.');
+  }
+
+  let qrUrl = '';
+  try {
+    let compressedBuffer = req.file.buffer;
+    try {
+      compressedBuffer = await sharp(req.file.buffer)
+        .resize(1000, 1000, { fit: 'inside', withoutEnlargement: true })
+        .png({ quality: 90 })
+        .toBuffer();
+    } catch (sharpErr) {
+      console.warn('[QR Upload Warning] Sharp optimization failed, using original buffer', sharpErr.message);
+    }
+
+    try {
+      const uploadResult = await uploadBufferToCloudinary(compressedBuffer, 'hostelkart/supplier-qrs');
+      qrUrl = uploadResult.secure_url;
+    } catch (cloudinaryErr) {
+      console.warn('[QR Upload Warning] Cloudinary upload failed, falling back to base64 data URI', cloudinaryErr.message);
+      const mime = req.file.mimetype || 'image/png';
+      qrUrl = `data:${mime};base64,${compressedBuffer.toString('base64')}`;
+    }
+
+    // Delete old QR code if it was on Cloudinary
+    if (user.supplierDetails?.upiQrCode && user.supplierDetails.upiQrCode.includes('res.cloudinary.com')) {
+      const oldPublicId = getPublicIdFromUrl(user.supplierDetails.upiQrCode);
+      if (oldPublicId) {
+        deleteFromCloudinary(oldPublicId).catch(() => {});
+      }
+    }
+
+    if (!user.supplierDetails) user.supplierDetails = {};
+    user.supplierDetails.upiQrCode = qrUrl;
+    if (req.body.upiId) {
+      user.supplierDetails.upiId = req.body.upiId.trim();
+    }
+    user.markModified('supplierDetails');
+    await user.save();
+
+    res.json({
+      message: 'Supplier UPI QR Code uploaded successfully',
+      qrUrl,
+      supplierDetails: user.supplierDetails,
+    });
+  } catch (err) {
+    console.error('Error uploading supplier payout QR:', err);
+    res.status(500);
+    throw new Error(`Failed to upload QR code image: ${err.message}`);
+  }
+});
+
+// @desc    Get single payout details for current supplier
+// @route   GET /api/supplier/payouts/:id
+// @access  Private/Supplier
+const getSupplierPayoutById = asyncHandler(async (req, res) => {
+  const supplierId = req.user._id;
+  const { id } = req.params;
+
+  const payout = await SupplierPayout.findOne({ _id: id, supplier: supplierId })
+    .populate('supplier', 'name email phone supplierDetails')
+    .lean();
+
+  if (!payout) {
+    res.status(404);
+    throw new Error('Payout record not found');
+  }
+
+  res.json({ payout });
+});
+
 export {
   getSupplierDashboard,
   getSupplierProducts,
@@ -803,8 +935,10 @@ export {
   updateSupplierOrderItemStatus,
   getSupplierFinance,
   getSupplierPayouts,
+  getSupplierPayoutById,
   getSupplierLedger,
   getSettlementStatement,
   getSupplierProfile,
   updateSupplierProfile,
+  uploadSupplierPayoutQr,
 };

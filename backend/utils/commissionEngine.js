@@ -1,4 +1,4 @@
-﻿import Settings from '../models/Settings.js';
+import Settings from '../models/Settings.js';
 import FinancialLedger from '../models/FinancialLedger.js';
 import User from '../models/User.js';
 
@@ -6,14 +6,16 @@ export const DEFAULT_MARKETPLACE_SETTINGS = {
   globalCommissionPercentage: 10,
   categoryCommissionPercentages: {
     Fruits: 10,
-    Medicines: 10,
-    Stationery: 10,
+    Medicines: 5,
+    Stationery: 5,
     'Exotic Fruits': 10,
     'Clothes Essentials': 10,
   },
-  minPayoutThreshold: 1000,
-  settlementFrequency: 'Manual',
-  settlementMethod: 'UPI',
+  minPayoutThreshold: 500,
+  payoutDay: 'Saturday',
+  maxSettlementDays: 10,
+  settlementFrequency: 'Weekly (Saturday)',
+  settlementMethod: 'UPI QR',
   businessName: 'HostelKart Marketplace',
   upiId: 'hostelkart@upi',
   qrCodeImage: '',
@@ -21,7 +23,7 @@ export const DEFAULT_MARKETPLACE_SETTINGS = {
   bankName: '',
   accountNumber: '',
   ifsc: '',
-  instructions: 'Settlements processed manually via UPI / IMPS upon order delivery verification.',
+  instructions: 'Settlements processed manually via supplier UPI QR scan upon weekly Saturday payout cycle.',
 };
 
 /**
@@ -47,13 +49,65 @@ export async function getMarketplaceSettings() {
 }
 
 /**
- * Resolve commission rate according to strict business priority:
- * 1. Supplier-specific override
- * 2. Category-specific override
- * 3. Global platform rate
+ * Calculate settlement due date from delivery date
  */
-export function resolveCommissionRate(product, supplierUser, settings) {
-  // Priority 1: Supplier-level override
+export function calculateSettlementDueDate(deliveryDate, maxDays = 10) {
+  const base = deliveryDate ? new Date(deliveryDate) : new Date();
+  return new Date(base.getTime() + maxDays * 24 * 60 * 60 * 1000);
+}
+
+/**
+ * Check if an item/order is overdue for payout
+ */
+export function isSettlementOverdue(deliveryDate, maxDays = 10) {
+  if (!deliveryDate) return false;
+  const dueDate = calculateSettlementDueDate(deliveryDate, maxDays);
+  return Date.now() > dueDate.getTime();
+}
+
+/**
+ * Calculate next payout day date (Default: Saturday)
+ */
+export function getNextPayoutDate(targetDay = 'Saturday') {
+  const dayMap = {
+    Sunday: 0,
+    Monday: 1,
+    Tuesday: 2,
+    Wednesday: 3,
+    Thursday: 4,
+    Friday: 5,
+    Saturday: 6,
+  };
+  const targetDayNum = dayMap[targetDay] !== undefined ? dayMap[targetDay] : 6;
+  const now = new Date();
+  const currentDay = now.getDay();
+  let daysUntil = targetDayNum - currentDay;
+  if (daysUntil <= 0) {
+    daysUntil += 7;
+  }
+  const nextDate = new Date(now.getTime() + daysUntil * 24 * 60 * 60 * 1000);
+  nextDate.setHours(23, 59, 59, 999);
+  return nextDate;
+}
+
+/**
+ * Resolve commission rate according to strict 4-tier business priority:
+ * 1. Product-specific override (e.g. Special fruit at 12%)
+ * 2. Supplier-specific override
+ * 3. Category-specific override (Fruits 10%, Medicines 5%, Stationery 5%, etc.)
+ * 4. Global platform default rate (10%)
+ */
+export function resolveCommissionRate(product, supplierUser, settings = DEFAULT_MARKETPLACE_SETTINGS) {
+  // Priority 1: Product-level override
+  if (
+    product &&
+    typeof product.commissionPercentage === 'number' &&
+    product.commissionPercentage >= 0
+  ) {
+    return product.commissionPercentage;
+  }
+
+  // Priority 2: Supplier-level override
   if (
     supplierUser &&
     supplierUser.supplierDetails &&
@@ -63,7 +117,7 @@ export function resolveCommissionRate(product, supplierUser, settings) {
     return supplierUser.supplierDetails.commissionPercentage;
   }
 
-  // Priority 2: Category-level override
+  // Priority 3: Category-level override
   if (
     product &&
     product.category &&
@@ -74,7 +128,7 @@ export function resolveCommissionRate(product, supplierUser, settings) {
     return settings.categoryCommissionPercentages[product.category];
   }
 
-  // Priority 3: Global rate
+  // Priority 4: Global rate
   return typeof settings.globalCommissionPercentage === 'number'
     ? settings.globalCommissionPercentage
     : DEFAULT_MARKETPLACE_SETTINGS.globalCommissionPercentage;

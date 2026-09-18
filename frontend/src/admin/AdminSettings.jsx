@@ -36,13 +36,15 @@ const AdminSettings = () => {
   const [globalCommission, setGlobalCommission] = useState(10);
   const [categoryCommissions, setCategoryCommissions] = useState({
     Fruits: 10,
-    Medicines: 10,
-    Stationery: 10,
+    Medicines: 5,
+    Stationery: 5,
     'Exotic Fruits': 10,
     'Clothes Essentials': 10,
   });
-  const [minPayoutThreshold, setMinPayoutThreshold] = useState(1000);
+  const [minPayoutThreshold, setMinPayoutThreshold] = useState(500);
   const [settlementMethod, setSettlementMethod] = useState('UPI');
+  const [payoutDay, setPayoutDay] = useState('Saturday');
+  const [settlementWindowDays, setSettlementWindowDays] = useState(10);
 
   // 2FA state variables
   const [setupStep, setSetupStep] = useState('idle'); // idle, scan, recovery_codes
@@ -87,6 +89,12 @@ const AdminSettings = () => {
         }
         if (mktRes.data.settlementMethod) {
           setSettlementMethod(mktRes.data.settlementMethod);
+        }
+        if (mktRes.data.payoutDay) {
+          setPayoutDay(mktRes.data.payoutDay);
+        }
+        if (mktRes.data.maxSettlementDays !== undefined) {
+          setSettlementWindowDays(mktRes.data.maxSettlementDays);
         }
       }
     } catch (error) {
@@ -159,6 +167,8 @@ const AdminSettings = () => {
         },
         minPayoutThreshold: Number(minPayoutThreshold),
         settlementMethod,
+        payoutDay,
+        maxSettlementDays: Number(settlementWindowDays),
       });
       setAlert({ type: 'success', message: 'Marketplace commission & settlement settings saved successfully!' });
     } catch (error) {
@@ -421,15 +431,15 @@ const AdminSettings = () => {
         </div>
 
         <form onSubmit={handleMarketplaceSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Global Commission */}
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
               <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span>Platform Global Commission (%)</span>
+                <span>Platform Commission (%)</span>
                 <span className="text-primary-600 font-extrabold">{globalCommission}%</span>
               </label>
               <p className="text-[11px] text-slate-400">
-                Default fallback commission charged across all supplier sales if no category or supplier-specific override exists.
+                Default fallback rate across all supplier sales.
               </p>
               <div className="relative">
                 <input
@@ -449,11 +459,11 @@ const AdminSettings = () => {
             {/* Min Payout Threshold */}
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
               <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                <span>Minimum Payout Threshold (₹)</span>
+                <span>Min Payout Threshold (₹)</span>
                 <span className="text-emerald-600 font-extrabold">₹{minPayoutThreshold}</span>
               </label>
               <p className="text-[11px] text-slate-400">
-                Minimum accumulated eligible earnings a supplier must have before appearing in payout batches.
+                Minimum earnings before inclusion in Saturday batches.
               </p>
               <div className="relative">
                 <input
@@ -466,6 +476,50 @@ const AdminSettings = () => {
                   required
                 />
                 <span className="absolute left-3 top-3 text-slate-400 font-bold text-sm">₹</span>
+              </div>
+            </div>
+
+            {/* Weekly Payout Day */}
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
+              <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                <span>Weekly Payout Day</span>
+                <span className="text-indigo-600 font-extrabold">{payoutDay}</span>
+              </label>
+              <p className="text-[11px] text-slate-400">
+                Day of the week for generating weekly payout batches.
+              </p>
+              <select
+                value={payoutDay}
+                onChange={(e) => setPayoutDay(e.target.value)}
+                className="input-field text-sm font-bold"
+              >
+                <option value="Saturday">Saturday (Standard)</option>
+                <option value="Friday">Friday</option>
+                <option value="Sunday">Sunday</option>
+                <option value="Monday">Monday</option>
+              </select>
+            </div>
+
+            {/* Max Settlement Window */}
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
+              <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                <span>Max Settlement Window</span>
+                <span className="text-amber-600 font-extrabold">{settlementWindowDays} Days</span>
+              </label>
+              <p className="text-[11px] text-slate-400">
+                Orders older than this window trigger Overdue status.
+              </p>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="1"
+                  max="30"
+                  className="input-field text-sm font-bold pl-8"
+                  value={settlementWindowDays}
+                  onChange={(e) => setSettlementWindowDays(e.target.value)}
+                  required
+                />
+                <span className="absolute left-3 top-3 text-slate-400 font-bold text-xs">d</span>
               </div>
             </div>
           </div>

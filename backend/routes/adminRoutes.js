@@ -30,8 +30,11 @@ import {
   updateSupplierProductApproval,
   getMarketplaceFinance,
   getAdminSupplierPayouts,
+  getAdminSupplierPayoutById,
+  generateSaturdayPayoutBatch,
   createSupplierPayout,
   updateSupplierPayoutStatus,
+  requestSupplierQr,
   getSettlementSettings,
   updateSettlementSettings,
 } from '../controllers/adminController.js';
@@ -60,6 +63,7 @@ router.route('/suppliers')
 router.put('/suppliers/:id', updateSupplier);
 router.put('/suppliers/:id/commission', updateSupplierCommission);
 router.put('/suppliers/:id/status', updateSupplierStatus);
+router.post('/suppliers/:id/request-qr', requestSupplierQr);
 router.get('/supplier-products', getAdminSupplierProducts);
 router.put('/supplier-products/:id/approval', updateSupplierProductApproval);
 
@@ -68,9 +72,11 @@ router.get('/finance/overview', getMarketplaceFinance);
 router.route('/finance/settings')
   .get(getSettlementSettings)
   .put(updateSettlementSettings);
+router.post('/payouts/batch-generate', generateSaturdayPayoutBatch);
 router.route('/payouts')
   .get(getAdminSupplierPayouts)
   .post(createSupplierPayout);
+router.get('/payouts/:id', getAdminSupplierPayoutById);
 router.put('/payouts/:id/status', updateSupplierPayoutStatus);
 
 router.get('/orders', getAllOrders);

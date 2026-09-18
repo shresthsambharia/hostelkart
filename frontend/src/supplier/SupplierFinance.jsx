@@ -125,6 +125,137 @@ const SupplierFinance = () => {
         </div>
       )}
 
+      {/* 10-Day Overdue Settlement Alert Banner */}
+      {metrics.overdueItemsCount > 0 && (
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-rose-50 via-amber-50 to-rose-50 border-2 border-rose-300 rounded-3xl text-rose-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+              <AlertTriangle size={20} />
+            </div>
+            <div>
+              <h3 className="text-xs sm:text-sm font-black text-rose-900 uppercase tracking-wide">
+                Settlement Overdue Alert ({metrics.overdueItemsCount} Items (&gt; 10 Days))
+              </h3>
+              <p className="text-xs text-rose-700 mt-0.5">
+                ₹{metrics.overduePayable?.toLocaleString()} is past the standard 10-day settlement window. Admin has been notified for Saturday QR batch settlement.
+              </p>
+            </div>
+          </div>
+          <span className="px-3 py-1 bg-rose-600 text-white text-[10px] font-black rounded-full uppercase tracking-wider shrink-0">
+            Overdue Priority
+          </span>
+        </div>
+      )}
+
+      {/* Saturday Cycle & QR Code Information Banner */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Next Saturday Cycle */}
+        <div className="bg-gradient-to-br from-indigo-900 to-slate-900 text-white p-5 rounded-3xl border border-indigo-700/40 space-y-3">
+          <div className="flex justify-between items-center text-indigo-300">
+            <span className="text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
+              <Calendar size={13} /> Weekly Payout Day
+            </span>
+            <span className="text-[10px] bg-indigo-500/30 text-indigo-200 px-2 py-0.5 rounded-md font-black">
+              Every Saturday
+            </span>
+          </div>
+          <div>
+            <div className="text-xl font-black text-white">
+              {metrics.nextPayoutDate
+                ? new Date(metrics.nextPayoutDate).toLocaleDateString('en-IN', {
+                    weekday: 'short',
+                    day: '2-digit',
+                    month: 'short',
+                  })
+                : 'Next Saturday'}
+            </div>
+            <p className="text-[11px] text-indigo-200 mt-1">
+              Minimum payout threshold: <strong>₹{metrics.minPayoutThreshold || 500}</strong>
+            </p>
+          </div>
+          <div className="text-[10px] text-slate-300 pt-1 border-t border-indigo-800">
+            {metrics.isBelowThreshold ? (
+              <span className="text-amber-300 font-bold">
+                ⚠️ Balance (₹{metrics.eligibleUnsettled}) is below ₹{metrics.minPayoutThreshold || 500} threshold. It will roll over.
+              </span>
+            ) : (
+              <span className="text-emerald-300 font-bold">
+                ✅ Eligible balance will be batched this Saturday!
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* UPI QR Code Status */}
+        <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-premium-sm space-y-3 flex flex-col justify-between">
+          <div className="flex justify-between items-center text-slate-500">
+            <span className="text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
+              <Smartphone size={13} className="text-emerald-600" /> Payout UPI QR
+            </span>
+            {metrics.myPayoutQr ? (
+              <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold">
+                Active
+              </span>
+            ) : (
+              <span className="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full font-bold">
+                Missing QR
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            {metrics.myPayoutQr ? (
+              <img
+                src={metrics.myPayoutQr}
+                alt="My Payout QR"
+                className="w-12 h-12 rounded-xl object-contain border border-slate-200 p-0.5 shrink-0"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <AlertTriangle size={20} />
+              </div>
+            )}
+            <div className="text-xs">
+              <p className="font-extrabold text-slate-800">
+                {bankDetails.upiId ? bankDetails.upiId : 'No UPI ID set'}
+              </p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {metrics.myPayoutQr ? 'Admin will scan this QR for manual payout.' : 'Upload QR in Profile to enable payouts.'}
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/supplier/profile"
+            className="text-[11px] font-black text-emerald-600 hover:text-emerald-700 flex items-center gap-1 mt-1"
+          >
+            <span>{metrics.myPayoutQr ? 'Manage Payout QR' : 'Upload QR Now'}</span>
+            <ArrowRight size={12} />
+          </Link>
+        </div>
+
+        {/* Financial Rules Card */}
+        <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-premium-sm space-y-3 flex flex-col justify-between">
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <ShieldCheck size={13} className="text-indigo-600" /> Settlement Rules
+            </span>
+            <ul className="text-[11px] text-slate-600 space-y-1.5 mt-2 font-medium">
+              <li className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+                <span>Commission deducted automatically per item rate</span>
+              </li>
+              <li className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                <span>Max 10 days settlement window from delivery</span>
+              </li>
+              <li className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-600"></span>
+                <span>Admin enters UTR on manual bank/UPI transfer</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       {/* Financial KPIs Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-premium-sm space-y-2">

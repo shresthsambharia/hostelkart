@@ -285,50 +285,94 @@ export async function runSupplierTests() {
   await getSupplierDashboard(mockDashReq, mockDashRes);
   console.log('✓ Supplier dashboard analytics verified');
 
-  // 10. Test Commission Rate Hierarchy Resolution
+  // 10. Test Commission Rate Hierarchy Resolution (4-Tier: Product -> Supplier -> Category -> Global)
   const mockSettings = {
     globalCommissionPercentage: 10,
     categoryCommissionPercentages: {
-      Fruits: 15,
-      Medicines: 8,
-      Stationery: 12,
-      'Exotic Fruits': 20,
-      'Clothes Essentials': 14,
+      Fruits: 10,
+      Medicines: 5,
+      Stationery: 5,
+      'Exotic Fruits': 10,
+      'Clothes Essentials': 10,
     },
   };
 
-  // Case A: Global default fallback (no category match, no supplier override)
+  // Tier 4: Global default fallback (no category match, no supplier override, no product override)
   const defaultRate = resolveCommissionRate({ category: 'Other' }, { supplierDetails: {} }, mockSettings);
   assert.strictEqual(defaultRate, 10, 'Should fall back to global default 10%');
 
-  // Case B: Category override (Fruits = 15%)
-  const categoryRate = resolveCommissionRate({ category: 'Fruits' }, { supplierDetails: {} }, mockSettings);
-  assert.strictEqual(categoryRate, 15, 'Should use category override 15%');
+  // Tier 3: Category override (Fruits = 10%, Medicines = 5%)
+  const fruitCategoryRate = resolveCommissionRate({ category: 'Fruits' }, { supplierDetails: {} }, mockSettings);
+  assert.strictEqual(fruitCategoryRate, 10, 'Should use category override 10% for Fruits');
+  const medCategoryRate = resolveCommissionRate({ category: 'Medicines' }, { supplierDetails: {} }, mockSettings);
+  assert.strictEqual(medCategoryRate, 5, 'Should use category override 5% for Medicines');
 
-  // Case C: Supplier-specific override takes top precedence (e.g. 7%)
+  // Tier 2: Supplier-specific override takes precedence over category (e.g. 7%)
   const supplierOverrideRate = resolveCommissionRate(
     { category: 'Fruits' },
     { supplierDetails: { commissionPercentage: 7 } },
     mockSettings
   );
   assert.strictEqual(supplierOverrideRate, 7, 'Supplier override must take precedence over category rate');
-  console.log('✓ Commission hierarchy resolution verified (Supplier > Category > Global)');
 
-  // 11. Test Exact Integer Paise Calculation Snapshot
-  const snapshot = calculateItemCommissionSnapshot(
-    { price: 250, discount: 10, supplier: supplier1._id, category: 'Fruits' },
+  // Tier 1: Product-specific override takes TOP precedence (e.g. 12% on a specific fruit)
+  const productOverrideRate = resolveCommissionRate(
+    { category: 'Fruits', commissionPercentage: 12 },
+    { supplierDetails: { commissionPercentage: 7 } },
+    mockSettings
+  );
+  assert.strictEqual(productOverrideRate, 12, 'Product override must take top precedence over supplier and category');
+  console.log('✓ 4-Tier Commission hierarchy resolution verified (Product 12% > Supplier 7% > Category 10% > Global 10%)');
+
+  // 11. Test Multi-Item E2E Commission Calculation (₹2,500 Gross -> ₹210 Comm -> ₹2,290 Net)
+  const item1 = calculateItemCommissionSnapshot(
+    { price: 1000, supplier: supplier1._id, category: 'Fruits' },
+    supplier1,
+    mockSettings,
+    1
+  ); // Fruits 10% => 1000 gross, 100 comm, 900 net
+  assert.strictEqual(item1.grossAmount, 1000);
+  assert.strictEqual(item1.commissionAmount, 100);
+  assert.strictEqual(item1.supplierPayableAmount, 900);
+
+  const item2 = calculateItemCommissionSnapshot(
+    { price: 500, supplier: supplier1._id, category: 'Fruits' },
     supplier1,
     mockSettings,
     2
-  );
-  // price 250 with 10% discount = 225. Qty = 2 => gross = 450.00
-  assert.strictEqual(snapshot.grossAmount, 450);
-  // Supplier 1 has no override so Fruits rate 15% applies => 450 * 0.15 = 67.50
-  assert.strictEqual(snapshot.commissionRate, 15);
-  assert.strictEqual(snapshot.commissionAmount, 67.5);
-  // supplier payable = 450 - 67.50 = 382.50
-  assert.strictEqual(snapshot.supplierPayableAmount, 382.5);
-  console.log('✓ Precise paise snapshot arithmetic verified');
+  ); // Fruits 10% => 1000 gross, 100 comm, 900 net
+  assert.strictEqual(item2.grossAmount, 1000);
+  assert.strictEqual(item2.commissionAmount, 100);
+  assert.strictEqual(item2.supplierPayableAmount, 900);
+
+  const item3 = calculateItemCommissionSnapshot(
+    { price: 200, supplier: supplier1._id, category: 'Medicines' },
+    supplier1,
+    mockSettings,
+    1
+  ); // Medicines 5% => 200 gross, 10 comm, 190 net
+  assert.strictEqual(item3.grossAmount, 200);
+  assert.strictEqual(item3.commissionAmount, 10);
+  assert.strictEqual(item3.supplierPayableAmount, 190);
+
+  const item4 = calculateItemCommissionSnapshot(
+    { price: 300, supplier: supplier1._id, category: 'Stationery', commissionPercentage: 0 },
+    supplier1,
+    mockSettings,
+    1
+  ); // Stationery with 0% product override => 300 gross, 0 comm, 300 net
+  assert.strictEqual(item4.grossAmount, 300);
+  assert.strictEqual(item4.commissionAmount, 0);
+  assert.strictEqual(item4.supplierPayableAmount, 300);
+
+  const totalGross = item1.grossAmount + item2.grossAmount + item3.grossAmount + item4.grossAmount;
+  const totalComm = item1.commissionAmount + item2.commissionAmount + item3.commissionAmount + item4.commissionAmount;
+  const totalNet = item1.supplierPayableAmount + item2.supplierPayableAmount + item3.supplierPayableAmount + item4.supplierPayableAmount;
+
+  assert.strictEqual(totalGross, 2500, 'Total gross must equal 2500');
+  assert.strictEqual(totalComm, 210, 'Total commission must equal 210');
+  assert.strictEqual(totalNet, 2290, 'Total net payable must equal 2290');
+  console.log('✓ Multi-item end-to-end scenario verified (₹2,500 Gross - ₹210 Commission = ₹2,290 Net)');
 
   // 12. Test Order Creation with Supplier Item Snapshots & Delivery Settlement
   const testOrder = await Order.create({
@@ -337,14 +381,14 @@ export async function runSupplierTests() {
       {
         product: createdProduct._id,
         name: 'Organic Shimla Apples (1kg)',
-        price: 140,
-        quantity: 2,
+        price: 1000,
+        quantity: 1,
         image: 'https://res.cloudinary.com/test/image/upload/apples.jpg',
         supplier: supplier1._id,
-        grossAmount: 280,
+        grossAmount: 1000,
         commissionRate: 10,
-        commissionAmount: 28,
-        supplierPayableAmount: 252,
+        commissionAmount: 100,
+        supplierPayableAmount: 900,
         itemStatus: 'Pending',
         settlementStatus: 'Pending',
       },
@@ -359,8 +403,8 @@ export async function runSupplierTests() {
     deliverySlot: 'Immediate (10-20 mins)',
     paymentMethod: 'UPI',
     paymentStatus: 'Paid',
-    totalAmount: 280,
-    itemsPrice: 280,
+    totalAmount: 1000,
+    itemsPrice: 1000,
     deliveryCharge: 0,
     platformFee: 0,
     orderStatus: 'Confirmed',
@@ -368,6 +412,7 @@ export async function runSupplierTests() {
 
   // 13. Test Delivery Settlement Trigger & Financial Ledger Generation
   testOrder.orderStatus = 'Delivered';
+  testOrder.deliveredAt = new Date();
   await processOrderDeliverySettlement(testOrder, admin);
   await testOrder.save();
 
@@ -379,8 +424,8 @@ export async function runSupplierTests() {
   assert.strictEqual(ledgerEntries.length, 2, 'Must have SALE and COMMISSION ledger entries');
   const saleEntry = ledgerEntries.find((e) => e.type === 'SALE');
   const commEntry = ledgerEntries.find((e) => e.type === 'COMMISSION');
-  assert.ok(saleEntry && saleEntry.direction === 'CREDIT' && saleEntry.amount === 280);
-  assert.ok(commEntry && commEntry.direction === 'DEBIT' && commEntry.amount === 28);
+  assert.ok(saleEntry && saleEntry.direction === 'CREDIT' && saleEntry.amount === 1000);
+  assert.ok(commEntry && commEntry.direction === 'DEBIT' && commEntry.amount === 100);
   console.log('✓ Delivery settlement and immutable ledger entry generation verified');
 
   // 14. Test Supplier Finance API
@@ -389,14 +434,15 @@ export async function runSupplierTests() {
   const mockFinanceRes = {
     json(data) {
       assert.ok(data.metrics, 'Finance metrics returned');
-      assert.strictEqual(data.metrics.totalDeliveredGross >= 280, true);
-      assert.strictEqual(data.metrics.totalDeliveredCommission >= 28, true);
-      assert.strictEqual(data.metrics.totalDeliveredPayable >= 252, true);
+      assert.strictEqual(data.metrics.totalDeliveredGross >= 1000, true);
+      assert.strictEqual(data.metrics.totalDeliveredCommission >= 100, true);
+      assert.strictEqual(data.metrics.totalDeliveredPayable >= 900, true);
+      assert.strictEqual(data.metrics.nextPayoutDay, 'Saturday');
       financeData = data;
     },
   };
   await getSupplierFinance(mockFinanceReq, mockFinanceRes);
-  console.log('✓ Supplier finance metrics calculation verified');
+  console.log('✓ Supplier finance metrics & Saturday cycle verified');
 
   // 15. Test Admin Supplier Payout Generation
   const mockCreatePayoutReq = {
@@ -416,7 +462,7 @@ export async function runSupplierTests() {
     json(data) {
       assert.ok(data.payout, 'Payout batch created');
       assert.strictEqual(data.payout.status, 'Pending');
-      assert.strictEqual(data.payout.netPayable, 252);
+      assert.strictEqual(data.payout.netPayable, 900);
       createdPayout = data.payout;
     },
   };
@@ -453,10 +499,26 @@ export async function runSupplierTests() {
   const payoutLedger = await FinancialLedger.findOne({ payout: createdPayout._id, type: 'PAYOUT' });
   assert.ok(payoutLedger, 'PAYOUT ledger entry must be created on mark as Paid');
   assert.strictEqual(payoutLedger.direction, 'DEBIT');
-  assert.strictEqual(payoutLedger.amount, 252);
+  assert.strictEqual(payoutLedger.amount, 900);
   console.log('✓ Payout mark-as-paid with UTR, Settled state and PAYOUT ledger entry verified');
 
-  // 17. Clean up test data
+  // 17. Test Saturday Batch Generation Functionality
+  const mockSaturdayReq = { user: admin, body: {} };
+  const mockSaturdayRes = {
+    status(code) {
+      assert.ok(code === 200 || code === 201, `Expected status 200 or 201, got ${code}`);
+      return this;
+    },
+    json(data) {
+      assert.strictEqual(typeof data.count, 'number');
+      assert.ok(data.message, 'Message returned from Saturday batch generator');
+    },
+  };
+  const { generateSaturdayPayoutBatch } = await import('../controllers/adminController.js');
+  await generateSaturdayPayoutBatch(mockSaturdayReq, mockSaturdayRes);
+  console.log('✓ Saturday payout batch generator verified');
+
+  // 18. Clean up test data
   await Product.deleteOne({ _id: createdProduct._id });
   await Order.deleteOne({ _id: testOrder._id });
   await SupplierPayout.deleteOne({ _id: createdPayout._id });

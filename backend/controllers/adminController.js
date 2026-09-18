@@ -18,6 +18,9 @@ import {
   DEFAULT_MARKETPLACE_SETTINGS,
   processOrderDeliverySettlement,
   recordLedgerEntry,
+  isSettlementOverdue,
+  calculateSettlementDueDate,
+  getNextPayoutDate,
 } from '../utils/commissionEngine.js';
 
 // @desc    Get Admin Dashboard Analytics
@@ -1787,6 +1790,9 @@ const updateSupplierProductApproval = asyncHandler(async (req, res) => {
 // @access  Private/Admin
 const getMarketplaceFinance = asyncHandler(async (req, res) => {
   const deliveredOrders = await Order.find({ orderStatus: 'Delivered' }).lean();
+  const marketplaceSettings = await getMarketplaceSettings();
+  const maxDays = marketplaceSettings.maxSettlementDays || 10;
+  const minThreshold = marketplaceSettings.minPayoutThreshold || 500;
   
   let platformGMV = 0;
   let totalSupplierGross = 0;
@@ -1794,6 +1800,8 @@ const getMarketplaceFinance = asyncHandler(async (req, res) => {
   let totalSupplierPayable = 0;
   let settledPayoutsAmount = 0;
   let pendingPayoutsAmount = 0;
+  let overdueSuppliersCount = 0;
+  let missingQrCount = 0;
 
   const categoryStats = {
     Fruits: { gmv: 0, itemsSold: 0, commission: 0 },
@@ -1808,7 +1816,7 @@ const getMarketplaceFinance = asyncHandler(async (req, res) => {
     (order.items || []).forEach((item) => {
       const gross = Number(item.grossAmount) || ((Number(item.price) || 0) * (Number(item.quantity) || 1));
       const comm = Number(item.commissionAmount) || 0;
-      const payable = Number(item.supplierPayableAmount) || 0;
+      const payable = Number(item.supplierPayableAmount) || (gross - comm);
 
       if (item.supplier) {
         totalSupplierGross += gross;
@@ -1834,8 +1842,99 @@ const getMarketplaceFinance = asyncHandler(async (req, res) => {
     }
   });
 
-  const totalSuppliers = await User.countDocuments({ role: 'supplier' });
-  const activeSuppliers = await User.countDocuments({ role: 'supplier', 'supplierDetails.status': 'active' });
+  const allSuppliers = await User.find({ role: 'supplier' }).lean();
+  const totalSuppliers = allSuppliers.length;
+  const activeSuppliers = allSuppliers.filter(s => s.supplierDetails?.status === 'active' || s.supplierDetails?.status === 'Active' || s.supplierDetails?.status === 'Approved').length;
+
+  // Compute individual supplier overview metrics
+  const supplierOverviews = allSuppliers.map((sup) => {
+    let supGross = 0;
+    let supComm = 0;
+    let supEligiblePayable = 0;
+    let oldestDeliveredDate = null;
+    let hasProcessing = false;
+    let hasEligible = false;
+
+    deliveredOrders.forEach((order) => {
+      (order.items || []).forEach((item) => {
+        if (item.supplier && item.supplier.toString() === sup._id.toString()) {
+          const itemGross = Number(item.grossAmount) || ((Number(item.price) || 0) * (Number(item.quantity) || 1));
+          const itemComm = Number(item.commissionAmount) || 0;
+          const itemPayable = Number(item.supplierPayableAmount) || (itemGross - itemComm);
+
+          supGross += itemGross;
+          supComm += itemComm;
+
+          const st = item.settlementStatus || 'Eligible';
+          if (st === 'Eligible' || st === 'Pending') {
+            if (!item.payout) {
+              hasEligible = true;
+              supEligiblePayable += itemPayable;
+              const delDate = order.deliveryDate || order.updatedAt;
+              if (!oldestDeliveredDate || new Date(delDate) < new Date(oldestDeliveredDate)) {
+                oldestDeliveredDate = delDate;
+              }
+            }
+          } else if (st === 'Processing') {
+            hasProcessing = true;
+          }
+        }
+      });
+    });
+
+    const hasQr = Boolean(sup.supplierDetails?.upiQrCode);
+    if (!hasQr) missingQrCount += 1;
+
+    let isOverdue = false;
+    let pendingDays = 0;
+    let dueDate = null;
+    if (oldestDeliveredDate) {
+      pendingDays = Math.max(0, Math.floor((Date.now() - new Date(oldestDeliveredDate).getTime()) / (1000 * 60 * 60 * 24)));
+      dueDate = calculateSettlementDueDate(oldestDeliveredDate, maxDays);
+      isOverdue = isSettlementOverdue(oldestDeliveredDate, maxDays);
+      if (isOverdue) overdueSuppliersCount += 1;
+    }
+
+    const supPayouts = payouts.filter((p) => p.supplier && p.supplier.toString() === sup._id.toString());
+    const lastPaidPayout = supPayouts
+      .filter((p) => p.status === 'Paid')
+      .sort((a, b) => new Date(b.paidAt || b.createdAt) - new Date(a.paidAt || a.createdAt))[0];
+
+    return {
+      supplierId: sup._id,
+      name: sup.name,
+      email: sup.email,
+      phone: sup.phone,
+      businessName: sup.supplierDetails?.businessName || sup.name,
+      category: sup.supplierDetails?.category || '',
+      grossSales: Math.round(supGross * 100) / 100,
+      commissionDeducted: Math.round(supComm * 100) / 100,
+      netPayable: Math.round(supEligiblePayable * 100) / 100,
+      hasQr,
+      qrUrl: sup.supplierDetails?.upiQrCode || '',
+      upiId: sup.supplierDetails?.upiId || '',
+      bankDetails: {
+        accountHolderName: sup.supplierDetails?.accountHolderName || sup.name,
+        bankName: sup.supplierDetails?.bankName || '',
+        accountNumber: sup.supplierDetails?.accountNumber || '',
+        ifsc: sup.supplierDetails?.ifsc || '',
+      },
+      settlementStatus: hasProcessing ? 'Processing' : (hasEligible ? (supEligiblePayable >= minThreshold ? 'Eligible' : 'Below Threshold') : 'Settled'),
+      dueDate,
+      pendingDays,
+      isOverdue,
+      lastPayout: lastPaidPayout ? {
+        payoutNumber: lastPaidPayout.payoutNumber,
+        amount: lastPaidPayout.netPayable,
+        date: lastPaidPayout.paidAt || lastPaidPayout.createdAt,
+        utr: lastPaidPayout.utrNumber,
+      } : null,
+      commissionOverride: sup.supplierDetails?.commissionPercentage !== undefined ? sup.supplierDetails.commissionPercentage : null,
+      accountStatus: sup.supplierDetails?.status || 'active',
+    };
+  });
+
+  const nextPayoutDate = getNextPayoutDate(marketplaceSettings.payoutDay || 'Saturday');
 
   const recentLedger = await FinancialLedger.find()
     .sort({ createdAt: -1 })
@@ -1853,8 +1952,15 @@ const getMarketplaceFinance = asyncHandler(async (req, res) => {
       pendingPayoutsAmount: Math.round(pendingPayoutsAmount * 100) / 100,
       totalSuppliers,
       activeSuppliers,
+      overdueSuppliersCount,
+      missingQrCount,
+      nextPayoutDay: marketplaceSettings.payoutDay || 'Saturday',
+      nextPayoutDate,
+      maxSettlementDays: maxDays,
+      minPayoutThreshold: minThreshold,
     },
     categoryStats,
+    supplierOverviews,
     recentLedger,
   });
 });
@@ -1958,7 +2064,7 @@ const getAdminSupplierPayouts = asyncHandler(async (req, res) => {
   }
 
   const skip = (Number(page) - 1) * Number(limit);
-  const [payouts, total] = await Promise.all([
+  const [rawPayouts, total, marketplaceSettings] = await Promise.all([
     SupplierPayout.find(filter)
       .populate('supplier', 'name email phone supplierDetails')
       .populate('paidBy', 'name email')
@@ -1967,7 +2073,25 @@ const getAdminSupplierPayouts = asyncHandler(async (req, res) => {
       .limit(Number(limit))
       .lean(),
     SupplierPayout.countDocuments(filter),
+    getMarketplaceSettings(),
   ]);
+
+  const maxDays = marketplaceSettings.maxSettlementDays || 10;
+
+  const payouts = rawPayouts.map((p) => {
+    const isOverdue = p.dueAt
+      ? Date.now() > new Date(p.dueAt).getTime()
+      : isSettlementOverdue(p.createdAt, maxDays);
+    const pendingDays = Math.max(
+      0,
+      Math.floor((Date.now() - new Date(p.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+    );
+    return {
+      ...p,
+      isOverdue: p.status !== 'Paid' && isOverdue,
+      pendingDays,
+    };
+  });
 
   res.json({
     payouts,
@@ -1977,11 +2101,237 @@ const getAdminSupplierPayouts = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Create supplier payout batch
+// @desc    Get single supplier payout by ID with full itemized breakdown
+// @route   GET /api/admin/payouts/:id
+// @access  Private/Admin
+const getAdminSupplierPayoutById = asyncHandler(async (req, res) => {
+  const payout = await SupplierPayout.findById(req.params.id)
+    .populate('supplier', 'name email phone supplierDetails')
+    .populate('paidBy', 'name email')
+    .lean();
+
+  if (!payout) {
+    res.status(404);
+    throw new Error('Payout record not found');
+  }
+
+  const orders = await Order.find({ _id: { $in: payout.orderIds || [] } }).lean();
+  const itemsBreakdown = [];
+
+  orders.forEach((order) => {
+    (order.items || []).forEach((item) => {
+      const isMatch =
+        (item.payout && item.payout.toString() === payout._id.toString()) ||
+        (payout.orderItemIds &&
+          payout.orderItemIds.some((id) => id.toString() === item._id.toString()));
+
+      if (isMatch) {
+        itemsBreakdown.push({
+          orderId: order._id,
+          orderCreatedAt: order.createdAt,
+          deliveredAt: order.deliveryDate || order.updatedAt,
+          product: item.product,
+          name: item.name,
+          category: item.category,
+          quantity: item.quantity,
+          price: item.price,
+          grossAmount: item.grossAmount || ((item.price || 0) * (item.quantity || 1)),
+          commissionRate: item.commissionRate || 0,
+          commissionAmount: item.commissionAmount || 0,
+          supplierPayableAmount:
+            item.supplierPayableAmount ||
+            ((item.price || 0) * (item.quantity || 1) - (item.commissionAmount || 0)),
+          settlementStatus: item.settlementStatus,
+        });
+      }
+    });
+  });
+
+  const marketplaceSettings = await getMarketplaceSettings();
+  const maxDays = marketplaceSettings.maxSettlementDays || 10;
+  const isOverdue = payout.dueAt
+    ? Date.now() > new Date(payout.dueAt).getTime()
+    : isSettlementOverdue(payout.createdAt, maxDays);
+  const pendingDays = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(payout.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+  );
+
+  res.json({
+    payout: {
+      ...payout,
+      isOverdue: payout.status !== 'Paid' && isOverdue,
+      pendingDays,
+      items: itemsBreakdown,
+    },
+  });
+});
+
+// @desc    Generate Saturday Weekly Payout Batch (for all eligible or specific supplier)
+// @route   POST /api/admin/payouts/batch-generate
+// @access  Private/Admin
+const generateSaturdayPayoutBatch = asyncHandler(async (req, res) => {
+  const { supplierId } = req.body;
+  const marketplaceSettings = await getMarketplaceSettings();
+  const minThreshold = Number(marketplaceSettings.minPayoutThreshold) || 500;
+  const maxDays = Number(marketplaceSettings.maxSettlementDays) || 10;
+
+  const supplierFilter = { role: 'supplier' };
+  if (supplierId) {
+    supplierFilter._id = supplierId;
+  }
+  const suppliers = await User.find(supplierFilter).lean();
+  if (suppliers.length === 0) {
+    res.status(404);
+    throw new Error('No suppliers found for payout batch generation');
+  }
+
+  const deliveredOrders = await Order.find({
+    orderStatus: 'Delivered',
+  });
+
+  const createdPayouts = [];
+  const skippedBelowThreshold = [];
+
+  for (const supplier of suppliers) {
+    const eligibleItems = [];
+    const matchedOrderIds = new Set();
+    const matchedOrderItemIds = [];
+
+    let totalGrossPaise = 0;
+    let totalCommissionPaise = 0;
+    let totalPayablePaise = 0;
+
+    deliveredOrders.forEach((order) => {
+      (order.items || []).forEach((item) => {
+        const isThisSupplier = item.supplier && item.supplier.toString() === supplier._id.toString();
+        const isEligibleStatus =
+          !item.settlementStatus ||
+          item.settlementStatus === 'Eligible' ||
+          item.settlementStatus === 'Pending';
+
+        if (isThisSupplier && isEligibleStatus && !item.payout) {
+          eligibleItems.push({ order, item });
+          matchedOrderIds.add(order._id);
+          matchedOrderItemIds.push(item._id);
+
+          const itemGross =
+            Number(item.grossAmount) || ((Number(item.price) || 0) * (Number(item.quantity) || 1));
+          const itemComm = Number(item.commissionAmount) || 0;
+          const itemPayable = Number(item.supplierPayableAmount) || (itemGross - itemComm);
+
+          totalGrossPaise += Math.round(itemGross * 100);
+          totalCommissionPaise += Math.round(itemComm * 100);
+          totalPayablePaise += Math.round(itemPayable * 100);
+        }
+      });
+    });
+
+    if (eligibleItems.length === 0) {
+      continue;
+    }
+
+    const netPayable = totalPayablePaise / 100;
+
+    // Check minimum threshold unless explicit single supplierId was requested
+    if (!supplierId && netPayable < minThreshold) {
+      skippedBelowThreshold.push({
+        supplierId: supplier._id,
+        name: supplier.name,
+        netPayable,
+        minThreshold,
+      });
+      continue;
+    }
+
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const payoutNumber = `PAY-${dateStr}-${randomSuffix}`;
+    const dueDate = calculateSettlementDueDate(new Date(), maxDays);
+
+    const payout = await SupplierPayout.create({
+      payoutNumber,
+      supplier: supplier._id,
+      orderIds: Array.from(matchedOrderIds),
+      orderItemIds: matchedOrderItemIds,
+      settlementPeriod: {
+        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        endDate: new Date(),
+      },
+      grossAmount: totalGrossPaise / 100,
+      commissionAmount: totalCommissionPaise / 100,
+      adjustments: [],
+      adjustmentsTotal: 0,
+      netPayable,
+      payoutAmount: netPayable,
+      status: 'Pending',
+      payoutDay: marketplaceSettings.payoutDay || 'Saturday',
+      dueAt: dueDate,
+      isOverdue: false,
+      paymentMethod: 'UPI QR',
+      bankDetailsSnapshot: {
+        accountHolderName: supplier.supplierDetails?.accountHolderName || supplier.name,
+        bankName: supplier.supplierDetails?.bankName || '',
+        accountNumber: supplier.supplierDetails?.accountNumber || '',
+        ifsc: supplier.supplierDetails?.ifsc || '',
+        upiId: supplier.supplierDetails?.upiId || '',
+        upiQrCode: supplier.supplierDetails?.upiQrCode || '',
+      },
+      notes: `Weekly Saturday Payout Batch (${eligibleItems.length} items)`,
+      createdBy: req.user._id,
+    });
+
+    for (const { order, item } of eligibleItems) {
+      item.settlementStatus = 'Processing';
+      item.payout = payout._id;
+      await order.save();
+    }
+
+    createdPayouts.push(payout);
+  }
+
+  res.status(201).json({
+    message:
+      createdPayouts.length > 0
+        ? `Successfully generated ${createdPayouts.length} Saturday Payout Batch(es)`
+        : 'No suppliers with eligible delivered items above minimum threshold found',
+    count: createdPayouts.length,
+    payouts: createdPayouts,
+    skippedBelowThreshold,
+  });
+});
+
+// @desc    Request supplier to upload UPI QR Code
+// @route   POST /api/admin/suppliers/:id/request-qr
+// @access  Private/Admin
+const requestSupplierQr = asyncHandler(async (req, res) => {
+  const supplier = await User.findOne({ _id: req.params.id, role: 'supplier' });
+  if (!supplier) {
+    res.status(404);
+    throw new Error('Supplier not found');
+  }
+
+  try {
+    await createAlert(
+      supplier._id,
+      'Action Required: Upload UPI QR Code',
+      'Please upload your UPI QR code in your Supplier Profile to receive your scheduled Saturday payout disbursements.',
+      'StatusUpdate'
+    );
+  } catch (err) {
+    console.warn('Failed to send QR request alert:', err.message);
+  }
+
+  res.json({
+    message: `QR code upload request sent to ${supplier.name}`,
+  });
+});
+
+// @desc    Create supplier payout batch (single supplier)
 // @route   POST /api/admin/payouts
 // @access  Private/Admin
 const createSupplierPayout = asyncHandler(async (req, res) => {
-  const { supplierId, orderItemIds, paymentMethod = 'UPI', adjustments = [], notes = '', settlementPeriod } = req.body;
+  const { supplierId, orderItemIds, paymentMethod = 'UPI QR', adjustments = [], notes = '', settlementPeriod } = req.body;
 
   if (!supplierId) {
     res.status(400);
@@ -1993,6 +2343,9 @@ const createSupplierPayout = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Supplier not found');
   }
+
+  const marketplaceSettings = await getMarketplaceSettings();
+  const maxDays = Number(marketplaceSettings.maxSettlementDays) || 10;
 
   const deliveredOrders = await Order.find({
     orderStatus: 'Delivered',
@@ -2010,15 +2363,20 @@ const createSupplierPayout = asyncHandler(async (req, res) => {
   deliveredOrders.forEach((order) => {
     order.items.forEach((item) => {
       const isThisSupplier = item.supplier && item.supplier.toString() === supplierId.toString();
-      const isEligibleStatus = !item.settlementStatus || item.settlementStatus === 'Eligible' || item.settlementStatus === 'Pending';
-      const isSpecificMatch = !orderItemIds || orderItemIds.length === 0 || orderItemIds.includes(item._id.toString());
+      const isEligibleStatus =
+        !item.settlementStatus ||
+        item.settlementStatus === 'Eligible' ||
+        item.settlementStatus === 'Pending';
+      const isSpecificMatch =
+        !orderItemIds || orderItemIds.length === 0 || orderItemIds.includes(item._id.toString());
 
       if (isThisSupplier && isEligibleStatus && isSpecificMatch && !item.payout) {
         eligibleItems.push({ order, item });
         matchedOrderIds.add(order._id);
         matchedOrderItemIds.push(item._id);
 
-        const itemGross = Number(item.grossAmount) || ((Number(item.price) || 0) * (Number(item.quantity) || 1));
+        const itemGross =
+          Number(item.grossAmount) || ((Number(item.price) || 0) * (Number(item.quantity) || 1));
         const itemComm = Number(item.commissionAmount) || 0;
         const itemPayable = Number(item.supplierPayableAmount) || (itemGross - itemComm);
 
@@ -2050,6 +2408,7 @@ const createSupplierPayout = asyncHandler(async (req, res) => {
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);
   const payoutNumber = `PAY-${dateStr}-${randomSuffix}`;
+  const dueDate = calculateSettlementDueDate(new Date(), maxDays);
 
   const payout = await SupplierPayout.create({
     payoutNumber,
@@ -2063,9 +2422,13 @@ const createSupplierPayout = asyncHandler(async (req, res) => {
     grossAmount: Math.round(totalGross * 100) / 100,
     commissionAmount: Math.round(totalCommission * 100) / 100,
     adjustments: formattedAdjustments,
+    adjustmentsTotal: totalAdjustmentsAmount,
     netPayable: finalNetPayable,
     payoutAmount: finalNetPayable,
     status: 'Pending',
+    payoutDay: marketplaceSettings.payoutDay || 'Saturday',
+    dueAt: dueDate,
+    isOverdue: false,
     paymentMethod,
     bankDetailsSnapshot: {
       accountHolderName: supplier.supplierDetails?.accountHolderName || supplier.name,
@@ -2073,6 +2436,7 @@ const createSupplierPayout = asyncHandler(async (req, res) => {
       accountNumber: supplier.supplierDetails?.accountNumber || '',
       ifsc: supplier.supplierDetails?.ifsc || '',
       upiId: supplier.supplierDetails?.upiId || '',
+      upiQrCode: supplier.supplierDetails?.upiQrCode || '',
     },
     notes,
     createdBy: req.user._id,
@@ -2090,110 +2454,90 @@ const createSupplierPayout = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Update supplier payout status (e.g. mark Paid with UTR)
+// @desc    Update Supplier Payout Status (Mark Paid / Settle with UTR)
 // @route   PUT /api/admin/payouts/:id/status
 // @access  Private/Admin
 const updateSupplierPayoutStatus = asyncHandler(async (req, res) => {
   const { status, utrNumber, paymentMethod, failureReason, notes } = req.body;
+  const payout = await SupplierPayout.findById(req.params.id);
 
-  if (!status || !['Pending', 'Processing', 'Paid', 'Failed', 'Cancelled'].includes(status)) {
-    res.status(400);
-    throw new Error('Invalid payout status');
-  }
-
-  const payout = await SupplierPayout.findById(req.params.id).populate('supplier', 'name email phone');
   if (!payout) {
     res.status(404);
     throw new Error('Payout record not found');
   }
 
-  const previousStatus = payout.status;
-  if (previousStatus === 'Paid' && status !== 'Paid') {
+  if (payout.status === 'Paid' || payout.status === 'Settled') {
     res.status(400);
-    throw new Error('Cannot change status of an already paid payout record');
+    throw new Error('Payout is already marked as Paid/Settled and cannot be modified');
   }
 
-  payout.status = status;
-  if (notes) payout.notes = notes;
-  if (paymentMethod) payout.paymentMethod = paymentMethod;
-
-  if (status === 'Paid') {
-    if (!utrNumber && !payout.utrNumber) {
+  if (status === 'Paid' || status === 'Settled') {
+    if (!utrNumber || !utrNumber.trim()) {
       res.status(400);
-      throw new Error('UTR / Transaction reference number is required to mark payout as Paid');
+      throw new Error('Bank UTR or Transaction Reference number is strictly required to mark payout as Paid');
     }
-    payout.utrNumber = utrNumber || payout.utrNumber;
+    payout.status = 'Paid';
+    payout.utrNumber = utrNumber.trim();
+    payout.disbursedAt = new Date();
     payout.paidAt = new Date();
-    payout.paidBy = req.user._id;
+    if (paymentMethod) payout.paymentMethod = paymentMethod;
 
-    if (payout.orderIds && payout.orderIds.length > 0) {
-      const orders = await Order.find({ _id: { $in: payout.orderIds } });
-      for (const order of orders) {
-        let changed = false;
-        order.items.forEach((item) => {
-          if (
-            (item.payout && item.payout.toString() === payout._id.toString()) ||
-            (payout.orderItemIds && payout.orderItemIds.some((id) => id.toString() === item._id.toString()))
-          ) {
-            item.settlementStatus = 'Settled';
-            changed = true;
-          }
-        });
-        if (changed) {
-          await order.save();
+    // Transition all associated order items to 'Settled'
+    const orders = await Order.find({ _id: { $in: payout.orderIds } });
+    for (const ord of orders) {
+      let modified = false;
+      for (const itm of ord.items) {
+        if (itm.payout && itm.payout.toString() === payout._id.toString()) {
+          itm.settlementStatus = 'Settled';
+          itm.settledAt = new Date();
+          modified = true;
         }
       }
+      if (modified) await ord.save();
     }
 
-    await recordLedgerEntry({
-      supplier: payout.supplier._id || payout.supplier,
-      payout: payout._id,
-      type: 'PAYOUT',
-      amount: payout.netPayable,
-      direction: 'DEBIT',
-      description: `Manual Payout Disbursed via ${payout.paymentMethod} (UTR: ${payout.utrNumber})`,
-      reference: payout.utrNumber || payout.payoutNumber,
-      createdBy: req.user._id,
-    });
-
-    try {
-      await createAlert(
-        payout.supplier._id || payout.supplier,
-        `Payout Disbursed: ₹${payout.netPayable}`,
-        `Your payout of ₹${payout.netPayable} has been processed via ${payout.paymentMethod}. UTR: ${payout.utrNumber}`,
-        'PaymentUpdate'
-      );
-    } catch (e) {
-      console.warn('Failed to notify supplier on payout:', e.message);
+    // Write PAYOUT debit entry into Financial Ledger
+    const existingPayoutLedger = await FinancialLedger.findOne({ payout: payout._id, type: 'PAYOUT' });
+    if (!existingPayoutLedger) {
+      await FinancialLedger.create({
+        supplier: payout.supplier,
+        type: 'PAYOUT',
+        direction: 'DEBIT',
+        amount: payout.netPayable,
+        payout: payout._id,
+        payoutNumber: payout.payoutNumber,
+        utrNumber: payout.utrNumber,
+        description: `Disbursed Net Payout ${payout.payoutNumber} via ${payout.paymentMethod} (UTR: ${payout.utrNumber})`,
+        createdBy: req.user._id,
+      });
     }
   } else if (status === 'Cancelled' || status === 'Failed') {
-    payout.failureReason = failureReason || '';
-    if (payout.orderIds && payout.orderIds.length > 0) {
-      const orders = await Order.find({ _id: { $in: payout.orderIds } });
-      for (const order of orders) {
-        let changed = false;
-        order.items.forEach((item) => {
-          if (
-            (item.payout && item.payout.toString() === payout._id.toString()) ||
-            (payout.orderItemIds && payout.orderItemIds.some((id) => id.toString() === item._id.toString()))
-          ) {
-            item.settlementStatus = 'Eligible';
-            item.payout = null;
-            changed = true;
-          }
-        });
-        if (changed) {
-          await order.save();
+    payout.status = status;
+    payout.failureReason = failureReason || notes || 'Cancelled by Admin';
+
+    // Revert associated order items to 'Eligible'
+    const orders = await Order.find({ _id: { $in: payout.orderIds } });
+    for (const ord of orders) {
+      let modified = false;
+      for (const itm of ord.items) {
+        if (itm.payout && itm.payout.toString() === payout._id.toString()) {
+          itm.settlementStatus = 'Eligible';
+          itm.payout = null;
+          modified = true;
         }
       }
+      if (modified) await ord.save();
     }
+  } else if (status === 'Processing' || status === 'Approved') {
+    payout.status = status;
   }
 
-  const updatedPayout = await payout.save();
+  if (notes) payout.notes = notes;
+  await payout.save();
 
   res.json({
-    message: `Payout status updated to ${status}`,
-    payout: updatedPayout,
+    message: `Payout status updated to ${payout.status}`,
+    payout,
   });
 });
 
@@ -2267,8 +2611,11 @@ export {
   updateSupplierProductApproval,
   getMarketplaceFinance,
   getAdminSupplierPayouts,
+  getAdminSupplierPayoutById,
+  generateSaturdayPayoutBatch,
   createSupplierPayout,
   updateSupplierPayoutStatus,
+  requestSupplierQr,
   getSettlementSettings,
   updateSettlementSettings,
 };

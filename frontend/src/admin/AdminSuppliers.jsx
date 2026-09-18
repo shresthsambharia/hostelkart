@@ -27,7 +27,13 @@ import {
   CreditCard,
   Percent,
   ShieldAlert,
-  FileText
+  FileText,
+  QrCode,
+  Calendar,
+  AlertTriangle,
+  ArrowUpRight,
+  Send,
+  Sparkles
 } from 'lucide-react';
 
 const AdminSuppliers = () => {
@@ -47,6 +53,8 @@ const AdminSuppliers = () => {
   const [selectedProductForReject, setSelectedProductForReject] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [batchGenerating, setBatchGenerating] = useState(false);
+  const [payoutDetailLoading, setPayoutDetailLoading] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
 
   // Commission Modal
@@ -67,7 +75,7 @@ const AdminSuppliers = () => {
     notes: '',
   });
 
-  // Mark Paid Modal
+  // Mark Paid / Scan & Pay Modal
   const [showMarkPaidModal, setShowMarkPaidModal] = useState(false);
   const [selectedPayoutForPaid, setSelectedPayoutForPaid] = useState(null);
   const [utrInput, setUtrInput] = useState('');
@@ -281,6 +289,66 @@ const AdminSuppliers = () => {
       });
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleGenerateSaturdayBatch = async () => {
+    if (!window.confirm('Generate weekly Saturday payout batches for all eligible suppliers with unsettled delivered orders (Min ₹500)?')) {
+      return;
+    }
+    try {
+      setBatchGenerating(true);
+      const res = await adminAPI.generateSaturdayPayoutBatch();
+      setFeedback({
+        type: 'success',
+        message: res.data.message || `Generated ${res.data.count} Saturday payout batches totaling ₹${res.data.totalNetPayable}!`,
+      });
+      fetchData();
+    } catch (err) {
+      console.error('Failed to generate Saturday batch:', err);
+      setFeedback({
+        type: 'error',
+        message: err.response?.data?.message || 'Failed to generate Saturday payout batch',
+      });
+    } finally {
+      setBatchGenerating(false);
+    }
+  };
+
+  const handleRequestQr = async (supplierId, supplierName) => {
+    try {
+      setActionLoading(true);
+      await adminAPI.requestSupplierQr(supplierId, 'Please upload your UPI QR code in Supplier Profile to receive weekly Saturday settlements.');
+      setFeedback({
+        type: 'success',
+        message: `Payout QR request sent to ${supplierName || 'supplier'}!`,
+      });
+    } catch (err) {
+      setFeedback({
+        type: 'error',
+        message: err.response?.data?.message || 'Failed to send QR request.',
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleOpenPayModal = async (payout) => {
+    setSelectedPayoutForPaid(payout);
+    setPaidMethodInput(payout.paymentMethod || 'UPI');
+    setUtrInput(payout.utrNumber || '');
+    setShowMarkPaidModal(true);
+
+    try {
+      setPayoutDetailLoading(true);
+      const res = await adminAPI.getSupplierPayoutById(payout._id);
+      if (res.data?.payout) {
+        setSelectedPayoutForPaid(res.data.payout);
+      }
+    } catch (err) {
+      console.warn('Could not load detailed payout breakdown:', err);
+    } finally {
+      setPayoutDetailLoading(false);
     }
   };
 
@@ -723,23 +791,42 @@ const AdminSuppliers = () => {
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden p-6 space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 className="text-base font-black text-slate-800">Manual Supplier Settlement Payouts</h2>
-              <p className="text-xs text-slate-500">Review payout batches, record UTR transaction references, and trigger ledger disbursements.</p>
+              <h2 className="text-base font-black text-slate-800">Manual Weekly Supplier Settlement Payouts</h2>
+              <p className="text-xs text-slate-500">Scan supplier UPI QR codes, transfer exact Net Payable, record UTR references, and confirm settlements.</p>
             </div>
-            <button
-              onClick={() => setShowCreatePayoutModal(true)}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-colors"
-            >
-              <Plus size={14} />
-              <span>Create Payout Batch</span>
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={handleGenerateSaturdayBatch}
+                disabled={batchGenerating}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-colors disabled:opacity-50"
+              >
+                {batchGenerating ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Generating Batch...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={14} />
+                    <span>Generate Saturday Batch</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setShowCreatePayoutModal(true)}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-colors"
+              >
+                <Plus size={14} />
+                <span>Custom Batch</span>
+              </button>
+            </div>
           </div>
 
           {payouts.length === 0 ? (
             <div className="text-center py-12 space-y-2">
               <DollarSign size={36} className="mx-auto text-slate-300" />
               <p className="text-slate-600 text-sm font-bold">No payout records created yet.</p>
-              <p className="text-xs text-slate-400">Click "Create Payout Batch" to calculate net payables for delivered order items.</p>
+              <p className="text-xs text-slate-400">Click "Generate Saturday Batch" to automatically create payout batches for all delivered unsettled orders.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -752,69 +839,90 @@ const AdminSuppliers = () => {
                     <th className="pb-3">Gross Sales</th>
                     <th className="pb-3">Commission</th>
                     <th className="pb-3">Net Payable</th>
-                    <th className="pb-3">Method</th>
+                    <th className="pb-3">QR / UPI</th>
                     <th className="pb-3">UTR / Ref</th>
                     <th className="pb-3">Status</th>
                     <th className="pb-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                  {payouts.map((p) => (
-                    <tr key={p._id} className="hover:bg-slate-50/60">
-                      <td className="py-3 font-mono font-black text-indigo-600">
-                        {p.payoutNumber || `PAY-${p._id.slice(-6).toUpperCase()}`}
-                      </td>
-                      <td className="py-3 font-bold text-slate-800">
-                        {p.supplier?.supplierDetails?.businessName || p.supplier?.name || 'Supplier'}
-                      </td>
-                      <td className="py-3 text-slate-500 font-semibold">
-                        {new Date(p.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-                      </td>
-                      <td className="py-3 font-bold text-slate-800">₹{p.grossAmount}</td>
-                      <td className="py-3 text-rose-600 font-semibold">-₹{p.commissionAmount}</td>
-                      <td className="py-3 font-black text-emerald-600 text-sm">₹{p.netPayable}</td>
-                      <td className="py-3">
-                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold text-[10px]">
-                          {p.paymentMethod}
-                        </span>
-                      </td>
-                      <td className="py-3 font-mono text-slate-600 font-bold">
-                        {p.utrNumber || <span className="text-slate-400 italic font-normal">Pending</span>}
-                      </td>
-                      <td className="py-3">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
-                          p.status === 'Paid'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : p.status === 'Processing'
-                            ? 'bg-blue-50 text-blue-700 border-blue-200'
-                            : p.status === 'Cancelled' || p.status === 'Failed'
-                            ? 'bg-rose-50 text-rose-700 border-rose-200'
-                            : 'bg-amber-50 text-amber-700 border-amber-200'
-                        }`}>
-                          {p.status}
-                        </span>
-                      </td>
-                      <td className="py-3 text-right">
-                        {p.status !== 'Paid' && p.status !== 'Cancelled' ? (
-                          <div className="flex items-center justify-end gap-1.5">
+                  {payouts.map((p) => {
+                    const isOverdue = p.isOverdue || (p.dueAt && new Date(p.dueAt) < new Date() && p.status !== 'Paid' && p.status !== 'Settled');
+                    const hasQr = Boolean(p.bankDetailsSnapshot?.upiQrCode);
+                    return (
+                      <tr key={p._id} className="hover:bg-slate-50/60">
+                        <td className="py-3 font-mono font-black text-indigo-600">
+                          {p.payoutNumber || `PAY-${p._id.slice(-6).toUpperCase()}`}
+                        </td>
+                        <td className="py-3 font-bold text-slate-800">
+                          <div>{p.supplier?.supplierDetails?.businessName || p.supplier?.name || 'Supplier'}</div>
+                          {p.supplier?.phone && <span className="text-[10px] text-slate-400 font-normal">{p.supplier.phone}</span>}
+                        </td>
+                        <td className="py-3 text-slate-500 font-semibold">
+                          <div>{new Date(p.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
+                          {isOverdue && (
+                            <span className="inline-block mt-0.5 px-1.5 py-0.2 text-[9px] font-black bg-rose-100 text-rose-700 rounded">
+                              Overdue (&gt;10d)
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 font-bold text-slate-800">₹{p.grossAmount}</td>
+                        <td className="py-3 text-rose-600 font-semibold">-₹{p.commissionAmount}</td>
+                        <td className="py-3 font-black text-emerald-600 text-sm">₹{p.netPayable}</td>
+                        <td className="py-3">
+                          {hasQr ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px] border border-emerald-200">
+                              <QrCode size={11} /> QR Attached
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold text-[10px] border border-amber-200">
+                              UPI: {p.bankDetailsSnapshot?.upiId || 'None'}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 font-mono text-slate-600 font-bold">
+                          {p.utrNumber ? (
+                            <span className="bg-slate-100 text-slate-800 px-2 py-0.5 rounded font-mono text-[11px]">
+                              {p.utrNumber}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 italic font-normal">Pending UTR</span>
+                          )}
+                        </td>
+                        <td className="py-3">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                            p.status === 'Paid' || p.status === 'Settled'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : p.status === 'Processing'
+                              ? 'bg-blue-50 text-blue-700 border-blue-200'
+                              : p.status === 'Cancelled' || p.status === 'Failed'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
+                          }`}>
+                            {p.status}
+                          </span>
+                        </td>
+                        <td className="py-3 text-right">
+                          {p.status !== 'Paid' && p.status !== 'Settled' && p.status !== 'Cancelled' ? (
                             <button
-                              onClick={() => {
-                                setSelectedPayoutForPaid(p);
-                                setPaidMethodInput(p.paymentMethod || 'UPI');
-                                setUtrInput(p.utrNumber || '');
-                                setShowMarkPaidModal(true);
-                              }}
-                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors"
+                              onClick={() => handleOpenPayModal(p)}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors shadow-sm inline-flex items-center gap-1"
                             >
-                              Mark Paid
+                              <QrCode size={12} />
+                              <span>Pay Supplier</span>
                             </button>
-                          </div>
-                        ) : (
-                          <span className="text-[11px] text-slate-400 font-semibold">Settled</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                          ) : (
+                            <button
+                              onClick={() => handleOpenPayModal(p)}
+                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold transition-colors"
+                            >
+                              View Receipt
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -823,6 +931,35 @@ const AdminSuppliers = () => {
       ) : (
         // Tab 4: Marketplace Finance Overview
         <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+            <div>
+              <h2 className="text-base font-black text-slate-800 flex items-center gap-2">
+                <Calendar className="text-emerald-600" size={18} />
+                Marketplace Settlements & Saturday Cycle
+              </h2>
+              <p className="text-xs text-slate-500">
+                Weekly Saturday payouts with 10-day settlement policy. Commission is retained at source.
+              </p>
+            </div>
+            <button
+              onClick={handleGenerateSaturdayBatch}
+              disabled={batchGenerating}
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-colors disabled:opacity-50"
+            >
+              {batchGenerating ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  <span>Processing Batch...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={15} />
+                  <span>Generate Saturday Batch</span>
+                </>
+              )}
+            </button>
+          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Platform Delivered GMV</span>
@@ -856,6 +993,96 @@ const AdminSuppliers = () => {
               <span className="text-[10px] font-bold text-emerald-700">Disbursed with UTR reference</span>
             </div>
           </div>
+
+          {/* Supplier Settlement Overview Table */}
+          {financeOverview?.supplierOverviews && financeOverview.supplierOverviews.length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">
+                    Supplier Settlement Status & Payout Readiness
+                  </h3>
+                  <p className="text-xs text-slate-500">Status of delivered orders, QR code readiness, and 10-day settlement monitoring.</p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                      <th className="pb-3">Supplier Partner</th>
+                      <th className="pb-3">Gross Delivered</th>
+                      <th className="pb-3">Platform Comm.</th>
+                      <th className="pb-3">Net Payable</th>
+                      <th className="pb-3">QR Status</th>
+                      <th className="pb-3">Settlement Status</th>
+                      <th className="pb-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                    {financeOverview.supplierOverviews.map((so) => (
+                      <tr key={so.supplierId} className="hover:bg-slate-50/60">
+                        <td className="py-3">
+                          <div className="font-bold text-slate-900">{so.businessName || so.supplierName}</div>
+                          <div className="text-[10px] text-slate-400">{so.email}</div>
+                        </td>
+                        <td className="py-3 font-bold text-slate-800">₹{so.grossEarnings?.toLocaleString()}</td>
+                        <td className="py-3 text-rose-600 font-semibold">-₹{so.commissionDeducted?.toLocaleString()}</td>
+                        <td className="py-3 font-black text-emerald-600 text-sm">₹{so.netPayable?.toLocaleString()}</td>
+                        <td className="py-3">
+                          {so.qrCodeAvailable ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px] border border-emerald-200">
+                              <Check size={11} /> QR Uploaded
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold text-[10px] border border-rose-200">
+                              <AlertTriangle size={11} /> No QR Code
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3">
+                          {so.isOverdue ? (
+                            <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-black uppercase">
+                              ⚠️ Overdue ({so.pendingSettlementDays}d)
+                            </span>
+                          ) : so.pendingSettlementDays > 0 ? (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 text-[10px] font-bold">
+                              Pending ({so.pendingSettlementDays}d)
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold">
+                              All Clear
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 text-right">
+                          {!so.qrCodeAvailable ? (
+                            <button
+                              onClick={() => handleRequestQr(so.supplierId, so.businessName || so.supplierName)}
+                              disabled={actionLoading}
+                              className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors inline-flex items-center gap-1"
+                            >
+                              <Send size={10} /> Request QR
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setPayoutForm({ ...payoutForm, supplierId: so.supplierId });
+                                setShowCreatePayoutModal(true);
+                              }}
+                              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-[10px] font-bold transition-colors"
+                            >
+                              Create Batch
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {financeOverview?.categoryStats && (
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-4">
@@ -1062,81 +1289,226 @@ const AdminSuppliers = () => {
         </div>
       )}
 
-      {/* Mark Paid Modal */}
+      {/* Pay Supplier QR Settlement Modal */}
       {showMarkPaidModal && selectedPayoutForPaid && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <CheckCircle2 className="text-emerald-600" />
-                <span>Mark Payout as Disbursed (Paid)</span>
-              </h3>
-              <button onClick={() => setShowMarkPaidModal(false)} className="text-slate-400 hover:text-slate-600">
-                <X size={18} />
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl space-y-4 my-auto max-h-[92vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
+              <div>
+                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <QrCode className="text-emerald-600" size={20} />
+                  <span>Pay Supplier — Saturday UPI Settlement</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Batch {selectedPayoutForPaid.payoutNumber || `PAY-${selectedPayoutForPaid._id.slice(-6).toUpperCase()}`}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowMarkPaidModal(false)}
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+              >
+                <X size={20} />
               </button>
             </div>
 
-            <div className="bg-slate-50 p-3.5 rounded-xl text-xs space-y-1">
-              <div><strong>Payout #:</strong> {selectedPayoutForPaid.payoutNumber}</div>
-              <div><strong>Supplier:</strong> {selectedPayoutForPaid.supplier?.name}</div>
-              <div className="text-emerald-700 font-bold text-sm">
-                <strong>Net Payable:</strong> ₹{selectedPayoutForPaid.netPayable}
-              </div>
-              {selectedPayoutForPaid.bankDetailsSnapshot?.upiId && (
-                <div>UPI ID: <strong className="text-indigo-600">{selectedPayoutForPaid.bankDetailsSnapshot.upiId}</strong></div>
-              )}
-            </div>
-
-            <form onSubmit={handleConfirmMarkPaid} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">
-                  Payment Method
-                </label>
-                <select
-                  value={paidMethodInput}
-                  onChange={(e) => setPaidMethodInput(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="UPI">UPI Transfer</option>
-                  <option value="Bank Transfer">NEFT / IMPS Bank Transfer</option>
-                  <option value="Cash">Manual Cash Settlement</option>
-                </select>
+            {/* Modal Scrollable Content */}
+            <div className="space-y-4 overflow-y-auto pr-1">
+              {/* Highlighted Net Payable Card */}
+              <div className="bg-gradient-to-br from-emerald-900 to-slate-900 text-white p-4 sm:p-5 rounded-2xl space-y-2 shadow-inner">
+                <div className="flex justify-between items-start">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-300">
+                    Exact Net Payable to Supplier
+                  </span>
+                  <span className="text-[10px] bg-emerald-500/30 text-emerald-200 px-2 py-0.5 rounded font-black">
+                    Post Commission
+                  </span>
+                </div>
+                <div className="text-3xl sm:text-4xl font-black text-emerald-400 tracking-tight">
+                  ₹{selectedPayoutForPaid.netPayable?.toLocaleString()}
+                </div>
+                <div className="text-xs text-slate-300 flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 border-t border-emerald-800/60 font-semibold">
+                  <span>Gross: ₹{selectedPayoutForPaid.grossAmount?.toLocaleString()}</span>
+                  <span className="text-rose-300">Platform Comm.: -₹{selectedPayoutForPaid.commissionAmount?.toLocaleString()}</span>
+                  <span>Items: {selectedPayoutForPaid.ordersCount || selectedPayoutForPaid.items?.length || 0}</span>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">
-                  Bank UTR / Transaction Reference Number *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. 423589123456 or UPI Reference ID"
-                  value={utrInput}
-                  onChange={(e) => setUtrInput(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <p className="text-[10px] text-slate-400 mt-1">
-                  This reference will be visible to the supplier and recorded in the immutable Financial Ledger.
+              {/* QR Code & Payee Details Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200/80 items-center">
+                {/* QR Display */}
+                <div className="flex flex-col items-center justify-center p-3 bg-white rounded-xl border border-slate-200 shadow-sm text-center">
+                  {selectedPayoutForPaid.bankDetailsSnapshot?.upiQrCode ? (
+                    <div className="space-y-2">
+                      <img
+                        src={selectedPayoutForPaid.bankDetailsSnapshot.upiQrCode}
+                        alt="Supplier UPI QR"
+                        className="w-40 h-40 object-contain rounded-lg border border-slate-100 mx-auto"
+                      />
+                      <a
+                        href={selectedPayoutForPaid.bankDetailsSnapshot.upiQrCode}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:underline"
+                      >
+                        <ExternalLink size={12} /> View Full QR Image
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="p-4 space-y-2 text-center">
+                      <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto">
+                        <AlertTriangle size={24} />
+                      </div>
+                      <p className="text-xs font-bold text-slate-700">No QR Code Attached</p>
+                      <p className="text-[10px] text-slate-400">Supplier has not uploaded a QR code. Pay manually to UPI ID or Bank below.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Beneficiary Payee Info */}
+                <div className="space-y-2 text-xs text-slate-700">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Supplier / Business</span>
+                    <strong className="text-slate-900 font-extrabold text-sm">
+                      {selectedPayoutForPaid.supplier?.supplierDetails?.businessName || selectedPayoutForPaid.supplier?.name || 'Supplier'}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">UPI ID</span>
+                    <strong className="text-indigo-600 font-mono text-xs select-all bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                      {selectedPayoutForPaid.bankDetailsSnapshot?.upiId || 'Not provided'}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Account Holder</span>
+                    <strong className="text-slate-800">
+                      {selectedPayoutForPaid.bankDetailsSnapshot?.accountHolderName || selectedPayoutForPaid.supplier?.name || 'N/A'}
+                    </strong>
+                  </div>
+
+                  {selectedPayoutForPaid.bankDetailsSnapshot?.bankName && (
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Bank Account</span>
+                      <span className="text-slate-600">
+                        {selectedPayoutForPaid.bankDetailsSnapshot.bankName} • {selectedPayoutForPaid.bankDetailsSnapshot.accountNumber ? `••••${selectedPayoutForPaid.bankDetailsSnapshot.accountNumber.slice(-4)}` : ''} • {selectedPayoutForPaid.bankDetailsSnapshot.ifsc || ''}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Crucial Safety Verification Notice */}
+              <div className="p-3 bg-amber-50 border-l-4 border-amber-500 rounded-r-xl text-amber-900 text-xs space-y-1">
+                <div className="font-bold flex items-center gap-1.5 text-amber-800">
+                  <ShieldAlert size={15} className="shrink-0" />
+                  <span>Supplier-provided UPI QR</span>
+                </div>
+                <p className="text-[11px] text-amber-700 leading-relaxed">
+                  Verify the recipient name and UPI ID in your payment app before completing the payment.
                 </p>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setShowMarkPaidModal(false)}
-                  className="px-3 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow"
-                >
-                  {actionLoading ? 'Recording...' : 'Confirm & Disburse'}
-                </button>
-              </div>
-            </form>
+              {/* Itemized Order Breakdown */}
+              {selectedPayoutForPaid.items && selectedPayoutForPaid.items.length > 0 && (
+                <div className="border border-slate-200 rounded-xl p-3 space-y-2">
+                  <span className="text-xs font-black text-slate-800 uppercase tracking-wider block">
+                    Itemized Order Breakdown ({selectedPayoutForPaid.items.length} Items)
+                  </span>
+                  <div className="max-h-36 overflow-y-auto divide-y divide-slate-100 text-[11px]">
+                    {selectedPayoutForPaid.items.map((item, idx) => (
+                      <div key={idx} className="py-1.5 flex justify-between items-center text-slate-600">
+                        <div>
+                          <span className="font-bold text-slate-800">{item.productName || 'Product'}</span>
+                          <span className="text-slate-400 ml-1.5">(Qty: {item.quantity || 1}, Rate: {item.commissionPercentage}%)</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-bold text-emerald-700">₹{item.netAmount}</span>
+                          <span className="text-slate-400 text-[10px] ml-1">(Comm: ₹{item.commissionAmount})</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Settlement Confirmation Form */}
+              {selectedPayoutForPaid.status !== 'Paid' && selectedPayoutForPaid.status !== 'Settled' ? (
+                <form onSubmit={handleConfirmMarkPaid} className="space-y-3 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1">
+                        Settlement Method
+                      </label>
+                      <select
+                        value={paidMethodInput}
+                        onChange={(e) => setPaidMethodInput(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      >
+                        <option value="UPI">UPI Transfer (QR Scan)</option>
+                        <option value="Bank Transfer">NEFT / IMPS Bank Transfer</option>
+                        <option value="Cash">Manual Cash Settlement</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1">
+                        Bank UTR / UPI Ref ID *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. 423589123456 or UPI Ref"
+                        value={utrInput}
+                        onChange={(e) => setUtrInput(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setShowMarkPaidModal(false)}
+                      className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-200 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={actionLoading}
+                      className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow transition-colors flex items-center gap-1.5"
+                    >
+                      {actionLoading ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" />
+                          <span>Confirming...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 size={14} />
+                          <span>Confirm & Settle Payout</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 size={16} className="text-emerald-600" />
+                    <span>Payout has been marked as <strong>{selectedPayoutForPaid.status}</strong> with UTR <strong>{selectedPayoutForPaid.utrNumber}</strong>.</span>
+                  </div>
+                  <button
+                    onClick={() => setShowMarkPaidModal(false)}
+                    className="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold"
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

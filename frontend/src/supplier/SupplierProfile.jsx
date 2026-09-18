@@ -13,7 +13,11 @@ import {
   Save, 
   CheckCircle2, 
   AlertCircle,
-  Loader2
+  Loader2,
+  QrCode,
+  UploadCloud,
+  Check,
+  ExternalLink
 } from 'lucide-react';
 
 const SupplierProfile = () => {
@@ -21,6 +25,9 @@ const SupplierProfile = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [upiQrCode, setUpiQrCode] = useState('');
+  const [qrUploading, setQrUploading] = useState(false);
+  const [qrMessage, setQrMessage] = useState({ type: '', text: '' });
 
   const [formData, setFormData] = useState({
     name: '',
@@ -54,6 +61,8 @@ const SupplierProfile = () => {
         ? profile.name
         : (user?.name && user.name !== 'undefined' && user.name !== 'null' ? user.name : 'Supplier Partner');
 
+      setUpiQrCode(profile?.supplierDetails?.upiQrCode || '');
+
       setFormData({
         name: safeName,
         email: profile?.email || user?.email || '',
@@ -78,6 +87,43 @@ const SupplierProfile = () => {
       setMessage({ type: 'error', text: 'Failed to load supplier profile details.' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleQrUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setQrMessage({ type: 'error', text: 'Please upload a valid image file (PNG, JPG, or WebP).' });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setQrMessage({ type: 'error', text: 'QR code image must be under 5MB.' });
+      return;
+    }
+
+    const qrFormData = new FormData();
+    qrFormData.append('qrCode', file);
+
+    try {
+      setQrUploading(true);
+      setQrMessage({ type: '', text: '' });
+      const res = await supplierAPI.uploadPayoutQr(qrFormData);
+      setUpiQrCode(res.data.upiQrCode);
+      setQrMessage({ type: 'success', text: res.data.message || 'Payout QR code uploaded successfully!' });
+      if (updateUser && res.data.supplier) {
+        updateUser(res.data.supplier);
+      }
+    } catch (err) {
+      console.error('Failed to upload payout QR:', err);
+      setQrMessage({
+        type: 'error',
+        text: err.response?.data?.message || 'Failed to upload QR code. Please try again.',
+      });
+    } finally {
+      setQrUploading(false);
     }
   };
 
@@ -345,13 +391,139 @@ const SupplierProfile = () => {
           </div>
         </div>
 
-        {/* Bank & Payout Information */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-          <h2 className="text-base font-black text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-            <CreditCard className="w-5 h-5 text-slate-600" />
-            Payout & Settlement Details
-          </h2>
+        {/* Payout & Settlement Details (UPI QR + Bank Account) */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-6">
+          <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+            <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-emerald-600" />
+              Payout & Settlement Details (Saturday UPI Cycle)
+            </h2>
+            <span className="text-xs bg-emerald-50 text-emerald-700 font-bold px-2.5 py-1 rounded-full border border-emerald-200">
+              Manual Weekly Settlements
+            </span>
+          </div>
+
+          {/* Supplier QR Code Upload Section */}
+          <div className="bg-gradient-to-br from-emerald-50/60 to-slate-50 border border-emerald-100/80 rounded-2xl p-5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+              <div>
+                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                  <QrCode className="w-4 h-4 text-emerald-600" />
+                  Supplier UPI QR Code
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  HostelKart admin scans this QR to settle your net payout every Saturday.
+                </p>
+              </div>
+              {upiQrCode ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold">
+                  <Check className="w-3.5 h-3.5" /> QR Code Active
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold">
+                  <AlertCircle className="w-3.5 h-3.5" /> QR Upload Required
+                </span>
+              )}
+            </div>
+
+            {qrMessage.text && (
+              <div
+                className={`mb-4 p-3 rounded-xl flex items-center gap-2.5 text-xs font-medium ${
+                  qrMessage.type === 'success'
+                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                    : 'bg-rose-100 text-rose-800 border border-rose-200'
+                }`}
+              >
+                {qrMessage.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                )}
+                <span>{qrMessage.text}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 items-center">
+              {/* QR Preview Box */}
+              <div className="sm:col-span-1 flex flex-col items-center justify-center p-3 bg-white rounded-xl border border-slate-200 shadow-sm min-h-[160px]">
+                {upiQrCode ? (
+                  <div className="text-center space-y-2">
+                    <img
+                      src={upiQrCode}
+                      alt="Supplier UPI QR"
+                      className="w-36 h-36 object-contain rounded-lg border border-slate-100 mx-auto"
+                    />
+                    <a
+                      href={upiQrCode}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:underline"
+                    >
+                      <ExternalLink className="w-3 h-3" /> View Full Image
+                    </a>
+                  </div>
+                ) : (
+                  <div className="text-center p-4 space-y-2">
+                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                      <QrCode className="w-6 h-6" />
+                    </div>
+                    <p className="text-xs font-medium text-slate-500">No QR Code Uploaded</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Upload Dropzone */}
+              <div className="sm:col-span-2 space-y-3">
+                <label className="border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-white hover:bg-emerald-50/30 transition-all rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer text-center block">
+                  <UploadCloud className="w-8 h-8 text-emerald-600 mb-1" />
+                  <span className="text-xs font-bold text-slate-800">
+                    {qrUploading ? 'Uploading QR...' : upiQrCode ? 'Click to replace UPI QR Code' : 'Click to upload UPI QR Code'}
+                  </span>
+                  <span className="text-[11px] text-slate-400 mt-0.5">
+                    Supports PNG, JPG, WebP (Max 5MB)
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    disabled={qrUploading}
+                    onChange={handleQrUpload}
+                  />
+                </label>
+                <p className="text-[11px] text-slate-500 bg-white/80 p-2.5 rounded-lg border border-slate-200/60 leading-relaxed">
+                  💡 <strong>Tip:</strong> Download or screenshot your PhonePe, Google Pay, or Paytm business QR code and upload it here. Ensure your UPI ID below matches this QR.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                UPI ID (Primary Settlement Target)
+              </label>
+              <input
+                type="text"
+                name="bank.upiId"
+                value={formData.bankAccount.upiId}
+                onChange={handleChange}
+                placeholder="e.g. yourname@okaxis or merchant@icici"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white font-medium"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                Account Holder Name
+              </label>
+              <input
+                type="text"
+                name="bank.accountName"
+                value={formData.bankAccount.accountName}
+                onChange={handleChange}
+                placeholder="Name as on Bank Account / UPI"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+              />
+            </div>
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
                 Bank Name
@@ -367,20 +539,7 @@ const SupplierProfile = () => {
             </div>
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                Account Holder Name
-              </label>
-              <input
-                type="text"
-                name="bank.accountName"
-                value={formData.bankAccount.accountName}
-                onChange={handleChange}
-                placeholder="Bank account title"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                Account Number
+                Bank Account Number (Optional Backup)
               </label>
               <input
                 type="text"
@@ -393,7 +552,7 @@ const SupplierProfile = () => {
             </div>
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                IFSC Code
+                IFSC Code (Optional Backup)
               </label>
               <input
                 type="text"
@@ -402,19 +561,6 @@ const SupplierProfile = () => {
                 onChange={handleChange}
                 placeholder="e.g. HDFC0001234"
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm uppercase focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                UPI ID (Alternative Payout)
-              </label>
-              <input
-                type="text"
-                name="bank.upiId"
-                value={formData.bankAccount.upiId}
-                onChange={handleChange}
-                placeholder="supplier@upi"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
               />
             </div>
           </div>
