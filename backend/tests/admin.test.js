@@ -9,6 +9,7 @@ import DeliveryPartner from '../models/DeliveryPartner.js';
 import {
   getDashboardAnalytics,
   addProduct,
+  bulkAddProducts,
   editProduct,
   deleteProduct,
   getAllUsers,
@@ -153,6 +154,79 @@ export async function runAdminTests() {
   const checkDeleted = await Product.findById(createdProduct._id);
   assert.equal(checkDeleted, null, 'Product should be deleted from DB');
   console.log('✓ Admin Product Deletion verified.');
+
+  // Test 3d: Bulk Product Creation & Validation
+  const sampleBulk = [
+    { name: 'Admin Test Royal Gala Apple', category: 'Fruits', price: 180, stock: 50, image: '/uploads/apple.jpg' },
+    { name: 'Admin Test Robusta Banana', category: 'Fruits', price: 60, stock: 40, image: '/uploads/banana.jpg' },
+    { name: 'Admin Test Green Kiwi', category: 'Exotic Fruits', price: 220, stock: 30, image: '/uploads/kiwi.jpg' },
+    { name: 'Admin Test Sweet Mango', category: 'Fruits', price: 200, stock: 25, image: '/uploads/mango.jpg' },
+    { name: 'Admin Test Ripe Papaya', category: 'Fruits', price: 80, stock: 20, image: '/uploads/papaya.jpg' },
+    { name: 'Admin Test Mosambi Sweet Lime', category: 'Fruits', price: 90, stock: 35, image: '/uploads/sweet-lime.jpg' },
+    { name: 'Admin Test Thai Guava', category: 'Exotic Fruits', price: 150, stock: 30, image: '/uploads/thai-guava.jpg' },
+    { name: 'Admin Test Queen Pineapple', category: 'Fruits', price: 110, stock: 15, image: '/uploads/pineapple.jpg' },
+    { name: 'Admin Test Fresh Blueberry', category: 'Exotic Fruits', price: 350, stock: 10, image: '/uploads/blueberry.jpg' },
+    { name: 'Admin Test Nagpur Orange', category: 'Fruits', price: 95, stock: 45, image: '/uploads/orange.jpg' },
+  ];
+
+  let bulkResult = null;
+  const mockReqBulk = {
+    user: adminUser,
+    body: { products: sampleBulk }
+  };
+  const mockResBulk = {
+    status: (code) => {
+      assert.equal(code, 201, 'Should return 201 on bulk product creation');
+      return mockResBulk;
+    },
+    json: (data) => { bulkResult = data; }
+  };
+  await bulkAddProducts(mockReqBulk, mockResBulk);
+  assert.ok(bulkResult.success, 'Bulk creation should succeed');
+  assert.equal(bulkResult.summary.successCount, 10, 'All 10 sample products should be created');
+  assert.equal(bulkResult.summary.failedCount, 0, '0 products should fail');
+
+  // Verify duplicate prevention on second attempt
+  let duplicateResult = null;
+  const mockReqDup = {
+    user: adminUser,
+    body: { products: sampleBulk, allowDuplicates: false }
+  };
+  const mockResDup = {
+    status: (code) => {
+      assert.equal(code, 400, 'Should return 400 when all items are duplicates');
+      return mockResDup;
+    },
+    json: (data) => { duplicateResult = data; }
+  };
+  await bulkAddProducts(mockReqDup, mockResDup);
+  assert.equal(duplicateResult.summary.duplicateCount, 10, 'All 10 should be flagged as duplicates');
+
+  // Verify partial failure handling (1 valid, 1 invalid category, 1 missing price)
+  let partialResult = null;
+  const partialBatch = [
+    { name: 'Admin Test Valid Stationery Pen', category: 'Stationery', price: 20, stock: 100, image: '/uploads/pen.jpg' },
+    { name: 'Admin Test Invalid Cat Item', category: 'InvalidCategory123', price: 50, stock: 10 },
+    { name: 'Admin Test Missing Price Item', category: 'Medicines', price: 'invalid_price', stock: 10 },
+  ];
+  const mockReqPartial = {
+    user: adminUser,
+    body: { products: partialBatch }
+  };
+  const mockResPartial = {
+    status: (code) => {
+      assert.equal(code, 201, 'Should return 201 when at least 1 item is created');
+      return mockResPartial;
+    },
+    json: (data) => { partialResult = data; }
+  };
+  await bulkAddProducts(mockReqPartial, mockResPartial);
+  assert.equal(partialResult.summary.successCount, 1, '1 valid product should be created');
+  assert.equal(partialResult.summary.failedCount, 2, '2 invalid products should fail');
+
+  // Clean up bulk test products
+  await Product.deleteMany({ name: /^Admin Test/ });
+  console.log('✓ Bulk Product Creation, Duplicate Protection & Partial Failure handling verified.');
 
   // Test 4: Delivery Assignment and Safe Reassignment
   let baseProduct = await Product.findOne({ isAvailable: true, stock: { $gt: 0 } });

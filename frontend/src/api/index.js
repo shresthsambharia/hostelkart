@@ -226,6 +226,7 @@ export const adminAPI = {
   getAnalytics: () => API.get('/admin/analytics'),
   getLogs: () => API.get('/admin/logs'),
   addProduct: (productData) => API.post('/admin/products', productData),
+  bulkAddProducts: (data) => API.post('/admin/products/bulk', data),
   updateProduct: (id, productData) => API.put(`/admin/products/${id}`, productData),
   deleteProduct: (id) => API.delete(`/admin/products/${id}`),
   getAllOrders: () => API.get('/admin/orders'),

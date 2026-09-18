@@ -409,6 +409,162 @@ const addProduct = asyncHandler(async (req, res) => {
   res.status(201).json(createdProduct);
 });
 
+// @desc    Bulk Add Products
+// @route   POST /api/admin/products/bulk
+// @access  Private/Admin
+const bulkAddProducts = asyncHandler(async (req, res) => {
+  const { products: rawProducts, allowDuplicates = false } = req.body;
+
+  if (!rawProducts || !Array.isArray(rawProducts) || rawProducts.length === 0) {
+    res.status(400);
+    throw new Error('Please provide an array of products to create');
+  }
+
+  if (rawProducts.length > 100) {
+    res.status(400);
+    throw new Error('Cannot create more than 100 products in a single bulk batch');
+  }
+
+  // Pre-fetch normalized names of existing products for fast batch duplicate detection
+  const incomingNormalizedNames = rawProducts
+    .map(p => (p?.name || '').trim().toLowerCase())
+    .filter(Boolean);
+
+  const existingProducts = await Product.find({
+    normalizedName: { $in: incomingNormalizedNames }
+  }).select('_id name normalizedName').lean();
+
+  const existingNameSet = new Set(existingProducts.map(p => p.normalizedName));
+
+  const created = [];
+  const failed = [];
+  const duplicateWarnings = [];
+  const seenInBatch = new Set();
+
+  for (let i = 0; i < rawProducts.length; i++) {
+    const p = rawProducts[i];
+    const itemIndex = i + 1;
+
+    try {
+      if (!p || typeof p !== 'object') {
+        throw new Error('Invalid product data structure');
+      }
+
+      const rawName = (p.name || '').trim();
+      if (!rawName) {
+        throw new Error('Product name is required');
+      }
+
+      const normName = rawName.toLowerCase();
+
+      // Check duplicate within existing database
+      if (existingNameSet.has(normName) && !allowDuplicates) {
+        duplicateWarnings.push({
+          index: itemIndex,
+          name: rawName,
+          reason: `A product with name "${rawName}" already exists in the catalog.`
+        });
+        throw new Error(`Product "${rawName}" already exists in catalog.`);
+      }
+
+      // Check duplicate within same batch
+      if (seenInBatch.has(normName) && !allowDuplicates) {
+        throw new Error(`Duplicate product "${rawName}" detected in the same batch.`);
+      }
+
+      const rawCategory = (p.category || '').trim();
+      if (!rawCategory) {
+        throw new Error('Category is required');
+      }
+
+      if (!STUDENT_VISIBLE_CATEGORIES.includes(rawCategory)) {
+        throw new Error(`Invalid category "${rawCategory}". Allowed categories: ${STUDENT_VISIBLE_CATEGORIES.join(', ')}`);
+      }
+
+      const priceNum = Number(p.price);
+      if (isNaN(priceNum) || priceNum < 0) {
+        throw new Error('Price must be a valid non-negative number');
+      }
+
+      const discountNum = Number(p.discount || 0);
+      if (isNaN(discountNum) || discountNum < 0 || discountNum > 100) {
+        throw new Error('Discount must be a valid percentage between 0 and 100');
+      }
+
+      const stockNum = Number(p.stock !== undefined && p.stock !== '' ? p.stock : 0);
+      if (isNaN(stockNum) || stockNum < 0 || !Number.isInteger(stockNum)) {
+        throw new Error('Stock must be a valid non-negative integer');
+      }
+
+      const mrpNum = p.mrp !== undefined && p.mrp !== '' ? Number(p.mrp) : priceNum;
+      if (isNaN(mrpNum) || mrpNum < 0) {
+        throw new Error('MRP must be a valid non-negative number');
+      }
+
+      const productDoc = new Product({
+        name: rawName,
+        price: priceNum,
+        discount: discountNum,
+        description: p.description && p.description.trim() ? p.description.trim() : rawName,
+        category: rawCategory,
+        stock: stockNum,
+        deliveryTime: p.deliveryTime || 'Scheduled Delivery',
+        brand: p.brand ? p.brand.trim() : '',
+        isAvailable: p.isAvailable !== undefined ? Boolean(p.isAvailable) : true,
+        image: p.image && p.image.trim() ? p.image.trim() : '/uploads/default-product.png',
+        imageOriginal: p.imageOriginal || undefined,
+        imageMedium: p.imageMedium || undefined,
+        imageThumb: p.imageThumb || undefined,
+        mrp: mrpNum,
+        supplier: null, // Admin-created product has null supplier
+        approvalStatus: 'approved',
+      });
+
+      const saved = await productDoc.save();
+      seenInBatch.add(normName);
+      existingNameSet.add(normName);
+
+      created.push({
+        _id: saved._id,
+        name: saved.name,
+        category: saved.category,
+        price: saved.price,
+        stock: saved.stock,
+        image: saved.image,
+        mrp: saved.mrp,
+        discount: saved.discount,
+        isAvailable: saved.isAvailable
+      });
+    } catch (err) {
+      failed.push({
+        index: itemIndex,
+        name: p?.name || `Item #${itemIndex}`,
+        error: err.message || 'Failed to create product',
+        product: p
+      });
+    }
+  }
+
+  if (created.length > 0) {
+    req.newValue = { count: created.length, createdIds: created.map(c => c._id) };
+    await invalidateProductCache();
+    await invalidateAnalyticsCache();
+  }
+
+  res.status(created.length > 0 ? 201 : 400).json({
+    success: created.length > 0,
+    summary: {
+      total: rawProducts.length,
+      successCount: created.length,
+      failedCount: failed.length,
+      duplicateCount: duplicateWarnings.length,
+    },
+    created,
+    failed,
+    duplicateWarnings,
+  });
+});
+
 // @desc    Edit a product
 // @route   PUT /api/admin/products/:id
 // @access  Private/Admin
@@ -2583,6 +2739,7 @@ const updateSettlementSettings = asyncHandler(async (req, res) => {
 export {
   getDashboardAnalytics,
   addProduct,
+  bulkAddProducts,
   editProduct,
   deleteProduct,
   getAllOrders,

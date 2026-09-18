@@ -2,6 +2,7 @@ import express from 'express';
 import {
   getDashboardAnalytics,
   addProduct,
+  bulkAddProducts,
   editProduct,
   deleteProduct,
   getAllOrders,
@@ -51,6 +52,7 @@ router.use(logAdminActivity); // Audit logs for all admin write operations
 router.get('/analytics', cache(60), getDashboardAnalytics);
 router.get('/logs', getAdminLogs);
 router.post('/products', addProduct);
+router.post('/products/bulk', bulkAddProducts);
 router.post('/products/deduplicate', deduplicateProducts);
 router.route('/products/:id')
   .put(editProduct)

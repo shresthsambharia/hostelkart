@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { getAdminThumbnail } from '../utils/image';
 import ImageUploader from '../components/ImageUploader';
+import BulkProductModal from './BulkProductModal';
 import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants';
 
 // DataGrid components for strict verification
@@ -275,6 +276,7 @@ const AdminProducts = () => {
 
   // Form Stepper States
   const [modalOpen, setModalOpen] = useState(false);
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [formStep, setFormStep] = useState(1); // Steps 1 to 5
@@ -848,13 +850,22 @@ const AdminProducts = () => {
           <p className="text-[11px] text-slate-450 font-bold uppercase mt-1">Configure inventory listings, spreadsheets imports, and audit events</p>
         </div>
         {activeTab === 'catalog' && (
-          <button 
-            onClick={handleOpenAddModal} 
-            className="btn-primary flex items-center space-x-1.5 text-xs py-2 px-4 shadow-sm hover:-translate-y-0.5 transition-transform"
-          >
-            <Plus size={14} />
-            <span>Add New Product</span>
-          </button>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <button 
+              onClick={() => setBulkModalOpen(true)} 
+              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-extrabold flex items-center space-x-1.5 text-xs py-2 px-3.5 rounded-xl shadow-sm hover:-translate-y-0.5 transition-all"
+            >
+              <Layers size={14} />
+              <span>+ Bulk Add Products</span>
+            </button>
+            <button 
+              onClick={handleOpenAddModal} 
+              className="btn-primary flex items-center space-x-1.5 text-xs py-2 px-4 shadow-sm hover:-translate-y-0.5 transition-transform"
+            >
+              <Plus size={14} />
+              <span>Add Product</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -1602,6 +1613,17 @@ const AdminProducts = () => {
           </div>
         </div>
       )}
+
+      {/* Bulk Add Products Dedicated Modal */}
+      <BulkProductModal
+        isOpen={bulkModalOpen}
+        onClose={() => setBulkModalOpen(false)}
+        onSuccess={() => {
+          showToastMsg('success', 'Bulk products created successfully!');
+          fetchProductsAndCategories();
+        }}
+        existingProducts={products}
+      />
 
     </div>
   );
