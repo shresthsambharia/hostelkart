@@ -50,6 +50,8 @@ const createOrder = asyncHandler(async (req, res) => {
     walletPaidAmount = 0,
   } = req.body;
 
+  const isUpi = paymentMethod === 'UPI';
+
   if (!orderItems || orderItems.length === 0) {
     res.status(400);
     throw new Error('No order items');
@@ -246,7 +248,6 @@ const createOrder = asyncHandler(async (req, res) => {
   const deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
 
   // Create order
-  const isUpi = paymentMethod === 'UPI';
   const initialPaymentStatus = isUpi ? 'Pending Payment' : (paymentStatus || 'Pending');
   const initialOrderStatus = isUpi ? 'Pending Payment' : 'Pending';
   const expiresAt = isUpi ? new Date(Date.now() + 15 * 60 * 1000) : null;
