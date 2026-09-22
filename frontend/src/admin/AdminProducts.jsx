@@ -136,80 +136,6 @@ const InlineEditCell = ({ rowId, field, initialValue, onSave, numeric = true, pr
   );
 };
 
-// Custom Cell for Offer Price
-const OfferPriceCell = ({ rowId, price, discount, onSave }) => {
-  const initialOfferPrice = Math.max(0, Math.round(price * (1 - discount / 100)));
-  const [isEditing, setIsEditing] = useState(false);
-  const [value, setValue] = useState(initialOfferPrice);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setValue(initialOfferPrice);
-  }, [initialOfferPrice]);
-
-  const handleSave = async () => {
-    const offerVal = Number(value);
-    if (isNaN(offerVal) || offerVal < 0 || offerVal > price) {
-      alert("Offer price must be between 0 and the base price.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const calculatedDiscount = price > 0 ? Math.round(((price - offerVal) / price) * 100) : 0;
-      await onSave(rowId, 'discount', calculatedDiscount);
-      setIsEditing(false);
-    } catch (err) {
-      setValue(initialOfferPrice);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') handleSave();
-    else if (e.key === 'Escape') {
-      setValue(initialOfferPrice);
-      setIsEditing(false);
-    }
-  };
-
-  if (isEditing) {
-    return (
-      <div className="flex items-center gap-1 w-full h-full" onClick={(e) => e.stopPropagation()}>
-        <input
-          type="number"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="w-16 px-1.5 py-1 border border-primary-500 rounded-lg text-xs outline-none font-bold text-slate-800 focus:ring-1 focus:ring-primary-500"
-          autoFocus
-        />
-        {loading ? (
-          <span className="w-3.5 h-3.5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin shrink-0"></span>
-        ) : (
-          <div className="flex items-center gap-0.5 shrink-0">
-            <button onClick={handleSave} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md font-bold text-xs" title="Save">✓</button>
-            <button onClick={() => { setValue(initialOfferPrice); setIsEditing(false); }} className="p-1 text-rose-600 hover:bg-rose-50 rounded-md font-bold text-xs" title="Cancel">✕</button>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex items-center justify-between group w-full h-full pr-1.5" onClick={(e) => e.stopPropagation()}>
-      <span className="font-bold text-slate-700">₹{initialOfferPrice}</span>
-      <button
-        onClick={() => setIsEditing(true)}
-        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-100 rounded-md text-[10px] transition-opacity duration-150 shrink-0"
-        title="Edit inline"
-      >
-        ✏️
-      </button>
-    </div>
-  );
-};
-
 // Custom Toggle Switch Cell for Availability Toggle
 const AvailabilityToggleCell = ({ rowId, isAvailable, onToggle }) => {
   const [loading, setLoading] = useState(false);
@@ -284,11 +210,10 @@ const AdminProducts = () => {
   // Form Fields State
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
-  const [discount, setDiscount] = useState('0');
+  const [mrp, setMrp] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState(STUDENT_VISIBLE_CATEGORIES[0]);
   const [stock, setStock] = useState('');
-  const [deliveryTime, setDeliveryTime] = useState('Scheduled Delivery');
   const [isAvailable, setIsAvailable] = useState(true);
   const [imageUrls, setImageUrls] = useState([]); // array for multi-image support
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -402,11 +327,10 @@ const AdminProducts = () => {
     setSelectedId(null);
     setName('');
     setPrice('');
-    setDiscount('0');
+    setMrp('');
     setDescription('');
     setCategory(defaultCategory || categoryFilter || STUDENT_VISIBLE_CATEGORIES[0]);
     setStock('');
-    setDeliveryTime('Scheduled Delivery');
     setIsAvailable(true);
     setImageUrls([]);
     setFormStep(1);
@@ -418,11 +342,10 @@ const AdminProducts = () => {
     setSelectedId(p._id);
     setName(p.name);
     setPrice(p.price);
-    setDiscount(p.discount || '0');
+    setMrp(p.mrp || p.price || '');
     setDescription(p.description);
     setCategory(p.category);
     setStock(p.stock);
-    setDeliveryTime(p.deliveryTime || 'Scheduled Delivery');
     setIsAvailable(p.isAvailable);
     setImageUrls(p.image ? [p.image] : []);
     setFormStep(1);
@@ -439,11 +362,12 @@ const AdminProducts = () => {
     const payload = {
       name,
       price: Number(price),
-      discount: Number(discount),
+      mrp: mrp ? Number(mrp) : Number(price),
+      discount: 0,
       description,
       category,
       stock: Number(stock),
-      deliveryTime,
+      deliveryTime: 'Scheduled Delivery',
       isAvailable,
       image: imageUrls[0] || '/uploads/default-product.png',
     };
@@ -743,29 +667,6 @@ const AdminProducts = () => {
       )
     },
     { 
-      field: 'offerPrice', 
-      headerName: 'Offer Price', 
-      width: 95,
-      renderCell: (params) => (
-        <OfferPriceCell
-          rowId={params.row.id}
-          price={params.row.price}
-          discount={params.row.discount}
-          onSave={handleInlineUpdate}
-        />
-      )
-    },
-    { 
-      field: 'discount', 
-      headerName: 'Discount', 
-      width: 90,
-      renderCell: (params) => params.value > 0 ? (
-        <span className="px-1.5 py-0.5 bg-rose-50 border border-rose-100 text-rose-750 rounded-lg text-[9px] font-black">
-          {params.value}% OFF
-        </span>
-      ) : '-'
-    },
-    { 
       field: 'stock', 
       headerName: 'Stock', 
       width: 95,
@@ -778,7 +679,6 @@ const AdminProducts = () => {
         />
       )
     },
-    { field: 'deliveryTime', headerName: 'Logistics', width: 100 },
     {
       field: 'isAvailable',
       headerName: 'Availability',
@@ -1412,77 +1312,66 @@ const AdminProducts = () => {
                 </div>
               )}
 
-              {/* STEP 2: Pricing & Discounts */}
+              {/* STEP 2: Pricing */}
               {formStep === 2 && (
                 <div className="space-y-4">
                   <div className="p-3 bg-blue-50/55 rounded-xl border border-blue-100/50 flex items-center gap-2.5 text-xs text-blue-800">
                     <Sliders className="w-4 h-4 shrink-0" />
-                    <span className="font-bold">Configure base fees and promotional discounts.</span>
+                    <span className="font-bold">Configure base selling price and MRP.</span>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] font-black uppercase text-slate-450 block mb-1">Retail Price (₹)</label>
+                      <label className="text-[10px] font-black uppercase text-slate-450 block mb-1">Base Price (₹) *</label>
                       <input
                         type="number"
                         className="input-field text-xs py-2"
                         value={price}
                         onChange={(e) => setPrice(e.target.value)}
+                        placeholder="e.g. 120"
                         required
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-black uppercase text-slate-450 block mb-1">Discount Rate (%)</label>
+                      <label className="text-[10px] font-black uppercase text-slate-450 block mb-1">MRP (₹)</label>
                       <input
                         type="number"
                         className="input-field text-xs py-2"
-                        value={discount}
-                        onChange={(e) => setDiscount(e.target.value)}
+                        value={mrp}
+                        onChange={(e) => setMrp(e.target.value)}
+                        placeholder="e.g. 150"
                       />
                     </div>
                   </div>
 
-                  {/* Calculated summary card */}
+                  {/* Summary card */}
                   <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl space-y-1.5 select-none">
                     <div className="flex justify-between text-xs font-bold text-slate-500">
-                      <span>Sticker Price:</span>
-                      <span>₹{Number(price) || 0}</span>
-                    </div>
-                    <div className="flex justify-between text-xs font-bold text-rose-600">
-                      <span>Discount deduction ({Number(discount) || 0}%):</span>
-                      <span>- ₹{Math.round((Number(price) || 0) * (Number(discount) || 0) / 100)}</span>
+                      <span>MRP:</span>
+                      <span>₹{Number(mrp) || Number(price) || 0}</span>
                     </div>
                     <div className="flex justify-between text-sm font-black text-slate-800 border-t border-slate-200/50 pt-2">
-                      <span>Final Student price:</span>
-                      <span className="text-emerald-600">₹{Math.max(0, Math.round((Number(price) || 0) * (1 - (Number(discount) || 0) / 100)))}</span>
+                      <span>Base Selling Price:</span>
+                      <span className="text-emerald-600">₹{Number(price) || 0}</span>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* STEP 3: Inventory & Logistics */}
+              {/* STEP 3: Inventory & Settings */}
               {formStep === 3 && (
                 <div className="space-y-4">
                   <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100/50 flex items-center gap-2.5 text-xs text-purple-800">
                     <Layers className="w-4 h-4 shrink-0" />
-                    <span className="font-bold">Define stock caps and fulfillment parameters.</span>
+                    <span className="font-bold">Define stock units and storefront visibility.</span>
                   </div>
                   <div>
-                    <label className="text-[10px] font-black uppercase text-slate-450 block mb-1">Warehouse Stock Units</label>
+                    <label className="text-[10px] font-black uppercase text-slate-450 block mb-1">Warehouse Stock Units *</label>
                     <input
                       type="number"
                       className="input-field text-xs py-2"
                       value={stock}
                       onChange={(e) => setStock(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black uppercase text-slate-450 block mb-1">Delivery SLA Frame</label>
-                    <input
-                      type="text"
-                      className="input-field text-xs py-2"
-                      value={deliveryTime}
-                      onChange={(e) => setDeliveryTime(e.target.value)}
+                      placeholder="e.g. 50"
                       required
                     />
                   </div>
@@ -1535,11 +1424,6 @@ const AdminProducts = () => {
                         alt="Preview image"
                         className="w-28 h-28 object-contain"
                       />
-                      {Number(discount) > 0 && (
-                        <span className="absolute top-2 left-2 px-1.5 py-0.5 bg-rose-500 text-white rounded-lg text-[8px] font-black uppercase tracking-wider">
-                          {discount}% OFF
-                        </span>
-                      )}
                     </div>
 
                     <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
@@ -1551,10 +1435,10 @@ const AdminProducts = () => {
                       <div className="flex justify-between items-center pt-2">
                         <div className="flex items-baseline gap-1">
                           <span className="font-black text-sm text-slate-800">
-                            ₹{Math.max(0, Math.round((Number(price) || 0) * (1 - (Number(discount) || 0) / 100)))}
+                            ₹{Number(price) || 0}
                           </span>
-                          {Number(discount) > 0 && (
-                            <span className="text-[9px] text-slate-400 font-bold line-through">₹{price}</span>
+                          {Number(mrp) > (Number(price) || 0) && (
+                            <span className="text-[9px] text-slate-400 font-bold line-through">₹{mrp}</span>
                           )}
                         </div>
                         <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 uppercase">

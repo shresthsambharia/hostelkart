@@ -36,13 +36,11 @@ const SupplierProducts = () => {
     name: '',
     price: '',
     mrp: '',
-    discount: '',
     category: 'Fruits',
     stock: '',
     brand: '',
     image: '',
     description: '',
-    deliveryTime: 'Scheduled Delivery',
   });
 
   const fetchProducts = async () => {
@@ -89,13 +87,11 @@ const SupplierProducts = () => {
       name: '',
       price: '',
       mrp: '',
-      discount: '',
       category: 'Fruits',
       stock: '',
       brand: '',
       image: '',
       description: '',
-      deliveryTime: 'Scheduled Delivery',
     });
     setIsModalOpen(true);
   };
@@ -107,13 +103,11 @@ const SupplierProducts = () => {
       name: product.name || '',
       price: product.price || '',
       mrp: product.mrp || '',
-      discount: product.discount || '',
       category: product.category || 'Fruits',
       stock: product.stock !== undefined ? product.stock : '',
       brand: product.brand || '',
       image: product.image || '',
       description: product.description || '',
-      deliveryTime: product.deliveryTime || 'Scheduled Delivery',
     });
     setIsModalOpen(true);
   };
@@ -566,7 +560,7 @@ const SupplierProducts = () => {
                 </div>
 
                 {/* Stock */}
-                <div>
+                <div className="sm:col-span-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Initial Stock Units *</label>
                   <input
                     type="number"
@@ -577,20 +571,6 @@ const SupplierProducts = () => {
                     value={formData.stock}
                     onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-black text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-
-                {/* Discount */}
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Discount %</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="90"
-                    placeholder="e.g. 10"
-                    value={formData.discount}
-                    onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
 

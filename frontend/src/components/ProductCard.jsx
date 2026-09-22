@@ -18,10 +18,9 @@ const ProductCard = ({ product, priority = false, reason = '' }) => {
   }
 
   const isFavorited = isInWishlist(product._id);
-  const mrp = Math.max(product.mrp || 0, product.price || 0);
-  const sellingPrice = Math.round((product.price || 0) * (1 - (product.discount || 0) / 100));
-  const dynamicDiscount = mrp > 0 ? Math.round(((mrp - sellingPrice) / mrp) * 100) : 0;
-  const saveAmount = Math.max(0, mrp - sellingPrice);
+  const price = product.price || 0;
+  const mrp = product.mrp;
+  const hasDiscount = mrp && mrp > price;
 
   const cartItem = cart?.items?.find((item) => item.product && item.product._id === product._id);
   const quantityInCart = cartItem ? cartItem.quantity : 0;
@@ -34,7 +33,7 @@ const ProductCard = ({ product, priority = false, reason = '' }) => {
     badgeText = 'Best Seller';
     badgeStyle = 'bg-amber-50 text-amber-700 border-amber-100';
   } else if (charCodeSum % 3 === 1) {
-    badgeText = 'Fast Delivery';
+    badgeText = 'Top Rated';
     badgeStyle = 'bg-blue-50 text-blue-700 border-blue-100';
   } else {
     badgeText = 'Popular';
@@ -65,16 +64,8 @@ const ProductCard = ({ product, priority = false, reason = '' }) => {
       whileHover={{ y: -3, scale: 1.01, transition: { duration: 0.2 } }}
       className="bg-white rounded-3xl border border-slate-100/90 hover:border-emerald-250/50 overflow-hidden flex flex-col justify-between relative group shadow-premium select-none"
     >
-      {/* Top badges & actions */}
-      <div className="absolute top-3 left-3 right-3 flex justify-between items-start z-10">
-        {dynamicDiscount > 0 ? (
-          <span className="bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-lg shadow-sm uppercase tracking-wider">
-            {dynamicDiscount}% OFF
-          </span>
-        ) : (
-          <span />
-        )}
-
+      {/* Top actions */}
+      <div className="absolute top-3 right-3 z-10">
         <button
           onClick={handleToggleWishlist}
           aria-label={isFavorited ? "Remove from wishlist" : "Add to wishlist"}
@@ -163,20 +154,14 @@ const ProductCard = ({ product, priority = false, reason = '' }) => {
         <div>
           {/* Prices */}
           <div className="flex items-baseline gap-1.5 flex-wrap">
-            <span className="text-xs sm:text-sm font-black text-slate-950">₹{sellingPrice}</span>
-            {dynamicDiscount > 0 && (
-              <>
-                <span className="text-[10px] text-slate-450 line-through font-semibold">₹{mrp}</span>
-                <span className="text-[9.5px] text-emerald-650 font-black bg-emerald-50 px-1 py-0.5 rounded border border-emerald-100/50">Save ₹{saveAmount}</span>
-              </>
+            <span className="text-xs sm:text-sm font-black text-slate-950">₹{price}</span>
+            {hasDiscount && (
+              <span className="text-[10px] text-slate-450 line-through font-semibold">₹{mrp}</span>
             )}
           </div>
 
-          {/* Delivery & stock status */}
-          <div className="flex justify-between items-center mt-2.5 mb-2.5 gap-1">
-            <span className="inline-flex items-center text-[9px] font-bold text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded-lg border border-slate-100 uppercase tracking-wide">
-              ⏱️ {product.deliveryTime || '10 Mins slot'}
-            </span>
+          {/* Stock status */}
+          <div className="flex justify-end items-center mt-2.5 mb-2.5 gap-1">
             {product.stock > 0 && product.stock <= 5 ? (
               <span className="text-rose-600 font-black bg-rose-50 px-1.5 py-0.5 rounded-lg text-[9px] border border-rose-100">Only {product.stock} left</span>
             ) : product.stock > 5 ? (

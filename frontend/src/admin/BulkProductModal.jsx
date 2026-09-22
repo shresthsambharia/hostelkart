@@ -101,8 +101,6 @@ const BulkProductModal = ({ isOpen, onClose, onSuccess, existingProducts = [] })
   const [bulkUnit, setBulkUnit] = useState('kg');
   const [bulkStock, setBulkStock] = useState('50');
   const [bulkBrand, setBulkBrand] = useState('');
-  const [bulkDiscount, setBulkDiscount] = useState('0');
-  const [bulkDeliveryTime, setBulkDeliveryTime] = useState('Scheduled Delivery');
 
   // Overall saving & progress
   const [saveProgress, setSaveProgress] = useState({ current: 0, total: 0, phase: '' });
@@ -227,15 +225,6 @@ const BulkProductModal = ({ isOpen, onClose, onSuccess, existingProducts = [] })
           updated.description = value;
         }
         
-        // Auto-calculate discount if MRP & Price provided
-        if (field === 'price' || field === 'mrp') {
-          const p = Number(field === 'price' ? value : item.price);
-          const m = Number(field === 'mrp' ? value : item.mrp);
-          if (m > 0 && p >= 0 && m >= p) {
-            updated.discount = Math.round(((m - p) / m) * 100).toString();
-          }
-        }
-        
         return updated;
       })
     );
@@ -251,6 +240,7 @@ const BulkProductModal = ({ isOpen, onClose, onSuccess, existingProducts = [] })
     );
   };
 
+  // Auto-fill Product Titles using standard filename formatting
   const handleGenerateNamesFromFilenames = () => {
     setItems((prev) =>
       prev.map((item) => {
@@ -274,8 +264,6 @@ const BulkProductModal = ({ isOpen, onClose, onSuccess, existingProducts = [] })
           unit: sourceItem.unit,
           stock: sourceItem.stock,
           brand: sourceItem.brand,
-          discount: sourceItem.discount,
-          deliveryTime: sourceItem.deliveryTime,
           price: item.price || sourceItem.price,
           mrp: item.mrp || sourceItem.mrp,
         };
@@ -871,54 +859,6 @@ const BulkProductModal = ({ isOpen, onClose, onSuccess, existingProducts = [] })
                       </button>
                     </div>
                   </div>
-
-                  {/* Discount Fast Apply */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-500 uppercase block">Discount %</label>
-                    <div className="flex gap-1">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={bulkDiscount}
-                        onChange={(e) => setBulkDiscount(e.target.value)}
-                        className="w-16 bg-white border border-slate-200 rounded-xl px-2 py-1 text-xs font-bold text-slate-800 outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleApplyToAllOrSelected('discount', bulkDiscount)}
-                        className="bg-primary-600 hover:bg-primary-700 text-white font-bold text-[10px] px-2 py-1 rounded-xl shadow-sm"
-                        title="Apply discount to all"
-                      >
-                        Apply
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Delivery Slot Fast Apply */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-500 uppercase block">Delivery Slot</label>
-                    <div className="flex gap-1">
-                      <select
-                        value={bulkDeliveryTime}
-                        onChange={(e) => setBulkDeliveryTime(e.target.value)}
-                        className="flex-1 bg-white border border-slate-200 rounded-xl px-2 py-1 text-xs font-bold text-slate-800 outline-none"
-                      >
-                        <option value="Scheduled Delivery">Scheduled</option>
-                        <option value="30 mins">30 mins</option>
-                        <option value="45 mins">45 mins</option>
-                        <option value="60 mins">60 mins</option>
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => handleApplyToAllOrSelected('deliveryTime', bulkDeliveryTime)}
-                        className="bg-primary-600 hover:bg-primary-700 text-white font-bold text-[10px] px-2 py-1 rounded-xl shadow-sm"
-                        title="Apply delivery time to all"
-                      >
-                        Apply
-                      </button>
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -1090,36 +1030,18 @@ const BulkProductModal = ({ isOpen, onClose, onSuccess, existingProducts = [] })
                         </div>
                       </div>
 
-                      {/* Brand & Description Accordion / Mini Input */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-[9px] font-black text-slate-400 uppercase block mb-0.5">
-                            Brand / Origin
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="e.g. Shimla Orchard"
-                            value={item.brand}
-                            onChange={(e) => handleItemFieldChange(item.id, 'brand', e.target.value)}
-                            className="input-field text-xs py-1.5 font-semibold"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="text-[9px] font-black text-slate-400 uppercase block mb-0.5">
-                            Delivery Slot
-                          </label>
-                          <select
-                            value={item.deliveryTime}
-                            onChange={(e) => handleItemFieldChange(item.id, 'deliveryTime', e.target.value)}
-                            className="input-field text-xs py-1.5 font-semibold"
-                          >
-                            <option value="Scheduled Delivery">Scheduled Delivery</option>
-                            <option value="30 mins">30 mins</option>
-                            <option value="45 mins">45 mins</option>
-                            <option value="60 mins">60 mins</option>
-                          </select>
-                        </div>
+                      {/* Brand / Origin */}
+                      <div>
+                        <label className="text-[9px] font-black text-slate-400 uppercase block mb-0.5">
+                          Brand / Origin
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Shimla Orchard"
+                          value={item.brand}
+                          onChange={(e) => handleItemFieldChange(item.id, 'brand', e.target.value)}
+                          className="input-field text-xs py-1.5 font-semibold"
+                        />
                       </div>
 
                       {/* Error & Warning Badges */}

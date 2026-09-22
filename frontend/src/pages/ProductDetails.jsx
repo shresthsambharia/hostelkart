@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { productAPI } from '../api';
-import { Star, ShoppingCart, Heart, ArrowLeft, Clock, ShieldCheck, RefreshCw, Sparkles, ChevronRight, MessageCircle } from 'lucide-react';
+import { Star, ShoppingCart, Heart, ArrowLeft, ShieldCheck, RefreshCw, Sparkles, ChevronRight, MessageCircle } from 'lucide-react';
 import { getOptimizedImage, getResponsiveSrcSet, getOptimizedImageUrl, getBlurPlaceholderUrl } from '../utils/image';
 
 const ProductDetails = () => {
@@ -101,10 +101,9 @@ const ProductDetails = () => {
   }
 
   const isFavorited = isInWishlist(product._id);
-  const discountedPrice = Math.round(
-    product.price - (product.price * (product.discount || 0)) / 100
-  );
-  const saveAmount = product.discount > 0 ? Math.round((product.price * product.discount) / 100) : 0;
+  const price = product.price || 0;
+  const mrp = product.mrp;
+  const hasDiscount = mrp && mrp > price;
 
   // Find if in cart to enable inline mobile checkout indicators
   const cartItem = cart?.items?.find((item) => item.product && item.product._id === product._id);
@@ -164,7 +163,7 @@ const ProductDetails = () => {
     'offers': {
       '@type': 'Offer',
       'priceCurrency': 'INR',
-      'price': discountedPrice,
+      'price': price,
       'availability': product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       'url': window.location.href,
     },
@@ -291,14 +290,9 @@ const ProductDetails = () => {
 
               {/* Pricing section */}
               <div className="flex items-baseline gap-2 border-y border-slate-100 py-4 select-none">
-                <span className="text-2xl font-black text-slate-950">₹{discountedPrice}</span>
-                {product.discount > 0 && (
-                  <>
-                    <span className="text-sm text-slate-400 line-through font-semibold">₹{product.price}</span>
-                    <span className="bg-rose-50 border border-rose-100 text-rose-700 text-[10px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider">
-                      Save ₹{saveAmount}
-                    </span>
-                  </>
+                <span className="text-2xl font-black text-slate-950">₹{price}</span>
+                {hasDiscount && (
+                  <span className="text-sm text-slate-400 line-through font-semibold">₹{mrp}</span>
                 )}
               </div>
 
@@ -311,10 +305,6 @@ const ProductDetails = () => {
             {/* Delivery SLAs & actions */}
             <div className="space-y-4 pt-4 border-t border-slate-100">
               <div className="flex flex-wrap gap-2 text-[10px] font-bold text-slate-550 select-none">
-                <div className="flex items-center space-x-1 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-100">
-                  <Clock size={12} className="text-primary-600" />
-                  <span>Fulfillment: {product.deliveryTime || '10 Mins Slot'}</span>
-                </div>
                 <div className="flex items-center space-x-1 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-100">
                   <ShieldCheck size={12} className="text-primary-600" />
                   <span>Room Door Delivery</span>
@@ -511,7 +501,7 @@ const ProductDetails = () => {
           <div className="leading-tight">
             <span className="text-[9px] text-slate-400 font-black block uppercase">{product.category}</span>
             <span className="text-xs font-black text-slate-800 line-clamp-1 max-w-[160px]">{product.name}</span>
-            <span className="text-sm font-black text-primary-600 block">₹{discountedPrice}</span>
+            <span className="text-sm font-black text-primary-600 block">₹{price}</span>
           </div>
 
           <div className="flex items-center gap-2">
