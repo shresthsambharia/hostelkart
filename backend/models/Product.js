@@ -24,11 +24,11 @@ const productSchema = new mongoose.Schema(
     },
     image: {
       type: String,
-      required: true,
+      default: '',
     },
     description: {
       type: String,
-      required: true,
+      default: '',
     },
     price: {
       type: Number,
@@ -94,10 +94,10 @@ const productSchema = new mongoose.Schema(
     },
     normalizedName: {
       type: String,
-      unique: true,
       sparse: true,
       trim: true,
       lowercase: true,
+      index: true,
     },
     imageOriginal: {
       type: String,
