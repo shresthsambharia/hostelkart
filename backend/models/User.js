@@ -45,8 +45,17 @@ const userSchema = new mongoose.Schema(
       commissionPercentage: { type: Number, default: null }, // Null means use category/global rate
       status: {
         type: String,
-        enum: ['Pending', 'Approved', 'Rejected', 'Suspended', 'Active', 'Inactive', 'active', 'suspended', 'pending_verification'],
-        default: 'Approved',
+        enum: ['Pending', 'Approved', 'Rejected', 'Suspended', 'Active', 'Inactive', 'active', 'suspended', 'pending_verification', 'pending_onboarding'],
+        default: 'pending_onboarding',
+      },
+      onboardingPaymentStatus: {
+        type: String,
+        enum: ['pending', 'submitted', 'approved', 'rejected', 'exempt'],
+        default: 'pending',
+      },
+      onboardingPaymentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'SupplierOnboardingPayment',
       },
     },
     hostelDetails: {

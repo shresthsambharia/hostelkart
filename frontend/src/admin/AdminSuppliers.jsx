@@ -27,6 +27,7 @@ import {
   CreditCard,
   Percent,
   ShieldAlert,
+  ShieldCheck,
   FileText,
   QrCode,
   Calendar,
@@ -37,12 +38,15 @@ import {
 } from 'lucide-react';
 
 const AdminSuppliers = () => {
-  const [activeTab, setActiveTab] = useState('approvals'); // 'approvals' | 'suppliers' | 'payouts' | 'finance'
+  const [activeTab, setActiveTab] = useState('approvals'); // 'approvals' | 'suppliers' | 'payouts' | 'finance' | 'onboarding'
   const [loading, setLoading] = useState(true);
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
   const [payouts, setPayouts] = useState([]);
   const [financeOverview, setFinanceOverview] = useState(null);
+  const [onboardingPayments, setOnboardingPayments] = useState([]);
+  const [onboardingPendingCount, setOnboardingPendingCount] = useState(0);
+  const [onboardingFilterStatus, setOnboardingFilterStatus] = useState('all');
   const [filterStatus, setFilterStatus] = useState('pending');
   const [selectedSupplierFilter, setSelectedSupplierFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,6 +56,11 @@ const AdminSuppliers = () => {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedProductForReject, setSelectedProductForReject] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [showApproveOnboardingModal, setShowApproveOnboardingModal] = useState(false);
+  const [showRejectOnboardingModal, setShowRejectOnboardingModal] = useState(false);
+  const [selectedOnboardingPayment, setSelectedOnboardingPayment] = useState(null);
+  const [onboardingAdminNotes, setOnboardingAdminNotes] = useState('');
+  const [onboardingRejectReason, setOnboardingRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [batchGenerating, setBatchGenerating] = useState(false);
   const [payoutDetailLoading, setPayoutDetailLoading] = useState(false);
@@ -100,7 +109,7 @@ const AdminSuppliers = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [suppliersRes, productsRes, payoutsRes, financeRes] = await Promise.all([
+      const [suppliersRes, productsRes, payoutsRes, financeRes, onboardingRes] = await Promise.all([
         adminAPI.getSuppliers(),
         adminAPI.getSupplierProducts({
           status: filterStatus === 'all' ? undefined : filterStatus,
@@ -108,17 +117,74 @@ const AdminSuppliers = () => {
         }),
         adminAPI.getSupplierPayouts({ limit: 50 }),
         adminAPI.getMarketplaceFinance(),
+        adminAPI.getSupplierOnboardingPayments({ limit: 100 }),
       ]);
 
       setSuppliers(suppliersRes.data || []);
       setProducts(productsRes.data || []);
       setPayouts(payoutsRes.data.payouts || []);
       setFinanceOverview(financeRes.data || null);
+      setOnboardingPayments(onboardingRes.data?.payments || []);
+      setOnboardingPendingCount(onboardingRes.data?.pendingCount || 0);
     } catch (err) {
       console.error('Failed to load supplier administration data:', err);
       setFeedback({ type: 'error', message: 'Failed to load supplier management data.' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApproveOnboardingPayment = async () => {
+    if (!selectedOnboardingPayment) return;
+    try {
+      setActionLoading(true);
+      const res = await adminAPI.approveSupplierOnboardingPayment(selectedOnboardingPayment._id, {
+        adminNotes: onboardingAdminNotes,
+      });
+      setFeedback({
+        type: 'success',
+        message: res.data.message || 'Onboarding payment approved successfully! Supplier access is now active.',
+      });
+      setShowApproveOnboardingModal(false);
+      setSelectedOnboardingPayment(null);
+      setOnboardingAdminNotes('');
+      fetchData();
+    } catch (err) {
+      console.error('Failed to approve onboarding payment:', err);
+      setFeedback({
+        type: 'error',
+        message: err.response?.data?.message || 'Failed to approve onboarding payment.',
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectOnboardingPayment = async () => {
+    if (!selectedOnboardingPayment) return;
+    try {
+      setActionLoading(true);
+      const res = await adminAPI.rejectSupplierOnboardingPayment(selectedOnboardingPayment._id, {
+        reason: onboardingRejectReason,
+        adminNotes: onboardingAdminNotes,
+      });
+      setFeedback({
+        type: 'success',
+        message: res.data.message || 'Onboarding payment marked as rejected.',
+      });
+      setShowRejectOnboardingModal(false);
+      setSelectedOnboardingPayment(null);
+      setOnboardingRejectReason('');
+      setOnboardingAdminNotes('');
+      fetchData();
+    } catch (err) {
+      console.error('Failed to reject onboarding payment:', err);
+      setFeedback({
+        type: 'error',
+        message: err.response?.data?.message || 'Failed to reject onboarding payment.',
+      });
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -520,6 +586,22 @@ const AdminSuppliers = () => {
         >
           <TrendingUp size={18} />
           Marketplace Finance
+        </button>
+        <button
+          onClick={() => { setActiveTab('onboarding'); setSearchTerm(''); }}
+          className={`pb-3 font-black text-sm tracking-wide transition-colors flex items-center gap-2 border-b-2 ${
+            activeTab === 'onboarding'
+              ? 'border-rose-600 text-rose-600'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <ShieldAlert size={18} />
+          <span>Onboarding Payments</span>
+          {onboardingPendingCount > 0 && (
+            <span className="bg-rose-100 text-rose-800 text-xs px-2 py-0.5 rounded-full font-bold">
+              {onboardingPendingCount}
+            </span>
+          )}
         </button>
       </div>
 
@@ -1099,6 +1181,188 @@ const AdminSuppliers = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Onboarding Payments Tab */}
+      {activeTab === 'onboarding' && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Header Card & Filter Bar */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                  <ShieldAlert className="text-rose-600" size={20} />
+                  <span>Supplier ₹40 Onboarding Payment Verifications</span>
+                </h2>
+                <p className="text-xs text-slate-500 font-medium mt-1">
+                  Review external UPI payments submitted by registering suppliers. Once approved, their dashboard access will activate immediately.
+                </p>
+              </div>
+
+              {/* Status Filter Buttons */}
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { label: 'All Payments', value: 'all' },
+                  { label: `Pending (${onboardingPendingCount})`, value: 'pending' },
+                  { label: 'Approved', value: 'approved' },
+                  { label: 'Rejected', value: 'rejected' },
+                ].map((tab) => (
+                  <button
+                    key={tab.value}
+                    onClick={() => setOnboardingFilterStatus(tab.value)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                      onboardingFilterStatus === tab.value
+                        ? 'bg-rose-600 text-white shadow-sm'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Payments List / Table */}
+          {onboardingPayments.filter((op) => {
+            if (onboardingFilterStatus !== 'all' && op.status !== onboardingFilterStatus) return false;
+            if (!searchTerm) return true;
+            const term = searchTerm.toLowerCase();
+            return (
+              (op.utr && op.utr.toLowerCase().includes(term)) ||
+              (op.supplier?.name && op.supplier.name.toLowerCase().includes(term)) ||
+              (op.supplier?.email && op.supplier.email.toLowerCase().includes(term)) ||
+              (op.supplier?.phone && op.supplier.phone.includes(term)) ||
+              (op.supplier?.supplierDetails?.businessName && op.supplier.supplierDetails.businessName.toLowerCase().includes(term))
+            );
+          }).length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center space-y-3">
+              <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto">
+                <ShieldCheck size={24} />
+              </div>
+              <h3 className="text-sm font-black text-slate-700">No Onboarding Payments Found</h3>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                {onboardingFilterStatus === 'pending'
+                  ? 'There are no pending onboarding payment requests awaiting verification right now.'
+                  : 'No payment submissions matched your filter criteria.'}
+              </p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase tracking-wider">
+                    <tr>
+                      <th className="py-3.5 px-4">Supplier Partner</th>
+                      <th className="py-3.5 px-4">Amount</th>
+                      <th className="py-3.5 px-4">Submitted UTR</th>
+                      <th className="py-3.5 px-4">Submitted At</th>
+                      <th className="py-3.5 px-4">Status</th>
+                      <th className="py-3.5 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                    {onboardingPayments
+                      .filter((op) => {
+                        if (onboardingFilterStatus !== 'all' && op.status !== onboardingFilterStatus) return false;
+                        if (!searchTerm) return true;
+                        const term = searchTerm.toLowerCase();
+                        return (
+                          (op.utr && op.utr.toLowerCase().includes(term)) ||
+                          (op.supplier?.name && op.supplier.name.toLowerCase().includes(term)) ||
+                          (op.supplier?.email && op.supplier.email.toLowerCase().includes(term)) ||
+                          (op.supplier?.phone && op.supplier.phone.includes(term)) ||
+                          (op.supplier?.supplierDetails?.businessName && op.supplier.supplierDetails.businessName.toLowerCase().includes(term))
+                        );
+                      })
+                      .map((payment) => (
+                        <tr key={payment._id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-4 px-4">
+                            <div className="space-y-0.5">
+                              <span className="font-extrabold text-slate-900 text-sm block">
+                                {payment.supplier?.supplierDetails?.businessName || payment.supplier?.name || 'Supplier'}
+                              </span>
+                              <div className="text-[11px] text-slate-500 flex flex-wrap items-center gap-x-2">
+                                <span>{payment.supplier?.email}</span>
+                                {payment.supplier?.phone && <span>• {payment.supplier?.phone}</span>}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className="font-black text-rose-700 text-sm font-display">
+                              ₹{payment.amount}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className="font-mono font-black text-slate-800 text-xs bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
+                              {payment.utr}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-slate-500 text-[11px]">
+                            {new Date(payment.submittedAt).toLocaleString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </td>
+                          <td className="py-4 px-4">
+                            {payment.status === 'approved' && (
+                              <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider">
+                                <CheckCircle2 size={12} /> Approved
+                              </span>
+                            )}
+                            {payment.status === 'pending' && (
+                              <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider animate-pulse">
+                                <Clock size={12} /> Pending Verification
+                              </span>
+                            )}
+                            {payment.status === 'rejected' && (
+                              <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider">
+                                <XCircle size={12} /> Rejected
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            {payment.status === 'pending' ? (
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => {
+                                    setSelectedOnboardingPayment(payment);
+                                    setOnboardingAdminNotes('');
+                                    setShowApproveOnboardingModal(true);
+                                  }}
+                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-black uppercase tracking-wider shadow-sm transition-all flex items-center gap-1"
+                                >
+                                  <Check size={12} /> Approve
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedOnboardingPayment(payment);
+                                    setOnboardingRejectReason('');
+                                    setOnboardingAdminNotes('');
+                                    setShowRejectOnboardingModal(true);
+                                  }}
+                                  className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-1"
+                                >
+                                  <X size={12} /> Reject
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-slate-400 font-semibold">
+                                {payment.status === 'approved' ? 'Verified' : 'Rejected'}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
@@ -1692,6 +1956,137 @@ const AdminSuppliers = () => {
                 className="px-5 py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition-colors"
               >
                 {actionLoading ? 'Rejecting...' : 'Confirm Rejection'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approve Onboarding Payment Modal */}
+      {showApproveOnboardingModal && selectedOnboardingPayment && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <CheckCircle2 className="text-emerald-600" />
+                Approve ₹40 Onboarding Payment
+              </h2>
+              <button
+                onClick={() => setShowApproveOnboardingModal(false)}
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="bg-emerald-50/70 border border-emerald-100 rounded-xl p-3.5 space-y-1.5 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-bold uppercase text-[10px]">Supplier:</span>
+                <span className="font-extrabold text-slate-800">
+                  {selectedOnboardingPayment.supplier?.supplierDetails?.businessName || selectedOnboardingPayment.supplier?.name}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-bold uppercase text-[10px]">Amount:</span>
+                <span className="font-black text-emerald-800">₹{selectedOnboardingPayment.amount}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-bold uppercase text-[10px]">Submitted UTR:</span>
+                <span className="font-mono font-black text-slate-800">{selectedOnboardingPayment.utr}</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600">
+              Please verify that <strong>₹40</strong> with reference <strong>{selectedOnboardingPayment.utr}</strong> was credited to the HostelKart UPI / Bank account.
+              Upon approval, the supplier's dashboard access will be unlocked immediately.
+            </p>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                Admin Note (Optional)
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Verified in GPay / Bank statement"
+                value={onboardingAdminNotes}
+                onChange={(e) => setOnboardingAdminNotes(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowApproveOnboardingModal(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleApproveOnboardingPayment}
+                disabled={actionLoading}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition-colors"
+              >
+                {actionLoading ? 'Approving...' : 'Confirm & Unlock Supplier'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Onboarding Payment Modal */}
+      {showRejectOnboardingModal && selectedOnboardingPayment && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <AlertCircle className="text-rose-600" />
+                Reject Onboarding Payment Request
+              </h2>
+              <button
+                onClick={() => setShowRejectOnboardingModal(false)}
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600">
+              You are rejecting the ₹40 onboarding payment verification for{' '}
+              <strong>{selectedOnboardingPayment.supplier?.name}</strong> (UTR: {selectedOnboardingPayment.utr}).
+              The supplier will see this reason and will be asked to submit a valid payment reference.
+            </p>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                Rejection Reason <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                rows={3}
+                required
+                placeholder="e.g. UTR not found in bank statement, incorrect payment amount, unverified transfer..."
+                value={onboardingRejectReason}
+                onChange={(e) => setOnboardingRejectReason(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowRejectOnboardingModal(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleRejectOnboardingPayment}
+                disabled={actionLoading}
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition-colors"
+              >
+                {actionLoading ? 'Rejecting...' : 'Reject Payment Request'}
               </button>
             </div>
           </div>

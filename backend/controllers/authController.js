@@ -106,14 +106,24 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 
   // Creating the user
+  const requestedRole = req.body.role === 'supplier' ? 'supplier' : 'student';
+
   const user = await User.create({
     name,
     email,
     password,
     phone,
-    role: 'student', // Enforced role
+    role: requestedRole,
     referralCode: myReferralCode,
     referredBy: referredByUser ? referredByUser._id : null,
+    supplierDetails: requestedRole === 'supplier' ? {
+      businessName: (req.body.businessName || name).trim(),
+      contactPerson: name.trim(),
+      address: (req.body.address || '').trim(),
+      gstNumber: (req.body.gstNumber || '').trim(),
+      status: 'pending_onboarding',
+      onboardingPaymentStatus: 'pending',
+    } : undefined,
   });
 
   if (user) {
@@ -122,9 +132,11 @@ const registerUser = asyncHandler(async (req, res) => {
       email: user.email,
       role: user.role,
     });
-    // Automatically initialize Cart and Wishlist for the student
-    await Cart.create({ user: user._id, items: [] });
-    await Wishlist.create({ user: user._id, products: [] });
+    // Automatically initialize Cart and Wishlist for students
+    if (requestedRole === 'student') {
+      await Cart.create({ user: user._id, items: [] });
+      await Wishlist.create({ user: user._id, products: [] });
+    }
 
     try {
       const { createAlert } = await import('./notificationController.js');
@@ -135,7 +147,7 @@ const registerUser = asyncHandler(async (req, res) => {
         'Promo'
       );
     } catch (err) {
-      console.error('Failed to trigger registration welcome alert:', err.message);
+      console.warn('Failed to trigger registration welcome alert:', err.message);
     }
 
     // Generate dual-tokens
@@ -163,6 +175,7 @@ const registerUser = asyncHandler(async (req, res) => {
       referralCode: user.referralCode,
       referredBy: user.referredBy,
       hostelDetails: user.hostelDetails,
+      supplierDetails: user.supplierDetails,
       token,
       refreshToken,
       csrfToken,

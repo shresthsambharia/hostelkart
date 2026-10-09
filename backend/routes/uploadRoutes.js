@@ -4,7 +4,7 @@ import multer from 'multer';
 import sharp from 'sharp';
 import crypto from 'crypto';
 import fs from 'fs';
-import { protect, admin } from '../middleware/authMiddleware.js';
+import { protect, admin, authorize } from '../middleware/authMiddleware.js';
 import { uploadBufferToCloudinary, getMediumUrl, getThumbUrl, getOriginalUrl } from '../config/cloudinary.js';
 import Order from '../models/Order.js';
 import { uploadLimiter, adminUploadLimiter } from '../middleware/securityMiddleware.js';
@@ -39,8 +39,8 @@ const upload = multer({
   },
 });
 
-// Admin-only upload endpoint (Uploads directly to Cloudinary)
-router.post('/', protect, admin, adminUploadLimiter, upload.single('image'), async (req, res) => {
+// Admin and Supplier upload endpoint (Uploads directly to Cloudinary)
+router.post('/', protect, authorize('admin', 'supplier'), adminUploadLimiter, upload.single('image'), async (req, res) => {
   if (!req.file) {
     res.status(400);
     throw new Error('No image file uploaded');

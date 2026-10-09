@@ -20,6 +20,10 @@ const SupplierOrders = () => {
       setOrders(res.data);
     } catch (err) {
       console.error('Failed to load supply orders:', err);
+      if (err.response?.status === 403 && err.response?.data?.onboardingRequired) {
+        window.location.href = '/supplier/onboarding';
+        return;
+      }
       setError(err.response?.data?.message || 'Failed to load supply orders');
     } finally {
       setLoading(false);

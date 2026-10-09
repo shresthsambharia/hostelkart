@@ -114,5 +114,37 @@ const authorize = (...roles) => {
   };
 };
 
-export { protect, admin, delivery, supplier, authorize, optionalProtect };
+// Middleware for Verified / Onboarded Supplier
+const verifiedSupplier = (req, res, next) => {
+  if (!req.user || req.user.role !== 'supplier') {
+    res.status(403);
+    throw new Error('Not authorized as a supplier');
+  }
+
+  const supplierStatus = req.user.supplierDetails?.status;
+  const onboardingStatus = req.user.supplierDetails?.onboardingPaymentStatus;
+
+  // Active/Approved or exempt statuses allow full access
+  const isApproved =
+    supplierStatus === 'active' ||
+    supplierStatus === 'Active' ||
+    supplierStatus === 'Approved' ||
+    supplierStatus === 'approved' ||
+    onboardingStatus === 'approved' ||
+    onboardingStatus === 'exempt';
+
+  if (!isApproved) {
+    return res.status(403).json({
+      message: 'Supplier onboarding payment of ₹40 required and pending Admin verification',
+      onboardingRequired: true,
+      onboardingPaymentStatus: onboardingStatus || 'pending',
+      supplierStatus: supplierStatus || 'pending_onboarding',
+    });
+  }
+
+  next();
+};
+
+export { protect, admin, delivery, supplier, verifiedSupplier, authorize, optionalProtect };
+
 

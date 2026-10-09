@@ -57,6 +57,10 @@ const SupplierProducts = () => {
       setProducts(res.data);
     } catch (err) {
       console.error('Failed to fetch supplier products:', err);
+      if (err.response?.status === 403 && err.response?.data?.onboardingRequired) {
+        window.location.href = '/supplier/onboarding';
+        return;
+      }
       setError(err.response?.data?.message || 'Failed to fetch products');
     } finally {
       setLoading(false);
@@ -121,8 +125,9 @@ const SupplierProducts = () => {
 
     setUploadingImage(true);
     try {
-      const res = await adminAPI.uploadImage(data);
-      setFormData(prev => ({ ...prev, image: res.data.imageUrl || res.data }));
+      const res = await supplierAPI.uploadImage(data);
+      const uploadedUrl = res.data.image || res.data.imageUrl || res.data.imageMedium || (typeof res.data === 'string' ? res.data : '');
+      setFormData(prev => ({ ...prev, image: uploadedUrl }));
       setSuccess('Image uploaded successfully!');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {

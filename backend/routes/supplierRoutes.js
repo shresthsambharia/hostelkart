@@ -18,8 +18,11 @@ import {
   getSupplierProfile,
   updateSupplierProfile,
   uploadSupplierPayoutQr,
+  getSupplierOnboardingConfig,
+  getSupplierOnboardingStatus,
+  submitSupplierOnboardingPayment,
 } from '../controllers/supplierController.js';
-import { protect, supplier } from '../middleware/authMiddleware.js';
+import { protect, supplier, verifiedSupplier } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -32,36 +35,44 @@ const upload = multer({
 // All supplier routes require authentication and supplier role
 router.use(protect, supplier);
 
-router.get('/dashboard', getSupplierDashboard);
-router.get('/orders', getSupplierOrders);
-router.patch('/orders/:id/items/:itemId/status', updateSupplierOrderItemStatus);
+// Onboarding endpoints (available before payment verification)
+router.get('/onboarding/config', getSupplierOnboardingConfig);
+router.get('/onboarding/status', getSupplierOnboardingStatus);
+router.post('/onboarding/submit', submitSupplierOnboardingPayment);
 
-// Financial Overview, Payouts, Immutable Ledger & Settlement Statements
-router.get('/finance', getSupplierFinance);
-router.get('/finance/overview', getSupplierFinance);
-router.get('/finance/payouts', getSupplierPayouts);
-router.get('/finance/payouts/:id', getSupplierPayoutById);
-router.get('/finance/ledger', getSupplierLedger);
-router.get('/finance/statements/:payoutId', getSettlementStatement);
-
-router.get('/payouts', getSupplierPayouts);
-router.get('/payouts/:id', getSupplierPayoutById);
-
+// Profile endpoints (accessible to review contact info)
 router.route('/profile')
   .get(getSupplierProfile)
   .put(updateSupplierProfile);
 
-router.post('/profile/payout-qr', upload.single('image'), uploadSupplierPayoutQr);
+// Protected routes requiring verified/approved onboarding payment
+router.get('/dashboard', verifiedSupplier, getSupplierDashboard);
+router.get('/orders', verifiedSupplier, getSupplierOrders);
+router.patch('/orders/:id/items/:itemId/status', verifiedSupplier, updateSupplierOrderItemStatus);
+
+// Financial Overview, Payouts, Immutable Ledger & Settlement Statements
+router.get('/finance', verifiedSupplier, getSupplierFinance);
+router.get('/finance/overview', verifiedSupplier, getSupplierFinance);
+router.get('/finance/payouts', verifiedSupplier, getSupplierPayouts);
+router.get('/finance/payouts/:id', verifiedSupplier, getSupplierPayoutById);
+router.get('/finance/ledger', verifiedSupplier, getSupplierLedger);
+router.get('/finance/statements/:payoutId', verifiedSupplier, getSettlementStatement);
+
+router.get('/payouts', verifiedSupplier, getSupplierPayouts);
+router.get('/payouts/:id', verifiedSupplier, getSupplierPayoutById);
+
+router.post('/profile/payout-qr', verifiedSupplier, upload.single('image'), uploadSupplierPayoutQr);
 
 router.route('/products')
-  .get(getSupplierProducts)
-  .post(createSupplierProduct);
+  .get(verifiedSupplier, getSupplierProducts)
+  .post(verifiedSupplier, createSupplierProduct);
 
 router.route('/products/:id')
-  .get(getSupplierProductById)
-  .put(updateSupplierProduct)
-  .delete(deleteSupplierProduct);
+  .get(verifiedSupplier, getSupplierProductById)
+  .put(verifiedSupplier, updateSupplierProduct)
+  .delete(verifiedSupplier, deleteSupplierProduct);
 
-router.patch('/products/:id/stock', updateSupplierProductStock);
+router.patch('/products/:id/stock', verifiedSupplier, updateSupplierProductStock);
 
 export default router;
+

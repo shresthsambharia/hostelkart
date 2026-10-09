@@ -118,10 +118,19 @@ export const AuthProvider = ({ children }) => {
     }
   }, [navigate]);
 
-  const register = useCallback(async (name, email, password, phone, captchaId, captchaAnswer) => {
+  const register = useCallback(async (name, email, password, phone, captchaId, captchaAnswer, extraData = {}) => {
     setLoading(true);
     try {
-      const { data } = await authAPI.register({ name, email, password, phone, captchaId, captchaAnswer });
+      const payload = {
+        name,
+        email,
+        password,
+        phone,
+        captchaId,
+        captchaAnswer,
+        ...extraData,
+      };
+      const { data } = await authAPI.register(payload);
       
       // Store tokens
       localStorage.setItem('token', data.token);
@@ -137,6 +146,7 @@ export const AuthProvider = ({ children }) => {
         role: data.role,
         phone: data.phone,
         hostelDetails: data.hostelDetails,
+        supplierDetails: data.supplierDetails,
       }));
 
       setUser(data);
@@ -147,6 +157,8 @@ export const AuthProvider = ({ children }) => {
         navigate('/admin/dashboard');
       } else if (data.role === 'delivery') {
         navigate('/delivery/dashboard');
+      } else if (data.role === 'supplier') {
+        navigate('/supplier/onboarding');
       } else {
         navigate('/');
       }

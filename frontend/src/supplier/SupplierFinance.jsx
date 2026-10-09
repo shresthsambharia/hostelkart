@@ -33,6 +33,10 @@ const SupplierFinance = () => {
       setLedger(ledRes.data.entries || []);
     } catch (err) {
       console.error('Failed to load supplier finance:', err);
+      if (err.response?.status === 403 && err.response?.data?.onboardingRequired) {
+        window.location.href = '/supplier/onboarding';
+        return;
+      }
       setError(err.response?.data?.message || 'Failed to load financial data');
     } finally {
       setLoading(false);

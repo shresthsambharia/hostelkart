@@ -276,6 +276,9 @@ export const adminAPI = {
   createSupplierPayout: (payoutData) => API.post('/admin/payouts', payoutData),
   updateSupplierPayoutStatus: (id, data) => API.put(`/admin/payouts/${id}/status`, data),
   requestSupplierQr: (id, note) => API.post(`/admin/suppliers/${id}/request-qr`, { note }),
+  getSupplierOnboardingPayments: (params) => API.get('/admin/supplier-onboarding-payments', { params }),
+  approveSupplierOnboardingPayment: (id, data) => API.put(`/admin/supplier-onboarding-payments/${id}/approve`, data || {}),
+  rejectSupplierOnboardingPayment: (id, data) => API.put(`/admin/supplier-onboarding-payments/${id}/reject`, data || {}),
 };
 
 export const supplierAPI = {
@@ -295,6 +298,13 @@ export const supplierAPI = {
       'Content-Type': 'multipart/form-data',
     },
   }),
+  uploadImage: (formData, config = {}) => API.post('/upload', formData, {
+    ...config,
+    headers: { ...config?.headers, 'Content-Type': 'multipart/form-data' },
+  }),
+  getOnboardingConfig: () => API.get('/supplier/onboarding/config'),
+  getOnboardingStatus: () => API.get('/supplier/onboarding/status'),
+  submitOnboardingPayment: (data) => API.post('/supplier/onboarding/submit', data),
   getFinance: () => API.get('/supplier/finance/overview'),
   getPayouts: (params) => API.get('/supplier/finance/payouts', { params }),
   getPayoutById: (id) => API.get(`/supplier/finance/payouts/${id}`),

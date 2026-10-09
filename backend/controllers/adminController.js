@@ -11,6 +11,7 @@ import { deleteFromCloudinary, getPublicIdFromUrl } from '../config/cloudinary.j
 import AdminLog from '../models/AdminLog.js';
 import FinancialLedger from '../models/FinancialLedger.js';
 import SupplierPayout from '../models/SupplierPayout.js';
+import SupplierOnboardingPayment from '../models/SupplierOnboardingPayment.js';
 import { invalidateProductCache, invalidateAnalyticsCache } from '../middleware/cacheMiddleware.js';
 import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants.js';
 import {
@@ -2736,6 +2737,196 @@ const updateSettlementSettings = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Get all supplier onboarding payment requests
+// @route   GET /api/admin/supplier-onboarding-payments
+// @access  Private/Admin
+const getSupplierOnboardingPayments = asyncHandler(async (req, res) => {
+  const { status, search, page = 1, limit = 20 } = req.query;
+
+  const filter = {};
+  if (status && status !== 'all') {
+    filter.status = status;
+  }
+
+  if (search) {
+    const searchRegex = new RegExp(search.trim(), 'i');
+    const matchedSuppliers = await User.find({
+      role: 'supplier',
+      $or: [
+        { name: searchRegex },
+        { email: searchRegex },
+        { phone: searchRegex },
+        { 'supplierDetails.businessName': searchRegex },
+      ],
+    }).select('_id');
+
+    const supplierIds = matchedSuppliers.map((s) => s._id);
+    filter.$or = [
+      { utr: searchRegex },
+      { supplier: { $in: supplierIds } },
+    ];
+  }
+
+  const pageNum = Math.max(1, parseInt(page, 10));
+  const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10)));
+  const skip = (pageNum - 1) * limitNum;
+
+  const [payments, total, pendingCount] = await Promise.all([
+    SupplierOnboardingPayment.find(filter)
+      .populate('supplier', 'name email phone supplierDetails')
+      .populate('reviewedBy', 'name email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean(),
+    SupplierOnboardingPayment.countDocuments(filter),
+    SupplierOnboardingPayment.countDocuments({ status: 'pending' }),
+  ]);
+
+  res.json({
+    payments,
+    pagination: {
+      page: pageNum,
+      limit: limitNum,
+      total,
+      pages: Math.ceil(total / limitNum) || 1,
+    },
+    pendingCount,
+  });
+});
+
+// @desc    Approve a supplier onboarding payment (Activates supplier dashboard)
+// @route   PUT /api/admin/supplier-onboarding-payments/:id/approve
+// @access  Private/Admin
+const approveSupplierOnboardingPayment = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { adminNotes } = req.body;
+
+  // Atomic find and update to prevent concurrent double-approvals
+  const payment = await SupplierOnboardingPayment.findOneAndUpdate(
+    { _id: id, status: 'pending' },
+    {
+      $set: {
+        status: 'approved',
+        reviewedAt: new Date(),
+        reviewedBy: req.user._id,
+        adminNotes: (adminNotes || '').trim(),
+      },
+    },
+    { new: true }
+  ).populate('supplier', 'name email phone supplierDetails');
+
+  if (!payment) {
+    res.status(400);
+    throw new Error('Payment request not found or has already been processed');
+  }
+
+  const supplier = await User.findById(payment.supplier._id);
+  if (supplier) {
+    if (!supplier.supplierDetails) supplier.supplierDetails = {};
+    supplier.supplierDetails.status = 'active';
+    supplier.supplierDetails.onboardingPaymentStatus = 'approved';
+    supplier.markModified('supplierDetails');
+    await supplier.save();
+
+    try {
+      await createAlert(
+        supplier._id,
+        'Onboarding Payment Approved!',
+        `Your ₹40 onboarding payment (UTR: ${payment.utr}) has been approved. Your Supplier Dashboard is now active!`,
+        'StatusUpdate'
+      );
+    } catch (err) {
+      console.warn('Failed to send onboarding approval alert to supplier:', err.message);
+    }
+  }
+
+  // Record Admin Log
+  try {
+    await AdminLog.create({
+      admin: req.user._id,
+      action: 'APPROVE_SUPPLIER_ONBOARDING_PAYMENT',
+      targetType: 'SupplierOnboardingPayment',
+      targetId: payment._id,
+      details: `Approved ₹40 onboarding payment for supplier ${payment.supplier?.name} (${payment.supplier?.email}) with UTR ${payment.utr}`,
+    });
+  } catch (logErr) {
+    console.warn('Failed to write admin log for onboarding approval:', logErr.message);
+  }
+
+  res.json({
+    message: `Onboarding payment for supplier ${payment.supplier?.name} approved successfully! Supplier access is now active.`,
+    payment,
+  });
+});
+
+// @desc    Reject a supplier onboarding payment
+// @route   PUT /api/admin/supplier-onboarding-payments/:id/reject
+// @access  Private/Admin
+const rejectSupplierOnboardingPayment = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { reason, adminNotes } = req.body;
+
+  const rejectionReason = (reason || 'Payment verification failed. Invalid or unconfirmed UTR reference.').trim();
+
+  const payment = await SupplierOnboardingPayment.findOneAndUpdate(
+    { _id: id, status: 'pending' },
+    {
+      $set: {
+        status: 'rejected',
+        rejectionReason,
+        reviewedAt: new Date(),
+        reviewedBy: req.user._id,
+        adminNotes: (adminNotes || '').trim(),
+      },
+    },
+    { new: true }
+  ).populate('supplier', 'name email phone supplierDetails');
+
+  if (!payment) {
+    res.status(400);
+    throw new Error('Payment request not found or has already been processed');
+  }
+
+  const supplier = await User.findById(payment.supplier._id);
+  if (supplier) {
+    if (!supplier.supplierDetails) supplier.supplierDetails = {};
+    supplier.supplierDetails.status = 'pending_verification';
+    supplier.supplierDetails.onboardingPaymentStatus = 'rejected';
+    supplier.markModified('supplierDetails');
+    await supplier.save();
+
+    try {
+      await createAlert(
+        supplier._id,
+        'Onboarding Payment Not Verified',
+        `Your ₹40 onboarding payment could not be verified. Reason: "${rejectionReason}". Please review your UTR and submit a new payment.`,
+        'StatusUpdate'
+      );
+    } catch (err) {
+      console.warn('Failed to send onboarding rejection alert to supplier:', err.message);
+    }
+  }
+
+  // Record Admin Log
+  try {
+    await AdminLog.create({
+      admin: req.user._id,
+      action: 'REJECT_SUPPLIER_ONBOARDING_PAYMENT',
+      targetType: 'SupplierOnboardingPayment',
+      targetId: payment._id,
+      details: `Rejected ₹40 onboarding payment for supplier ${payment.supplier?.name} (${payment.supplier?.email}) with UTR ${payment.utr}. Reason: ${rejectionReason}`,
+    });
+  } catch (logErr) {
+    console.warn('Failed to write admin log for onboarding rejection:', logErr.message);
+  }
+
+  res.json({
+    message: `Onboarding payment for supplier ${payment.supplier?.name} marked as rejected.`,
+    payment,
+  });
+});
+
 export {
   getDashboardAnalytics,
   addProduct,
@@ -2775,5 +2966,9 @@ export {
   requestSupplierQr,
   getSettlementSettings,
   updateSettlementSettings,
+  getSupplierOnboardingPayments,
+  approveSupplierOnboardingPayment,
+  rejectSupplierOnboardingPayment,
 };
+
 

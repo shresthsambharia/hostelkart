@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, Lock, Mail, Phone, AlertCircle, RefreshCw } from 'lucide-react';
+import { User, Lock, Mail, Phone, AlertCircle, RefreshCw, Store, GraduationCap } from 'lucide-react';
 import { authAPI } from '../api';
 
 const Register = () => {
@@ -10,6 +10,8 @@ const Register = () => {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState('student');
+  const [businessName, setBusinessName] = useState('');
   const [error, setError] = useState('');
   const [captchaId, setCaptchaId] = useState('');
   const [captchaSvg, setCaptchaSvg] = useState('');
@@ -22,6 +24,7 @@ const Register = () => {
     if (user) {
       if (user.role === 'admin') navigate('/admin/dashboard');
       else if (user.role === 'delivery') navigate('/delivery/dashboard');
+      else if (user.role === 'supplier') navigate('/supplier/onboarding');
       else navigate('/');
     }
   }, [user, navigate]);
@@ -66,7 +69,11 @@ const Register = () => {
     }
 
     setLoading(true);
-    const res = await register(name, email, password, phone, captchaId, captchaAnswer);
+    const extraData = {
+      role,
+      businessName: role === 'supplier' ? (businessName.trim() || name.trim()) : undefined,
+    };
+    const res = await register(name, email, password, phone, captchaId, captchaAnswer, extraData);
     setLoading(false);
     if (!res.success) {
       setError(res.message);
@@ -82,8 +89,36 @@ const Register = () => {
             Create an Account
           </h2>
           <p className="text-[10px] text-slate-450 font-bold uppercase">
-            Join HostelKart to order room-delivery essentials
+            {role === 'supplier' ? 'Register as a HostelKart Supplier Partner' : 'Join HostelKart to order room-delivery essentials'}
           </p>
+        </div>
+
+        {/* Role Switcher */}
+        <div className="grid grid-cols-2 gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+          <button
+            type="button"
+            onClick={() => setRole('student')}
+            className={`py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all ${
+              role === 'student'
+                ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/60'
+                : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <GraduationCap size={14} />
+            <span>Student</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setRole('supplier')}
+            className={`py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all ${
+              role === 'supplier'
+                ? 'bg-white text-purple-700 shadow-sm border border-slate-200/60'
+                : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Store size={14} />
+            <span>Supplier</span>
+          </button>
         </div>
 
         {error && (
@@ -94,9 +129,28 @@ const Register = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {role === 'supplier' && (
+            <div>
+              <label htmlFor="business-name" className="text-[10px] font-black text-slate-400 uppercase block mb-1">
+                Business / Store Name
+              </label>
+              <div className="relative">
+                <input
+                  id="business-name"
+                  type="text"
+                  className="input-field pl-10 text-xs py-2.5 font-bold"
+                  placeholder="Fresh Farm Traders / Campus Stationery"
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                />
+                <Store className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+              </div>
+            </div>
+          )}
+
           <div>
             <label htmlFor="fullname" className="text-[10px] font-black text-slate-400 uppercase block mb-1">
-              Full Name
+              {role === 'supplier' ? 'Contact Person Name' : 'Full Name'}
             </label>
             <div className="relative">
               <input
@@ -105,7 +159,7 @@ const Register = () => {
                 required
                 autoComplete="name"
                 className="input-field pl-10 text-xs py-2.5 font-bold"
-                placeholder="John Doe"
+                placeholder={role === 'supplier' ? 'Store Owner / Manager Name' : 'John Doe'}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />

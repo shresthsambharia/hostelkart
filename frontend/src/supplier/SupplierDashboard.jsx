@@ -22,6 +22,10 @@ const SupplierDashboard = () => {
       setData(res.data);
     } catch (err) {
       console.error('Failed to load supplier dashboard:', err);
+      if (err.response?.status === 403 && err.response?.data?.onboardingRequired) {
+        window.location.href = '/supplier/onboarding';
+        return;
+      }
       setError(err.response?.data?.message || 'Failed to load dashboard metrics');
     } finally {
       setLoading(false);

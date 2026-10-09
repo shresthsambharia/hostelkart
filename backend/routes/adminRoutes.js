@@ -38,6 +38,9 @@ import {
   requestSupplierQr,
   getSettlementSettings,
   updateSettlementSettings,
+  getSupplierOnboardingPayments,
+  approveSupplierOnboardingPayment,
+  rejectSupplierOnboardingPayment,
 } from '../controllers/adminController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 import { logAdminActivity } from '../middleware/adminLogMiddleware.js';
@@ -68,6 +71,10 @@ router.put('/suppliers/:id/status', updateSupplierStatus);
 router.post('/suppliers/:id/request-qr', requestSupplierQr);
 router.get('/supplier-products', getAdminSupplierProducts);
 router.put('/supplier-products/:id/approval', updateSupplierProductApproval);
+router.get('/supplier-onboarding-payments', getSupplierOnboardingPayments);
+router.put('/supplier-onboarding-payments/:id/approve', approveSupplierOnboardingPayment);
+router.put('/supplier-onboarding-payments/:id/reject', rejectSupplierOnboardingPayment);
+
 
 // Marketplace Finance, Settlements & Payouts
 router.get('/finance/overview', getMarketplaceFinance);

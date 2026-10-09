@@ -9,6 +9,9 @@ import Order from '../models/Order.js';
 import User from '../models/User.js';
 import FinancialLedger from '../models/FinancialLedger.js';
 import SupplierPayout from '../models/SupplierPayout.js';
+import Settings from '../models/Settings.js';
+import SupplierOnboardingPayment from '../models/SupplierOnboardingPayment.js';
+import { createAlert } from './notificationController.js';
 import { invalidateProductCache } from '../middleware/cacheMiddleware.js';
 import { logger } from '../utils/logger.js';
 import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants.js';
@@ -209,9 +212,24 @@ const createSupplierProduct = asyncHandler(async (req, res) => {
     deliveryTime,
   } = req.body;
 
-  if (!name || price === undefined || !description || !image || !category || stock === undefined) {
+  if (!name || !name.trim()) {
     res.status(400);
-    throw new Error('Please provide name, price, description, image, category, and stock');
+    throw new Error('Product name is required');
+  }
+
+  if (price === undefined || price === null || price === '') {
+    res.status(400);
+    throw new Error('Product price is required');
+  }
+
+  if (!category || !category.trim()) {
+    res.status(400);
+    throw new Error('Product category is required');
+  }
+
+  if (stock === undefined || stock === null || stock === '') {
+    res.status(400);
+    throw new Error('Product stock quantity is required');
   }
 
   if (!STUDENT_VISIBLE_CATEGORIES.includes(category.trim())) {
@@ -221,10 +239,10 @@ const createSupplierProduct = asyncHandler(async (req, res) => {
 
   const numPrice = Number(price);
   const numStock = Number(stock);
-  const numMrp = mrp !== undefined ? Number(mrp) : numPrice;
-  const numDiscount = discount !== undefined ? Number(discount) : 0;
+  const numMrp = mrp !== undefined && mrp !== '' ? Number(mrp) : numPrice;
+  const numDiscount = discount !== undefined && discount !== '' ? Number(discount) : 0;
 
-  if (isNaN(numPrice) || numPrice < 0) {
+  if (isNaN(numPrice) || numPrice <= 0) {
     res.status(400);
     throw new Error('Price must be a valid positive number');
   }
@@ -236,11 +254,12 @@ const createSupplierProduct = asyncHandler(async (req, res) => {
 
   const product = await Product.create({
     name: name.trim(),
+    normalizedName: name.trim().toLowerCase(),
     price: numPrice,
     mrp: numMrp,
     discount: numDiscount,
-    description: description.trim(),
-    image: image.trim(),
+    description: (description || '').trim(),
+    image: (image || '').trim(),
     category: category.trim(),
     stock: numStock,
     brand: (brand || '').trim(),
@@ -262,6 +281,175 @@ const createSupplierProduct = asyncHandler(async (req, res) => {
     product,
   });
 });
+
+// @desc    Get Supplier Onboarding Payment Configuration (₹40 QR & UPI details)
+// @route   GET /api/supplier/onboarding/config
+// @access  Private/Supplier
+const getSupplierOnboardingConfig = asyncHandler(async (req, res) => {
+  let settings = await Settings.findOne({ key: 'payment_config' });
+  if (!settings) {
+    settings = {
+      value: {
+        upiId: 'hostelkart@upi',
+        qrCodeUrl: '',
+      },
+    };
+  }
+
+  res.json({
+    amount: 40,
+    amountPaise: 4000,
+    currency: 'INR',
+    upiId: settings.value?.upiId || 'hostelkart@upi',
+    qrCodeUrl: settings.value?.qrCodeUrl || '',
+    note: 'Mandatory one-time ₹40 supplier onboarding verification fee',
+  });
+});
+
+// @desc    Get Current Supplier Onboarding Status
+// @route   GET /api/supplier/onboarding/status
+// @access  Private/Supplier
+const getSupplierOnboardingStatus = asyncHandler(async (req, res) => {
+  const supplierId = req.user._id;
+  const user = await User.findById(supplierId).lean();
+
+  const supplierStatus = user?.supplierDetails?.status || 'pending_onboarding';
+  const onboardingPaymentStatus = user?.supplierDetails?.onboardingPaymentStatus || 'pending';
+
+  const isUnlocked =
+    ['active', 'Active', 'Approved', 'approved'].includes(supplierStatus) ||
+    ['approved', 'exempt'].includes(onboardingPaymentStatus);
+
+  const latestPayment = await SupplierOnboardingPayment.findOne({ supplier: supplierId })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  res.json({
+    status: supplierStatus,
+    onboardingPaymentStatus,
+    isUnlocked,
+    latestPayment: latestPayment
+      ? {
+          _id: latestPayment._id,
+          amount: latestPayment.amount,
+          amountPaise: latestPayment.amountPaise,
+          currency: latestPayment.currency,
+          utr: latestPayment.utr,
+          status: latestPayment.status,
+          submittedAt: latestPayment.submittedAt,
+          reviewedAt: latestPayment.reviewedAt,
+          rejectionReason: latestPayment.rejectionReason,
+        }
+      : null,
+  });
+});
+
+// @desc    Submit ₹40 Supplier Onboarding Payment UTR for Verification
+// @route   POST /api/supplier/onboarding/submit
+// @access  Private/Supplier
+const submitSupplierOnboardingPayment = asyncHandler(async (req, res) => {
+  const supplierId = req.user._id;
+  const { utr } = req.body;
+
+  if (!utr || typeof utr !== 'string' || !utr.trim()) {
+    res.status(400);
+    throw new Error('UTR / Transaction Reference Number is required');
+  }
+
+  const cleanUtr = utr.trim().toUpperCase();
+
+  // Validate UTR format: 6-30 alphanumeric characters
+  const utrRegex = /^[A-Z0-9]{6,30}$/;
+  if (!utrRegex.test(cleanUtr)) {
+    res.status(400);
+    throw new Error('Please provide a valid 6 to 30 character alphanumeric UTR / Transaction Reference Number');
+  }
+
+  // Check if supplier is already approved
+  const currentUser = await User.findById(supplierId);
+  if (
+    ['active', 'Active', 'Approved', 'approved'].includes(currentUser.supplierDetails?.status) &&
+    ['approved', 'exempt'].includes(currentUser.supplierDetails?.onboardingPaymentStatus)
+  ) {
+    res.status(400);
+    throw new Error('Your supplier account is already active and approved!');
+  }
+
+  // Check for duplicate pending payment submission by this supplier
+  const pendingPayment = await SupplierOnboardingPayment.findOne({
+    supplier: supplierId,
+    status: 'pending',
+  });
+
+  if (pendingPayment) {
+    res.status(400);
+    throw new Error('You already have a pending onboarding payment verification request. Please wait for Admin review.');
+  }
+
+  // Check if this UTR has already been submitted for an active/approved or pending request by any user
+  const duplicateUtr = await SupplierOnboardingPayment.findOne({
+    utr: cleanUtr,
+    status: { $in: ['pending', 'approved'] },
+  });
+
+  if (duplicateUtr) {
+    res.status(400);
+    throw new Error('This UTR / Transaction Reference Number has already been submitted. Please check and enter your unique reference number.');
+  }
+
+  // Create payment record
+  const payment = await SupplierOnboardingPayment.create({
+    supplier: supplierId,
+    amount: 40,
+    amountPaise: 4000,
+    currency: 'INR',
+    paymentMethod: 'UPI QR',
+    utr: cleanUtr,
+    status: 'pending',
+    submittedAt: new Date(),
+  });
+
+  // Update user supplierDetails
+  if (!currentUser.supplierDetails) currentUser.supplierDetails = {};
+  currentUser.supplierDetails.onboardingPaymentStatus = 'submitted';
+  currentUser.supplierDetails.status = 'pending_verification';
+  currentUser.supplierDetails.onboardingPaymentId = payment._id;
+  currentUser.markModified('supplierDetails');
+  await currentUser.save();
+
+  logger.info('SUPPLIER_ONBOARDING_PAYMENT_SUBMITTED', `Supplier ${currentUser.email} submitted ₹40 onboarding payment with UTR ${cleanUtr}`, {
+    paymentId: payment._id,
+    supplierId: currentUser._id,
+    utr: cleanUtr,
+  });
+
+  // Trigger alert to Admin
+  try {
+    const adminUser = await User.findOne({ role: 'admin' });
+    if (adminUser) {
+      await createAlert(
+        adminUser._id,
+        'New Supplier Onboarding Payment Submitted',
+        `Supplier ${currentUser.name} (${currentUser.email}) submitted a ₹40 onboarding payment with UTR: ${cleanUtr} for verification.`,
+        'OrderUpdate'
+      );
+    }
+  } catch (alertErr) {
+    console.warn('Failed to send admin notification for onboarding payment:', alertErr.message);
+  }
+
+  res.status(201).json({
+    message: 'Onboarding payment request submitted successfully! An Admin will verify your payment shortly.',
+    payment: {
+      _id: payment._id,
+      amount: payment.amount,
+      utr: payment.utr,
+      status: payment.status,
+      submittedAt: payment.submittedAt,
+    },
+  });
+});
+
 
 // @desc    Update product by supplier (Strict IDOR check)
 // @route   PUT /api/supplier/products/:id
@@ -941,4 +1129,8 @@ export {
   getSupplierProfile,
   updateSupplierProfile,
   uploadSupplierPayoutQr,
+  getSupplierOnboardingConfig,
+  getSupplierOnboardingStatus,
+  submitSupplierOnboardingPayment,
 };
+
