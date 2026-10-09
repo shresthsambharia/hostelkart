@@ -431,7 +431,7 @@ const submitSupplierOnboardingPayment = asyncHandler(async (req, res) => {
         adminUser._id,
         'New Supplier Onboarding Payment Submitted',
         `Supplier ${currentUser.name} (${currentUser.email}) submitted a ₹40 onboarding payment with UTR: ${cleanUtr} for verification.`,
-        'OrderUpdate'
+        'PaymentUpdate'
       );
     }
   } catch (alertErr) {

@@ -3,6 +3,7 @@ import { runDietPlannerTests } from './tests/dietPlanner.test.js';
 import { runDeliveryPartnerTests } from './tests/deliveryPartner.test.js';
 import { runAdminTests } from './tests/admin.test.js';
 import { runSupplierTests } from './tests/supplier.test.js';
+import { runSupplierOnboardingTests } from './tests/supplierOnboarding.test.js';
 import { runSystemIntegrationTests } from './test_system_integration.mjs';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
@@ -24,6 +25,7 @@ try {
   await runDeliveryPartnerTests();
   await runAdminTests();
   await runSupplierTests();
+  await runSupplierOnboardingTests();
   await runSystemIntegrationTests();
   await mongoose.disconnect();
   process.exit(0);

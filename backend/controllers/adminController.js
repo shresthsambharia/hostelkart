@@ -2845,10 +2845,18 @@ const approveSupplierOnboardingPayment = asyncHandler(async (req, res) => {
   try {
     await AdminLog.create({
       admin: req.user._id,
+      adminName: req.user.name || 'Admin',
       action: 'APPROVE_SUPPLIER_ONBOARDING_PAYMENT',
-      targetType: 'SupplierOnboardingPayment',
-      targetId: payment._id,
-      details: `Approved ₹40 onboarding payment for supplier ${payment.supplier?.name} (${payment.supplier?.email}) with UTR ${payment.utr}`,
+      method: req.method || 'PUT',
+      url: req.originalUrl || req.url || '/api/admin/supplier-onboarding-payments/approve',
+      details: {
+        paymentId: payment._id,
+        supplierId: payment.supplier?._id,
+        supplierName: payment.supplier?.name,
+        supplierEmail: payment.supplier?.email,
+        utr: payment.utr,
+        amount: payment.amount,
+      },
     });
   } catch (logErr) {
     console.warn('Failed to write admin log for onboarding approval:', logErr.message);
@@ -2901,7 +2909,7 @@ const rejectSupplierOnboardingPayment = asyncHandler(async (req, res) => {
         supplier._id,
         'Onboarding Payment Not Verified',
         `Your ₹40 onboarding payment could not be verified. Reason: "${rejectionReason}". Please review your UTR and submit a new payment.`,
-        'StatusUpdate'
+        'PaymentUpdate'
       );
     } catch (err) {
       console.warn('Failed to send onboarding rejection alert to supplier:', err.message);
@@ -2912,10 +2920,19 @@ const rejectSupplierOnboardingPayment = asyncHandler(async (req, res) => {
   try {
     await AdminLog.create({
       admin: req.user._id,
+      adminName: req.user.name || 'Admin',
       action: 'REJECT_SUPPLIER_ONBOARDING_PAYMENT',
-      targetType: 'SupplierOnboardingPayment',
-      targetId: payment._id,
-      details: `Rejected ₹40 onboarding payment for supplier ${payment.supplier?.name} (${payment.supplier?.email}) with UTR ${payment.utr}. Reason: ${rejectionReason}`,
+      method: req.method || 'PUT',
+      url: req.originalUrl || req.url || '/api/admin/supplier-onboarding-payments/reject',
+      details: {
+        paymentId: payment._id,
+        supplierId: payment.supplier?._id,
+        supplierName: payment.supplier?.name,
+        supplierEmail: payment.supplier?.email,
+        utr: payment.utr,
+        amount: payment.amount,
+        rejectionReason,
+      },
     });
   } catch (logErr) {
     console.warn('Failed to write admin log for onboarding rejection:', logErr.message);
