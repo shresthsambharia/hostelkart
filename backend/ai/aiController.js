@@ -11,6 +11,8 @@ import { logger } from '../utils/logger.js';
 import { prompts } from './prompts.js';
 import { SYSTEM_PROMPT } from './systemPrompt.js';
 
+import { STUDENT_VISIBLE_CATEGORIES } from '../config/constants.js';
+
 /**
  * @desc    Check Gemini AI integration configuration health
  * @route   GET /api/ai/health
@@ -56,20 +58,38 @@ export const searchProductsImpl = async (query) => {
   const categoryAliases = {
     fruits: 'Fruits',
     fruit: 'Fruits',
+    seb: 'Fruits',
+    kela: 'Fruits',
     medicines: 'Medicines',
     medicine: 'Medicines',
-    snacks: 'Snacks',
-    snack: 'Snacks',
-    dairy: 'Dairy Products',
-    'dairy products': 'Dairy Products',
-    vegetables: 'Vegetables',
-    vegetable: 'Vegetables',
-    beverages: 'Beverages',
-    beverage: 'Beverages',
+    dawa: 'Medicines',
+    dawai: 'Medicines',
+    pharma: 'Medicines',
     stationery: 'Stationery',
-    'hostel essentials': 'Hostel Essentials',
-    'personal care': 'Personal Care',
-    'electronics accessories': 'Electronics Accessories'
+    stationeries: 'Stationery',
+    stationary: 'Stationery',
+    pen: 'Stationery',
+    pens: 'Stationery',
+    notebook: 'Stationery',
+    notebooks: 'Stationery',
+    register: 'Stationery',
+    registers: 'Stationery',
+    diary: 'Stationery',
+    diaries: 'Stationery',
+    planner: 'Stationery',
+    book: 'Stationery',
+    books: 'Stationery',
+    pencil: 'Stationery',
+    pencils: 'Stationery',
+    marker: 'Stationery',
+    markers: 'Stationery',
+    'exotic fruits': 'Exotic Fruits',
+    'exotic fruit': 'Exotic Fruits',
+    exotic: 'Exotic Fruits',
+    'clothes essentials': 'Clothes Essentials',
+    clothes: 'Clothes Essentials',
+    clothing: 'Clothes Essentials',
+    essentials: 'Clothes Essentials'
   };
 
   if (categoryAliases[normalizedQuery]) {
@@ -106,7 +126,14 @@ export const searchProductsImpl = async (query) => {
     snacks: ['snack', 'biscuits', 'chips', 'nuts', 'almonds', 'cashews', 'popcorn'],
     protein: ['paneer', 'curd', 'yogurt', 'peanut', 'almond', 'cashew', 'milk', 'soya'],
     gym: ['banana', 'peanut', 'almond', 'paneer', 'curd', 'yogurt', 'milk'],
-    workout: ['banana', 'peanut', 'almond', 'paneer', 'curd', 'yogurt', 'milk']
+    workout: ['banana', 'peanut', 'almond', 'paneer', 'curd', 'yogurt', 'milk'],
+    pen: ['ball', 'gel', 'roller', 'pilot', 'pentonic', 'uniball'],
+    pens: ['ball', 'gel', 'roller', 'pilot', 'pentonic', 'uniball'],
+    notebook: ['spiral', 'pulse', 'navneet', 'yuva', 'classmate', 'diary'],
+    notebooks: ['spiral', 'pulse', 'navneet', 'yuva', 'classmate', 'diary'],
+    diary: ['planner', 'to-do', 'todo', 'schedule'],
+    marker: ['whiteboard', 'chameleon', 'marker'],
+    pencil: ['apsara', 'platinum', 'dark', 'pencil']
   };
 
   const scoredProducts = allProducts.map(product => {
@@ -304,11 +331,159 @@ const updateCartImpl = async (productId, quantity, user) => {
   return await viewCartImpl(user);
 };
 
-export const trackOrderImpl = async (user) => {
+export const getCategoriesImpl = async () => {
+  const categoriesList = STUDENT_VISIBLE_CATEGORIES || ['Fruits', 'Medicines', 'Stationery', 'Exotic Fruits', 'Clothes Essentials'];
+  const categoriesWithCounts = await Promise.all(
+    categoriesList.map(async (cat) => {
+      const count = await Product.countDocuments({
+        category: { $regex: new RegExp(`^${cat}$`, 'i') },
+        isAvailable: true
+      });
+      return {
+        category: cat,
+        productCount: count,
+        status: count > 0 ? 'Available' : 'Coming Soon'
+      };
+    })
+  );
+  return {
+    success: true,
+    totalCategories: categoriesList.length,
+    categories: categoriesWithCounts
+  };
+};
+
+export const getActiveCouponsImpl = async () => {
+  const now = new Date();
+  const coupons = await Coupon.find({
+    active: true,
+    expiryDate: { $gte: now }
+  }).select('code description discountType discountValue minimumOrderAmount maximumDiscount expiryDate');
+
+  if (!coupons || coupons.length === 0) {
+    return {
+      success: true,
+      count: 0,
+      message: 'No discount coupons are currently active. Please check back soon for seasonal promotions!',
+      coupons: []
+    };
+  }
+
+  return {
+    success: true,
+    count: coupons.length,
+    coupons: coupons.map(c => ({
+      code: c.code,
+      description: c.description,
+      discount: c.discountType === 'percentage' ? `${c.discountValue}% OFF` : `₹${c.discountValue} FLAT OFF`,
+      minimumOrder: `₹${c.minimumOrderAmount}`,
+      maximumDiscount: c.maximumDiscount ? `₹${c.maximumDiscount}` : 'No Limit',
+      validUntil: c.expiryDate ? c.expiryDate.toISOString().split('T')[0] : 'Active'
+    }))
+  };
+};
+
+export const getDeliveryInfoImpl = async () => {
+  return {
+    success: true,
+    service: 'HostelKart Room Corridor Delivery',
+    policy: 'HostelKart delivers all essentials directly to student hostel room corridors across campus.',
+    deliverySlots: [
+      { slot: 'Morning Slot', timings: '8:00 AM - 1:00 PM', description: 'Early morning delivery for breakfast, fruits, medicines & study essentials.' },
+      { slot: 'Evening Slot', timings: '5:00 PM - 10:00 PM', description: 'Post-lecture & evening delivery directly to your room corridor.' }
+    ],
+    convenienceFee: 'Standard ₹15 platform & convenience fee. Free delivery applies automatically with eligible coupon codes.',
+    note: 'Delivery slot is selected inside the Cart / Checkout screen.'
+  };
+};
+
+export const getSupportOptionsImpl = async (user) => {
+  return {
+    success: true,
+    portal: 'HostelKart Support Portal (/support)',
+    supportEmail: 'support@hostelkart.com',
+    supportDesk: 'Campus Student Helpdesk',
+    resolutionTime: 'Typically within 2-4 hours for hostel campus orders.',
+    ticketTypes: ['Order Delivery Status', 'Payment & Refund Issue', 'Wrong / Missing Item', 'Product Quality', 'Custom Request'],
+    howToSubmitTicket: 'Navigate to Help & Support (/support), choose the ticket category, provide your order number and issue details, and click Submit.',
+    isLoggedIn: !!user
+  };
+};
+
+export const getUserOrdersImpl = async (user) => {
+  if (!user) {
+    return {
+      success: false,
+      error: 'Authentication required. Please sign in to your student account to view your orders.'
+    };
+  }
+  const orders = await Order.find({ user: user._id })
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .lean();
+
+  if (!orders || orders.length === 0) {
+    return {
+      success: true,
+      count: 0,
+      message: 'You have not placed any orders yet. Explore our Fruits & Stationery categories to get started!',
+      orders: []
+    };
+  }
+
+  return {
+    success: true,
+    count: orders.length,
+    orders: orders.map(o => ({
+      orderId: o._id.toString(),
+      orderNumber: o.orderNumber || o._id.toString().slice(-8).toUpperCase(),
+      status: o.orderStatus,
+      paymentStatus: o.paymentStatus,
+      totalAmount: `₹${o.totalAmount}`,
+      deliverySlot: o.deliverySlot,
+      hostelRoom: o.deliveryDetails ? `${o.deliveryDetails.hostelName} Room ${o.deliveryDetails.roomNumber}` : 'Hostel Corridor',
+      items: (o.items || []).map(i => `${i.name} (Qty: ${i.quantity})`),
+      orderedAt: o.createdAt ? o.createdAt.toLocaleDateString('en-IN') : 'Recent'
+    }))
+  };
+};
+
+export const trackOrderImpl = async (user, orderQuery) => {
   if (!user) return { success: false, error: 'Unauthorized: Please log in to view your orders.' };
-  const orders = await Order.find({ user: user._id }).sort({ createdAt: -1 }).limit(3);
+
+  let filter = { user: user._id };
+  let specificSearch = false;
+  if (orderQuery && typeof orderQuery === 'string' && orderQuery.trim()) {
+    specificSearch = true;
+    const clean = orderQuery.trim();
+    if (/^[0-9a-fA-F]{24}$/.test(clean)) {
+      filter._id = clean;
+    } else {
+      filter.$or = [
+        { orderNumber: clean },
+        { orderNumber: { $regex: clean, $options: 'i' } }
+      ];
+    }
+  }
+
+  let orders = await Order.find(filter).sort({ createdAt: -1 }).limit(3);
+
+  // Fallback: If searched by partial/display order number (like last 8-12 hex chars of _id)
+  if (orders.length === 0 && specificSearch) {
+    const cleanUpper = orderQuery.trim().toUpperCase();
+    const candidateOrders = await Order.find({ user: user._id }).sort({ createdAt: -1 }).limit(10);
+    const matched = candidateOrders.filter(o => {
+      const displayNum = (o.orderNumber || o._id.toString().substring(12)).toUpperCase();
+      return displayNum.includes(cleanUpper) || o._id.toString().toUpperCase().includes(cleanUpper);
+    });
+    if (matched.length > 0) {
+      orders = matched.slice(0, 3);
+    }
+  }
+
   return orders.map(o => ({
     orderId: o._id.toString(),
+    orderNumber: o.orderNumber || o._id.toString().slice(-8).toUpperCase(),
     status: o.orderStatus,
     total: o.totalAmount,
     deliverySlot: o.deliverySlot,
@@ -378,6 +553,16 @@ const searchCustomRequestsImpl = async (user) => {
 export const executeTool = async (name, args, user) => {
   try {
     switch (name) {
+      case 'getCategories':
+        return await getCategoriesImpl();
+      case 'getActiveCoupons':
+        return await getActiveCouponsImpl();
+      case 'getDeliveryInfo':
+        return await getDeliveryInfoImpl();
+      case 'getSupportOptions':
+        return await getSupportOptionsImpl(user);
+      case 'getUserOrders':
+        return await getUserOrdersImpl(user);
       case 'getProductsByCategory':
         return await getProductsByCategoryImpl(args.category);
       case 'searchProducts':
@@ -395,7 +580,7 @@ export const executeTool = async (name, args, user) => {
       case 'placeOrder':
         return { success: true, message: "To place an order, please review your shopping cart in the Cart screen and click 'Proceed to Checkout'. Ensure your wallet is funded." };
       case 'trackOrder':
-        return await trackOrderImpl(user);
+        return await trackOrderImpl(user, args?.orderQuery || args?.orderId);
       case 'searchMedicines':
         return await searchMedicinesImpl(args.query);
       case 'createMedicineRequest':
@@ -477,12 +662,52 @@ export const chatWithAI = asyncHandler(async (req, res) => {
     {
       functionDeclarations: [
         {
+          name: 'getCategories',
+          description: 'Get all live product categories in HostelKart (Fruits, Medicines, Stationery, Exotic Fruits, Clothes Essentials) and available item counts from the database.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {}
+          }
+        },
+        {
+          name: 'getActiveCoupons',
+          description: 'Get all currently active discount coupons, promo codes, minimum order requirements, and discount rates from the live database.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {}
+          }
+        },
+        {
+          name: 'getDeliveryInfo',
+          description: 'Get current delivery information, scheduled Morning/Evening slots, room corridor delivery policy, and delivery fees.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {}
+          }
+        },
+        {
+          name: 'getSupportOptions',
+          description: 'Get instructions and help desk options for contacting support, raising a ticket, or reporting order issues.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {}
+          }
+        },
+        {
+          name: 'getUserOrders',
+          description: 'Retrieve the authenticated student’s recent orders with status, total price, items, and delivery slot.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {}
+          }
+        },
+        {
           name: 'getProductsByCategory',
-          description: 'Retrieve all products belonging to a specific category (e.g. \'Fruits\', \'Snacks\', \'Dairy Products\', \'Medicines\', \'Vegetables\', \'Beverages\', \'Stationery\') from the live database. Use this to count or list all products in that category.',
+          description: 'Retrieve all products belonging to a specific category (e.g. \'Fruits\', \'Medicines\', \'Stationery\', \'Exotic Fruits\', \'Clothes Essentials\') from the live database. Use this to count or list all products in that category.',
           parameters: {
             type: 'OBJECT',
             properties: {
-              category: { type: 'STRING', description: 'The category to retrieve (e.g. \'Fruits\', \'Snacks\', \'Dairy Products\', \'Medicines\', \'Vegetables\', \'Beverages\')' }
+              category: { type: 'STRING', description: 'The category to retrieve (e.g. \'Fruits\', \'Medicines\', \'Stationery\', \'Exotic Fruits\', \'Clothes Essentials\')' }
             },
             required: ['category']
           }
@@ -554,7 +779,7 @@ export const chatWithAI = asyncHandler(async (req, res) => {
         },
         {
           name: 'placeOrder',
-          description: 'Place an order for the items currently in the user\'s cart.',
+          description: 'Guide the user on how to review their cart and proceed to checkout.',
           parameters: {
             type: 'OBJECT',
             properties: {}
@@ -562,10 +787,12 @@ export const chatWithAI = asyncHandler(async (req, res) => {
         },
         {
           name: 'trackOrder',
-          description: 'Track the status of the user\'s active orders.',
+          description: 'Track the status of the user\'s active orders. Optionally pass orderId or orderNumber to look up a specific order.',
           parameters: {
             type: 'OBJECT',
-            properties: {}
+            properties: {
+              orderQuery: { type: 'STRING', description: 'Optional order number or ID to track a specific order' }
+            }
           }
         },
         {

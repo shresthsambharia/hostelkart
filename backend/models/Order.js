@@ -72,6 +72,11 @@ const orderSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+    orderNumber: {
+      type: String,
+      default: '',
+      index: true,
+    },
     items: [orderItemSchema],
     deliveryDetails: {
       hostelName: { type: String, required: true },
