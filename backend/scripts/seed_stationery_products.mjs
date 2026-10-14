@@ -9,7 +9,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
+const GENERIC_FALLBACK_IMAGE = 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg';
+
 export const stationeryProductsToAdd = [
+  // 1. Notebook 1 of 8
   {
     name: 'Classmate Pulse 6 Subject Notebook, Multicolor, 1 Piece',
     price: 180,
@@ -18,9 +21,9 @@ export const stationeryProductsToAdd = [
     stock: 50,
     discount: 0,
     deliveryTime: 'Scheduled Delivery',
-    brand: '',
-    description: '',
-    image: '',
+    brand: 'Classmate',
+    description: 'Classmate Pulse 6 Subject Notebook with vibrant multicolor divider sheets. High-quality smooth paper for college lecture notes and assignments.',
+    image: GENERIC_FALLBACK_IMAGE,
     isAvailable: true,
     approvalStatus: 'approved',
   },
@@ -32,9 +35,9 @@ export const stationeryProductsToAdd = [
     stock: 50,
     discount: 0,
     deliveryTime: 'Scheduled Delivery',
-    brand: '',
-    description: '',
-    image: '',
+    brand: 'HostelKart Stationery',
+    description: 'To-Do List daily task planner diary with checkboxes for organizing studies and hostel routines.',
+    image: GENERIC_FALLBACK_IMAGE,
     isAvailable: true,
     approvalStatus: 'approved',
   },
@@ -46,12 +49,13 @@ export const stationeryProductsToAdd = [
     stock: 50,
     discount: 0,
     deliveryTime: 'Scheduled Delivery',
-    brand: '',
-    description: '',
-    image: '',
+    brand: 'HostelKart Stationery',
+    description: 'Daily agenda and time-blocking planner diary with premium hardbound cover for students.',
+    image: GENERIC_FALLBACK_IMAGE,
     isAvailable: true,
     approvalStatus: 'approved',
   },
+  // 2. Notebook 2 of 8
   {
     name: 'Navneet Spiral Notebook, Design may vary',
     price: 140,
@@ -60,12 +64,13 @@ export const stationeryProductsToAdd = [
     stock: 50,
     discount: 0,
     deliveryTime: 'Scheduled Delivery',
-    brand: '',
-    description: '',
-    image: '',
+    brand: 'Navneet',
+    description: 'Navneet spiral-bound notebook with durable protective cover. Premium ruled pages suitable for university coursework (cover design may vary).',
+    image: GENERIC_FALLBACK_IMAGE,
     isAvailable: true,
     approvalStatus: 'approved',
   },
+  // 3. Notebook 3 of 8
   {
     name: 'Navneet Yuva Spiral Notebook, Multicolor',
     price: 190,
@@ -74,12 +79,13 @@ export const stationeryProductsToAdd = [
     stock: 50,
     discount: 0,
     deliveryTime: 'Scheduled Delivery',
-    brand: '',
-    description: '',
-    image: '',
+    brand: 'Navneet',
+    description: 'Navneet Yuva series spiral notebook featuring vibrant multicolor cover styling and high-grade bright writing sheets.',
+    image: GENERIC_FALLBACK_IMAGE,
     isAvailable: true,
     approvalStatus: 'approved',
   },
+  // 4. Notebook 4 of 8
   {
     name: 'Yuva Spiral Notebook',
     price: 160,
@@ -88,12 +94,13 @@ export const stationeryProductsToAdd = [
     stock: 50,
     discount: 0,
     deliveryTime: 'Scheduled Delivery',
-    brand: '',
-    description: '',
-    image: '',
+    brand: 'Yuva',
+    description: 'Yuva series spiral notebook with smooth ruled pages for everyday hostel study, lectures and exam preparation.',
+    image: GENERIC_FALLBACK_IMAGE,
     isAvailable: true,
     approvalStatus: 'approved',
   },
+  // 5. Notebook 5 of 8
   {
     name: 'Classmate Pulse 6 Subject Notebook, Design may vary',
     price: 140,
@@ -102,9 +109,9 @@ export const stationeryProductsToAdd = [
     stock: 50,
     discount: 0,
     deliveryTime: 'Scheduled Delivery',
-    brand: '',
-    description: '',
-    image: '',
+    brand: 'Classmate',
+    description: 'Classmate Pulse 6 Subject notebook with multi-section dividers and sturdy binding for organizing multiple course subjects (design may vary).',
+    image: GENERIC_FALLBACK_IMAGE,
     isAvailable: true,
     approvalStatus: 'approved',
   },
@@ -116,12 +123,13 @@ export const stationeryProductsToAdd = [
     stock: 50,
     discount: 0,
     deliveryTime: 'Scheduled Delivery',
-    brand: '',
-    description: '',
-    image: '',
+    brand: 'Creative Space',
+    description: 'Outline political map of India pack (10 sheets) with clear boundary demarcation for academic projects.',
+    image: GENERIC_FALLBACK_IMAGE,
     isAvailable: true,
     approvalStatus: 'approved',
   },
+  // 6. Notebook 6 of 8 (₹60 variant)
   {
     name: 'Classmate Notebook, 1 Piece',
     price: 60,
@@ -130,12 +138,13 @@ export const stationeryProductsToAdd = [
     stock: 50,
     discount: 0,
     deliveryTime: 'Scheduled Delivery',
-    brand: '',
-    description: '',
-    image: '',
+    brand: 'Classmate',
+    description: 'Classmate long-size single subject notebook (1 Piece) with ozone-treated elemental chlorine-free paper for smooth writing.',
+    image: GENERIC_FALLBACK_IMAGE,
     isAvailable: true,
     approvalStatus: 'approved',
   },
+  // 7. Notebook 7 of 8 (₹48 variant)
   {
     name: 'Classmate Notebook, 1 Piece',
     price: 48,
@@ -144,9 +153,9 @@ export const stationeryProductsToAdd = [
     stock: 50,
     discount: 0,
     deliveryTime: 'Scheduled Delivery',
-    brand: '',
-    description: '',
-    image: '',
+    brand: 'Classmate',
+    description: 'Classmate standard-size notebook (1 Piece) with premium ruled pages, ideal for practicals, problem sheets, and daily notes.',
+    image: GENERIC_FALLBACK_IMAGE,
     isAvailable: true,
     approvalStatus: 'approved',
   },
@@ -158,12 +167,13 @@ export const stationeryProductsToAdd = [
     stock: 50,
     discount: 0,
     deliveryTime: 'Scheduled Delivery',
-    brand: '',
-    description: '',
-    image: '',
+    brand: 'Classmate',
+    description: 'Classmate millimeter grid graph book for engineering graphics, physics and mathematics practicals.',
+    image: GENERIC_FALLBACK_IMAGE,
     isAvailable: true,
     approvalStatus: 'approved',
   },
+  // 8. Notebook 8 of 8
   {
     name: 'Classmate Exercise Notebook',
     price: 50,
@@ -172,9 +182,9 @@ export const stationeryProductsToAdd = [
     stock: 50,
     discount: 0,
     deliveryTime: 'Scheduled Delivery',
-    brand: '',
-    description: '',
-    image: '',
+    brand: 'Classmate',
+    description: 'Classmate exercise notebook with durable softbound cover and neatly ruled pages for campus exercises and tutorials.',
+    image: GENERIC_FALLBACK_IMAGE,
     isAvailable: true,
     approvalStatus: 'approved',
   },
@@ -422,6 +432,7 @@ async function run() {
   console.log(`Found ${existingStationery.length} existing Stationery products in DB.`);
 
   let insertedCount = 0;
+  let updatedCount = 0;
   for (const item of stationeryProductsToAdd) {
     // Check if exact product with same name and price already exists
     const exists = await Product.findOne({
@@ -439,11 +450,32 @@ async function run() {
       console.log(`✓ Inserted: "${item.name}" (₹${item.price}) [ID: ${doc._id}]`);
       insertedCount++;
     } else {
-      console.log(`- Already exists: "${item.name}" (₹${item.price}) [ID: ${exists._id}]`);
+      const updates = {};
+      // Update image to fallback if currently empty
+      if ((!exists.image || exists.image.trim() === '') && item.image) {
+        updates.image = item.image;
+      }
+      // Update description if currently empty
+      if ((!exists.description || exists.description.trim() === '') && item.description) {
+        updates.description = item.description;
+      }
+      // Update brand if currently empty
+      if ((!exists.brand || exists.brand.trim() === '') && item.brand) {
+        updates.brand = item.brand;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await Product.updateOne({ _id: exists._id }, { $set: updates });
+        console.log(`✓ Updated missing fields on existing: "${item.name}" (₹${item.price}) [ID: ${exists._id}]`);
+        updatedCount++;
+      } else {
+        console.log(`- Already exists & up-to-date: "${item.name}" (₹${item.price}) [ID: ${exists._id}]`);
+      }
     }
   }
 
   console.log(`\nTotal newly inserted Stationery products: ${insertedCount}`);
+  console.log(`Total updated Stationery products: ${updatedCount}`);
 
   // Update Category productCount
   const finalStationeryCount = await Product.countDocuments({ category: 'Stationery' });

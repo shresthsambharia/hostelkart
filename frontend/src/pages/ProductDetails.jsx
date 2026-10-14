@@ -31,11 +31,13 @@ const ProductDetails = () => {
   const [reviewError, setReviewError] = useState('');
   const [reviewSuccess, setReviewSuccess] = useState('');
 
-  const gallery = product ? [
+  const FALLBACK_IMAGE = 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg';
+  const rawGallery = product ? [
     product.image,
-    product.imageOriginal || product.image,
-    product.imageMedium || product.image
+    product.imageOriginal,
+    product.imageMedium
   ].filter(Boolean) : [];
+  const gallery = rawGallery.length > 0 ? rawGallery : [FALLBACK_IMAGE];
 
   const handleMouseMove = (e) => {
     const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
@@ -44,7 +46,7 @@ const ProductDetails = () => {
     setZoomStyle({
       display: 'block',
       transformOrigin: `${x}% ${y}%`,
-      backgroundImage: `url(${getOptimizedImageUrl(gallery[selectedImageIndex], 1200)})`
+      backgroundImage: `url(${getOptimizedImageUrl(gallery[selectedImageIndex] || FALLBACK_IMAGE, 1200)})`
     });
   };
 
@@ -209,18 +211,22 @@ const ProductDetails = () => {
                 style={zoomStyle}
               />
               <img
-                src={getBlurPlaceholderUrl(gallery[selectedImageIndex])}
+                src={getBlurPlaceholderUrl(gallery[selectedImageIndex] || FALLBACK_IMAGE)}
                 alt=""
                 className={`absolute inset-0 w-full h-full object-contain p-6 filter blur-md transition-opacity duration-500 pointer-events-none ${
                   imageLoaded ? 'opacity-0' : 'opacity-100'
                 }`}
               />
               <img
-                src={getOptimizedImageUrl(gallery[selectedImageIndex], 800)}
-                srcSet={getResponsiveSrcSet({ ...product, image: gallery[selectedImageIndex] })}
+                src={getOptimizedImageUrl(gallery[selectedImageIndex] || FALLBACK_IMAGE, 800)}
+                srcSet={getResponsiveSrcSet({ ...product, image: gallery[selectedImageIndex] || FALLBACK_IMAGE })}
                 sizes="(max-width: 768px) 100vw, 50vw"
                 alt={product.name}
                 onLoad={() => setImageLoaded(true)}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = FALLBACK_IMAGE;
+                }}
                 className={`w-full h-full max-h-[320px] object-contain rounded-lg group-hover:scale-102 transition-all duration-500 ${
                   imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
                 }`}
@@ -249,6 +255,10 @@ const ProductDetails = () => {
                     <img
                       src={getOptimizedImageUrl(img, 150)}
                       alt={`Product Thumbnail ${idx + 1}`}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = FALLBACK_IMAGE;
+                      }}
                       className="w-full h-full object-contain"
                     />
                   </button>
@@ -573,8 +583,12 @@ const ProductDetails = () => {
             )}
 
             <img
-              src={getOptimizedImageUrl(gallery[selectedImageIndex], 1200)}
+              src={getOptimizedImageUrl(gallery[selectedImageIndex] || FALLBACK_IMAGE, 1200)}
               alt={product.name}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = FALLBACK_IMAGE;
+              }}
               className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl"
             />
 

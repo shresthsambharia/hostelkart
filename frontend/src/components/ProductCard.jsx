@@ -79,42 +79,45 @@ const ProductCard = ({ product, priority = false, reason = '' }) => {
       </div>
 
       {/* Image Container */}
-      <Link to={`/products/${product._id}`} className="block overflow-hidden bg-slate-50/50 relative pt-[100%] border-b border-slate-100">
-        {product.image ? (
-          <>
+      {(() => {
+        const FALLBACK_IMAGE = 'https://res.cloudinary.com/dquhh8aee/image/upload/v1718000000/hostelkart_fallback.jpg';
+        const displayImage = product.image || FALLBACK_IMAGE;
+
+        return (
+          <Link to={`/products/${product._id}`} className="block overflow-hidden bg-slate-50/50 relative pt-[100%] border-b border-slate-100">
             <img
-              src={getBlurPlaceholderUrl(product.image)}
+              src={getBlurPlaceholderUrl(displayImage)}
               alt=""
               className={`absolute inset-0 w-full h-full object-contain p-4 filter blur-md transition-opacity duration-500 pointer-events-none ${
                 imageLoaded ? 'opacity-0' : 'opacity-100'
               }`}
             />
             <img
-              src={getOptimizedImage(product, 'medium')}
-              srcSet={getResponsiveSrcSet(product)}
+              src={getOptimizedImage({ ...product, image: displayImage }, 'medium')}
+              srcSet={getResponsiveSrcSet({ ...product, image: displayImage })}
               sizes="(max-width: 640px) 40vw, 220px"
               alt={product.name}
               loading={priority ? undefined : "lazy"}
               onLoad={() => setImageLoaded(true)}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = FALLBACK_IMAGE;
+              }}
               className={`absolute inset-0 w-full h-full object-contain p-4 group-hover:scale-105 transition-all duration-500 ${
                 imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
               }`}
             />
-          </>
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-slate-300 font-extrabold text-xs">
-            No Image
-          </div>
-        )}
 
-        {(!product.isAvailable || product.stock === 0) && (
-          <div className="absolute inset-0 bg-slate-900/60 flex items-center justify-center backdrop-blur-[1px]">
-            <span className="bg-red-500 text-white font-black text-[9px] uppercase px-2 py-0.5 rounded-lg shadow-md tracking-wider">
-              Sold Out
-            </span>
-          </div>
-        )}
-      </Link>
+            {(!product.isAvailable || product.stock === 0) && (
+              <div className="absolute inset-0 bg-slate-900/60 flex items-center justify-center backdrop-blur-[1px]">
+                <span className="bg-red-500 text-white font-black text-[9px] uppercase px-2 py-0.5 rounded-lg shadow-md tracking-wider">
+                  Sold Out
+                </span>
+              </div>
+            )}
+          </Link>
+        );
+      })()}
 
       {/* Specifications */}
       <div className="p-3.5 flex flex-col flex-grow justify-between gap-3">
